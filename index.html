@@ -99,6 +99,9 @@ body{
 .togs .sub-t{column-span:all}
 .togs .tog,.togs .row{break-inside:avoid}
 .togs .instr{display:flex;gap:6px}
+.togs .row.two{display:flex;gap:6px}
+.togs .row.two .sel{flex:1;min-width:0}
+.togs .instr .btn.on{background:rgba(142,208,255,.18);border-color:rgba(142,208,255,.45);color:var(--accent)}
 .togs .instr .btn{flex:1}
 #controls::-webkit-scrollbar{width:6px}
 #controls::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:3px}
@@ -494,13 +497,16 @@ body.night #stage{filter:grayscale(1)}
           <option value="equidistant">Equal spacing · height true</option>
           <option value="orthographic">Globe · from infinity</option>
         </select></div>
-      <div class="row" id="facerow" hidden><label for="facing">Facing</label>
-        <select class="sel" id="facing">
-          <option value="N">North (south at top)</option>
-          <option value="E">East</option>
-          <option value="S">South (north at top)</option>
-          <option value="W">West</option>
-        </select></div>
+      <div class="row two" id="facerow" hidden>
+        <select class="sel" id="northat" title="Which way up the chart is">
+          <option value="top">North at top</option>
+          <option value="bottom">North at bottom</option>
+        </select>
+        <select class="sel" id="eastat" title="Which side east falls on. One pairing is the sky as you see it looking up; the other is its mirror, the way a globe looks from outside.">
+          <option value="right">East at right</option>
+          <option value="left">East at left</option>
+        </select>
+      </div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
       <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands <small>on a card</small></span></label>
       <div class="row instr">
@@ -1502,7 +1508,19 @@ function resize() {
 /* In the inside view the sky is a chart held overhead, with the direction you face at the bottom of
    the screen. That is a roll of the view: facing south leaves north at the top; facing north turns it
    round; east and west are a quarter turn. From outside there is no roll and north is up. */
-var facing = obs.lat < 0 ? 'N' : 'S';
+/* Which way up the chart is, and which side east falls on. The two together settle everything: a
+   whole-sky chart centred on the pole has only one handedness, so the pairing decides whether you
+   are looking at the sky as it is or at its mirror. Going round the horizon N, E, S, W runs one way
+   about the zenith when you look up and the other way on a mirrored chart, and there is no rotation
+   that turns one into the other. North at the bottom with east at the right is the sky as you see
+   it, and so is north at the top with east at the left; the other two pairings are the mirror, which
+   is what a celestial globe shows because you are outside it looking in. */
+var northTop = obs.lat < 0;                      /* the raised pole low, its opposite high */
+var eastRight = !northTop;                       /* the pairing that is not mirrored */
+var facing = obs.lat < 0 ? 'N' : 'S';            /* kept for the roll and for old links */
+function mirrorNow() { return eastRight === northTop; }
+function reflectNow() { return opt.inside && !mirrorNow(); }
+function orientFacing() { return northTop ? 'S' : 'N'; }
 var pointing = false, pointRoll = 0, pointFrozen = false;
 var ROLL = { S: 0, N: 180, E: -90, W: 90 };
 function rollFor() { return opt.inside ? ROLL[facing] || 0 : 0; }
@@ -1555,7 +1573,7 @@ function applyProjection() {
   }
   var cd = clipFor(P);
   if (cd !== projClipDeg) { projClipDeg = cd; projClipCos = Math.cos(cd * DEG); projection.clipAngle(cd); }
-  projection.rotate(rotation).scale(R0 * zoom * P.k).translate([CX, CY]).reflectX(opt.inside)
+  projection.rotate(rotation).scale(R0 * zoom * P.k).translate([CX, CY]).reflectX(reflectNow())
             .clipExtent([[-40, -40], [W + 40, H + 40]]);
   var rot = d3.geoRotation(rotation);
   var ex = unitv.apply(null, rot([0, 0])), ey = unitv.apply(null, rot([90, 0])), ez = unitv.apply(null, rot([0, 90]));
@@ -1569,7 +1587,7 @@ function proj(v) {
   var y = rotM[0][1] * v[0] + rotM[1][1] * v[1] + rotM[2][1] * v[2];
   var z = rotM[0][2] * v[0] + rotM[1][2] * v[1] + rotM[2][2] * v[2];
   var s = R0 * zoom * projF(x, Math.sqrt(y * y + z * z));
-  return [CX + (opt.inside ? -s * y : s * y), CY - s * z, x];
+  return [CX + (reflectNow() ? -s * y : s * y), CY - s * z, x];
 }
 function onScreen(p, m) { m = m || 0; return p && p[0] > -m && p[0] < W + m && p[1] > -m && p[1] < H + m; }
 
@@ -1813,7 +1831,7 @@ function draw() {
   var c = ensureSky();
   if (opt.hold && holdLst !== null) {
     var dl = c.lst - holdLst;
-    if (Math.abs(dl) > 1e-9 && !dragStart) { rotation[0] -= dl; applyProjection(); }
+    if (Math.abs(dl) > 1e-9 && (!dragStart || disc)) { rotation[0] -= dl; applyProjection(); }
   }
   holdLst = c.lst;
   var s = R0 * zoom;
@@ -2029,7 +2047,7 @@ function starRadius(mag, lim) {
 var STAR_BINS = [-0.05, 0.25, 0.55, 0.85, 1.15, 1.5, 9];
 var starBinPaths = STAR_BINS.map(function () { return null; });
 function drawStars(c) {
-  var lim = starLimit(), s = R0 * zoom, sgn = opt.inside ? -1 : 1;
+  var lim = starLimit(), s = R0 * zoom, sgn = reflectNow() ? -1 : 1;
   var m00 = rotM[0][0], m10 = rotM[1][0], m20 = rotM[2][0], m01 = rotM[0][1], m11 = rotM[1][1], m21 = rotM[2][1], m02 = rotM[0][2], m12 = rotM[1][2], m22 = rotM[2][2];
   var paths = STAR_BINS.map(function () { return new Path2D(); });
   var glow = [];
@@ -2177,10 +2195,10 @@ function screenNorthEast(v) {
   /* unit screen vectors pointing to celestial north and east at a body */
   var ll = lonlat(v), p0 = proj(v);
   var p1 = proj(unitv(ll[0], Math.min(89.99, ll[1] + 0.01)));
-  if (!p0 || !p1) return [[0, -1], [opt.inside ? -1 : 1, 0]];
+  if (!p0 || !p1) return [[0, -1], [reflectNow() ? -1 : 1, 0]];
   var dx = p1[0] - p0[0], dy = p1[1] - p0[1], l = Math.hypot(dx, dy) || 1;
   var n = [dx / l, dy / l];
-  var e = opt.inside ? [n[1], -n[0]] : [-n[1], n[0]];
+  var e = reflectNow() ? [n[1], -n[0]] : [-n[1], n[0]];
   return [n, e];
 }
 function paToAngle(pa, ne) {
@@ -2672,7 +2690,7 @@ function drawCardinals(c) {
       lx = p[0]; ly = p[1];
     } else {
       /* off the front of the sphere: put it at the edge of the window on the same bearing */
-      var dx = opt.inside ? -y : y, dy = -z, l = Math.hypot(dx, dy) || 1;
+      var dx = reflectNow() ? -y : y, dy = -z, l = Math.hypot(dx, dy) || 1;
       dx /= l; dy /= l;
       var t = Infinity;
       if (dx < 0) t = Math.min(t, (m + rad - CX) / dx); if (dx > 0) t = Math.min(t, (W - m - rad - CX) / dx);
@@ -2927,6 +2945,7 @@ var tip = document.getElementById('tip'), tipAt = [0, 0];
 
 function stopMomentum() { cancelAnimationFrame(momRaf); momRaf = null; spinV = [0, 0]; }
 function startMomentum() {
+  if (disc) { spinV = [0, 0]; return; }
   if (Math.abs(spinV[0]) + Math.abs(spinV[1]) < 0.004) { spinV = [0, 0]; return; }
   cancelAnimationFrame(momRaf);
   var last = performance.now();
@@ -2971,12 +2990,12 @@ cv.addEventListener('pointermove', function (e) {
     return;
   }
   if (dragStart && ids.length === 1) {
-    var k = pxToDeg() * 1.35, sgn = opt.inside ? -1 : 1;
+    var k = pxToDeg() * 1.35, sgn = reflectNow() ? -1 : 1;
     var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
     if (!moved && Math.abs(dx) + Math.abs(dy) <= 3) return;      /* a tap or click that wobbles is not a drag */
     moved = true;
+    if (disc) { spinCard(e.clientX, e.clientY); return; }
     var u = unroll(dx, dy);
-    if (disc) clearDisc('Instrument put down');
     rotation = [dragStart.rot[0] + sgn * u[0] * k, clamp(dragStart.rot[1] - u[1] * k, -90, 90), rotation[2]];
     var tnow = performance.now();
     if (dragStart.lastT) {
@@ -3052,7 +3071,7 @@ function zoomAbout(newZoom, mx, my) {
   applyProjection();
   var p = projection(ll);
   if (!p) return;
-  var k = pxToDeg(), sgn = opt.inside ? -1 : 1;
+  var k = pxToDeg(), sgn = reflectNow() ? -1 : 1;
   var u = unroll(mx - p[0], my - p[1]);
   rotation = [rotation[0] + sgn * u[0] * k, clamp(rotation[1] - u[1] * k, -90, 90), rotation[2]];
 }
@@ -3309,7 +3328,10 @@ function flyToZenith(z) {
   var c = ensureSky(), ll = lonlat(c.Z);
   flyTo(ll[0], ll[1], z === undefined ? 1 : z);
 }
-function resetView() { clearDisc('Instrument put down'); flyToZenith(1); }
+function resetView() {
+  if (clearDisc()) { setStatus('Instrument put down'); }
+  flyToZenith(1);
+}
 function flyToHit(h) {
   var v, z = zoom;
   if (h.kind === 'line' || h.kind === 'cardinal') return;      /* nothing to fly to: they are everywhere */
@@ -3390,7 +3412,7 @@ function resetDefaults() {
   fovDeg = DEFAULT_FOV; document.getElementById('fovsize').value = String(DEFAULT_FOV);
   projKind = DEFAULT_PROJECTION; projEl.value = DEFAULT_PROJECTION;
   document.getElementById('daystep').value = DEFAULT_DAY_STEP;
-  facing = obs.lat < 0 ? 'N' : 'S'; facingEl.value = facing;
+  northTop = obs.lat < 0; eastRight = !northTop; syncOrientUI();
   if (nightEl.checked) { nightEl.checked = false; document.body.classList.remove('night'); }
   document.getElementById('facerow').hidden = !opt.inside;
   document.getElementById('projrow').hidden = !opt.inside;
@@ -3497,15 +3519,76 @@ function orientDisc() {
   }
   applyProjection();
 }
+/* An instrument cannot be aimed. Its centre is the pole, its rim is a declination circle and its
+   horizon is cut for one latitude, so dragging it about would only take it to pieces. What a drag
+   does instead is what your thumb does to a real planisphere: it turns the star disc, and turning
+   the disc is turning time. So the card holds still and the sky runs under it.
+
+   How much time a degree of turn is worth depends on which way round the chart is, so the rate is
+   measured when the drag starts rather than assumed: the sky is held to the horizon, the horizon is
+   held to the observer, and rotating the projection about the pole carries every one of them, so one
+   probe of a horizon point gives the sign and the scale at once. */
+var SIDEREAL_MIN = 1436.0682;                    /* one turn of the sky, in minutes of ordinary clock */
+function cardTurnSlope(c) {
+  var keep = rotation[0];
+  applyProjection();
+  var b = horBearing(0, c);
+  rotation[0] = keep + 5; applyProjection();
+  var b2 = horBearing(0, c);
+  rotation[0] = keep; applyProjection();
+  if (b === null || b2 === null) return 0;
+  return (((b2 - b) * RAD + 540) % 360 - 180) / 5;
+}
+function spinCard(x, y) {
+  var r = Math.hypot(x - CX, y - CY);
+  if (r < 26) return;                            /* too near the pivot to say which way round */
+  var ang = Math.atan2(y - CY, x - CX);
+  if (dragStart.spinAng === undefined) {
+    dragStart.spinAng = ang; dragStart.spun = 0; dragStart.spinOff = offsetMin;
+    dragStart.spinSlope = cardTurnSlope(ensureSky());
+    setStatus('Turning the card runs the clock, as turning the disc of a planisphere does');
+    return;
+  }
+  dragStart.spun += ((ang - dragStart.spinAng) * RAD + 540) % 360 - 180;
+  dragStart.spinAng = ang;
+  if (!dragStart.spinSlope) return;
+  offsetMin = clamp(dragStart.spinOff - dragStart.spun / dragStart.spinSlope * (SIDEREAL_MIN / 360),
+                    -MAX_OFFSET, MAX_OFFSET);
+  refreshTime();
+}
 function clearDisc(note) {
   if (!disc) return false;
+  var sv = disc.saved;
   if (zoom < ZMIN_VIEW) zoom = disc.prevZoom;     /* still at the card's scale: take the old one back */
   disc = null; skyDirty = true;
+  if (sv) {
+    /* everything the instrument reached for goes back as it was, or the sky is left half dressed */
+    Object.keys(sv.opts).forEach(function (k) {
+      opt[k] = sv.opts[k];
+      var el = document.getElementById('L-' + k);
+      if (el) el.checked = opt[k];
+    });
+    projKind = sv.proj; projEl.value = projKind;
+    northTop = sv.northTop; eastRight = sv.eastRight; syncOrientUI();
+    holdLst = null;
+  }
+  markInstrument(null);
   if (note) setStatus(note);
   return true;
 }
+function markInstrument(kind) {
+  ['planisphere', 'astrolabe', 'astroclock'].forEach(function (id) {
+    var b = document.getElementById(id);
+    if (b) b.classList.toggle('on', (kind === 'clock' ? 'astroclock' : kind) === id);
+  });
+}
 function setInstrument(kind) {
   var I = INSTRUMENTS[kind], alat = Math.abs(obs.lat), south = obs.lat < 0;
+  var saved = disc ? disc.saved
+                   : { opts: {}, proj: projKind, northTop: northTop, eastRight: eastRight };
+  Object.keys(I.opts).concat(['inside']).forEach(function (k) {
+    if (!(k in saved.opts)) saved.opts[k] = opt[k];       /* the first snapshot is the one that counts */
+  });
   if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; }
   projKind = I.proj; projEl.value = projKind;
   Object.keys(I.opts).forEach(function (k) {
@@ -3514,11 +3597,12 @@ function setInstrument(kind) {
     if (el) el.checked = opt[k];
   });
   if (pointing) stopPointing();
-  facing = south ? 'S' : 'N'; facingEl.value = facing;   /* the raised pole low, its opposite high */
+  northTop = south; eastRight = !south; syncOrientUI();  /* the raised pole low, its opposite high */
   document.getElementById('facerow').hidden = false;
   document.getElementById('projrow').hidden = false;
   disc = { kind: kind, lat: obs.lat, deg: I.reach(alat), margin: I.margin, clip: 90,
-           prevZoom: clamp(zoom, ZMIN_VIEW, 3) };
+           prevZoom: (disc && disc.prevZoom) || clamp(zoom, ZMIN_VIEW, 3), saved: saved };
+  markInstrument(kind);
   tuneDisc();
   stopMomentum();
   if (flying) { cancelAnimationFrame(flying); flying = null; }
@@ -3528,9 +3612,13 @@ function setInstrument(kind) {
   hideTip(); draw();
   setStatus(I.note(alat));
 }
-document.getElementById('planisphere').addEventListener('click', function () { setInstrument('planisphere'); });
-document.getElementById('astrolabe').addEventListener('click', function () { setInstrument('astrolabe'); });
-document.getElementById('astroclock').addEventListener('click', function () { setInstrument('clock'); });
+function toggleInstrument(kind) {
+  if (disc && disc.kind === kind) { clearDisc('Instrument put down'); draw(); return; }
+  setInstrument(kind);
+}
+document.getElementById('planisphere').addEventListener('click', function () { toggleInstrument('planisphere'); });
+document.getElementById('astrolabe').addEventListener('click', function () { toggleInstrument('astrolabe'); });
+document.getElementById('astroclock').addEventListener('click', function () { toggleInstrument('clock'); });
 document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
 document.getElementById('nowfloat').addEventListener('click', function (e) {
   e.stopPropagation();
@@ -3548,18 +3636,25 @@ projEl.addEventListener('change', function () {
   document.getElementById('facerow').hidden = false;
   describeView(); hideTip(); draw();
 });
-var facingEl = document.getElementById('facing');
-facingEl.value = facing;
-facingEl.addEventListener('change', function () {
-  facing = facingEl.value;
-  orientDisc();
-  describeView(); hideTip(); draw();
-});
+var northEl = document.getElementById('northat'), eastEl = document.getElementById('eastat');
+function syncOrientUI() {
+  northEl.value = northTop ? 'top' : 'bottom';
+  eastEl.value = eastRight ? 'right' : 'left';
+  facing = orientFacing();
+}
+function setOrient(nTop, eRight) {
+  northTop = nTop; eastRight = eRight; syncOrientUI();
+  orientDisc(); describeView(); hideTip(); draw();
+}
+syncOrientUI();
+northEl.addEventListener('change', function () { setOrient(northEl.value === 'top', eastRight); });
+eastEl.addEventListener('change', function () { setOrient(northTop, eastEl.value === 'right'); });
 var FACING_NAME = { N: 'north', E: 'east', S: 'south', W: 'west' };
 function describeView() {
   if (!opt.inside) { setStatus('The globe from outside, north up: east is to the right, a mirror image of the sky'); return; }
-  var side = { N: 'east is to the right', S: 'east is to the left', E: 'north is to the left', W: 'north is to the right' }[facing];
-  setStatus('The sky from inside, as a chart held overhead facing ' + FACING_NAME[facing] + ': ' + side +
+  setStatus('North at the ' + (northTop ? 'top' : 'bottom') + ', east at the ' + (eastRight ? 'right' : 'left') +
+            ' \u00b7 ' + (mirrorNow() ? 'mirrored, the way a globe looks from outside'
+                                       : 'the sky as you see it looking up') +
             ' \u00b7 ' + curProj().name.toLowerCase());
 }
 var statusEl = document.getElementById('status'), statusTimer = null;
@@ -3583,7 +3678,7 @@ function setObserver(lat, lon, name, country, tz, keepView) {
   document.getElementById('lon').value = lon.toFixed(4);
   document.getElementById('subtitle').textContent = 'The sky over ' + obs.name;
   lsSet('cg-obs', obs);
-  facing = lat < 0 ? 'N' : 'S'; facingEl.value = facing;
+  northTop = lat < 0; eastRight = !northTop; syncOrientUI();
   skyDirty = true; trackCache = {}; holdLst = null;
   tickClocks(); updateScrubLabel();
   if (!keepView) flyToZenith(Math.max(1, zoom)); else draw();
@@ -3988,11 +4083,15 @@ document.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); openSearch(); return; }
   var a = document.activeElement;
   if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT')) return;
-  var step = (e.shiftKey ? 15 : 5) / Math.sqrt(zoom), sgn = opt.inside ? -1 : 1;
+  var step = (e.shiftKey ? 15 : 5) / Math.sqrt(zoom), sgn = reflectNow() ? -1 : 1;
   var arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   if (arrows[e.key]) {
+    if (disc) {                                   /* a card is turned, not aimed */
+      var mins = (e.shiftKey ? 60 : 10) * (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0);
+      if (mins) { offsetMin = clamp(offsetMin + mins, -MAX_OFFSET, MAX_OFFSET); refreshTime(); }
+      return;
+    }
     var u = unroll(arrows[e.key][0], arrows[e.key][1]);
-    if (disc) clearDisc('Instrument put down');
     rotation = [rotation[0] + sgn * u[0] * step, clamp(rotation[1] - u[1] * step, -90, 90), rotation[2]];
     draw();
   }
@@ -4146,7 +4245,8 @@ function pad(n, w) { return String(n).padStart(w, '0'); }
 function viewHash() {
   var q = [];
   q.push('o=' + [obs.lat.toFixed(4), obs.lon.toFixed(4), encodeURIComponent(obs.name), encodeURIComponent(obs.tz), encodeURIComponent(obs.country || '')].join(','));
-  q.push('v=' + [norm360(rotation[0]).toFixed(1), rotation[1].toFixed(1), zoom.toFixed(3), facing].join(','));
+  q.push('v=' + [norm360(rotation[0]).toFixed(1), rotation[1].toFixed(1), zoom.toFixed(3), facing,
+                 eastRight ? 'R' : 'L'].join(','));
   if (Math.abs(offsetMin) > 0.4) {
     var d = now();
     q.push('t=' + d.getUTCFullYear() + pad(d.getUTCMonth() + 1, 2) + pad(d.getUTCDate(), 2) +
@@ -4171,7 +4271,7 @@ function applyHash(h) {
     if (!isNaN(la) && !isNaN(lo)) {
       obs = { lat: la, lon: lo, name: decodeURIComponent(o[2] || ''), country: decodeURIComponent(o[4] || ''), tz: decodeURIComponent(o[3] || 'UTC') };
       if (!obs.name) obs.name = la.toFixed(2) + ', ' + lo.toFixed(2);
-      facing = la < 0 ? 'N' : 'S';
+      northTop = la < 0; eastRight = !northTop; syncOrientUI();
       any = true;
     }
   }
@@ -4206,7 +4306,9 @@ function applyHash(h) {
     var r0 = parseFloat(v[0]), r1 = parseFloat(v[1]), z = parseFloat(v[2]);
     if (!isNaN(r0) && !isNaN(r1)) { rotation = [r0, clamp(r1, -90, 90), 0]; any = true; hashHadView = true; }
     if (!isNaN(z)) zoom = clamp(z, ZMIN, ZMAX);
-    if (v[3] && ROLL[v[3]] !== undefined) facing = v[3];
+    if (v[3] && ROLL[v[3]] !== undefined) { facing = v[3]; northTop = facing === 'S'; eastRight = !northTop; }
+    if (v[4] === 'R' || v[4] === 'L') eastRight = v[4] === 'R';
+    syncOrientUI();
   }
   return any;
 }
@@ -4417,9 +4519,9 @@ keysEl.addEventListener('click', function (e) { if (e.target === keysEl) showKey
 
 /* ------------------------------------------------------------------ boot */
 var savedObs = lsGet('cg-obs');
-if (savedObs && typeof savedObs.lat === 'number') { obs = savedObs; facing = obs.lat < 0 ? 'N' : 'S'; }
+if (savedObs && typeof savedObs.lat === 'number') { obs = savedObs; northTop = obs.lat < 0; eastRight = !northTop; facing = orientFacing(); }
 applyHash(location.hash);
-facingEl.value = facing;
+syncOrientUI();
 document.getElementById('lat').value = obs.lat.toFixed(4);
 document.getElementById('lon').value = obs.lon.toFixed(4);
 document.getElementById('subtitle').textContent = 'The sky over ' + obs.name;
@@ -4480,18 +4582,22 @@ window.CG = {
   lineAt: lineAt, planisphere: function () { setInstrument('planisphere'); },
   astrolabe: function () { setInstrument('astrolabe'); },
   setInstrument: setInstrument, clearDisc: clearDisc, orientDisc: orientDisc,
+  offset: function () { return offsetMin; },
   moonNode: moonNode, eclPoint: eclPoint,
   disc: function () { return disc ? { kind: disc.kind, deg: disc.deg, clip: disc.clip, rpx: discRadiusPx() } : null; },
   haBearing: haBearing, sunRaOn: sunRaOn, tzOffsetMin: tzOffsetMinutes, magLimit: function (m) { if (m !== undefined) { magLimit = m; draw(); } return magLimit; },
   resetDefaults: resetDefaults, settings: function () {
     return { opt: JSON.parse(JSON.stringify(opt)), astMinKm: astMinKm, satGroup: satGroupSel, fovDeg: fovDeg,
-             projKind: projKind, facing: facing, night: nightEl.checked,
+             projKind: projKind, facing: facing, northTop: northTop, eastRight: eastRight,
+             mirrored: mirrorNow(), night: nightEl.checked,
              dayStep: document.getElementById('daystep').value, pointing: pointing };
   },
   projList: function () { return PROJECTIONS.map(function (P) { return P.key; }); },
   R0: function () { return R0; },
   setTime: function (min, days) { offsetMin = (min || 0) + (days || 0) * 1440; refreshTime(); },
-  setFacing: function (f) { facing = f; facingEl.value = f; draw(); }, rotation: function () { return rotation.slice(); },
+  setFacing: function (f) { setOrient(f === 'S', f !== 'S'); return facing; },
+  setOrient: setOrient, orient: function () { return { northTop: northTop, eastRight: eastRight, mirrored: mirrorNow() }; },
+  rotation: function () { return rotation.slice(); },
   debug: function () { return { hover: hover, tipOn: tip.classList.contains('on'), moved: moved, dragStart: !!dragStart, pointers: Object.keys(pointers).length, spinPaused: spinPaused, spin: opt.spin }; },
   riseSet: riseSet, refract: refract, comets: function () { return comets; }, showers: function () { return showers; },
   showerState: showerState, showerZhr: showerZhr, viewHash: viewHash, applyHash: applyHash, skyBrightness: function () { return skyBrightness(sky); },
