@@ -43,7 +43,8 @@ drawn on the sphere.
   the horizon as an oval sweeping over it, and the stars held still while time runs, which is the
   opposite of the usual arrangement. Run the clock and watch the night turn as the instrument does.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
-  or use the device's location. The horizon is drawn as a line on the sphere with the zenith marked
+  or use the device's location. *Set* sits under both boxes and does whatever was last typed into
+  either: a place name that has not been applied yet wins, otherwise the coordinates. The horizon is drawn as a line on the sphere with the zenith marked
   and all eight points of the compass on it, north through north-west, each staying in view by
   moving to the edge of the window when its own bearing goes round the back. The part of the sky
   below the horizon is shaded, and an altitude–azimuth grid can be switched
