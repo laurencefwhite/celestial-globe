@@ -212,8 +212,9 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
 }
 #tip.on{opacity:1}
-#tip.touch.on{pointer-events:auto}
+#tip.touch.on{pointer-events:none}
 #tip .tgo{margin-top:9px;display:flex;align-items:center;gap:8px;font-size:10px;color:var(--ink-faint)}
+#tip .tgo .btn{pointer-events:auto}
 #tip .tn{font-family:var(--serif);font-size:16px;line-height:1.2}
 #tip .tc{font-size:10.5px;color:var(--ink-faint);letter-spacing:.05em;margin-top:1px}
 #tip .tgrid{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.10);font-size:11px}
@@ -2528,10 +2529,16 @@ cv.addEventListener('pointerup', function (e) {
     if (h) {
       var same = hover && hover.kind === h.kind && sameRef(hover.ref, h.ref) && tip.classList.contains('on');
       if (same) { flyToHit(h); return; }
-      hover = { kind: h.kind, ref: h.ref }; draw(); showTip(h, e.clientX, e.clientY);
+      /* hold the sky still while an object is being read, or the second tap would land elsewhere */
+      hover = { kind: h.kind, ref: h.ref }; spinPaused = true;
+      draw(); showTip(h, e.clientX, e.clientY);
       return;
     }
-    hideTip(); hover = null; draw();
+    if (hover || tip.classList.contains('on')) {         /* a tap away from it puts the object down again */
+      hideTip(); hover = null; spinPaused = false; draw();
+      return;
+    }
+    draw();
     if (opt.spin) spinPaused = !spinPaused;
     return;
   }
