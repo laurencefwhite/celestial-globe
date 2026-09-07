@@ -25,8 +25,8 @@ drawn on the sphere.
   horizon still* off to fix the stars instead and let the horizon move.
 - **Point the phone at the sky.** On a phone the globe follows wherever the phone is aimed from the
   moment it opens, tilted to match how the phone is held, so the screen shows the patch of sky behind
-  it. A **Freeze** pill in the top corner holds the sky still while you read it and lets it follow
-  again, and the screen is kept awake while you are out under it. Where the browser insists on being
+  it. A **Freeze** pill beside the folded Layers pill holds the sky still while you read it and lets
+  it follow again, and the screen is kept awake while you are out under it. Where the browser insists on being
   asked first, as Safari does, the pill reads *Point at sky* until you tap it once.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. The horizon is drawn as a line on the sphere with the zenith marked,
@@ -100,8 +100,9 @@ drawn on the sphere.
   handed to someone else.
 - **Save the sky as a picture**, captioned with the place and the moment.
 - **Reset view, Keys, Copy link and Save image** sit together above the layers. When the sidebar is
-  folded away, Reset view comes out and sits beside the folded pill, and Freeze in the corner
-  opposite, so the two controls worth having to hand are always there.
+  folded away, Reset view and Freeze come out and sit in a row beside the folded pill, running
+  towards the middle of the screen, so they land in the same place relative to it whichever corner
+  the panel folds into.
 - **Night vision**: a red-on-black rendering of the whole page, for use at the telescope. The `n`
   key toggles it. Press `?` for the other keys.
 
