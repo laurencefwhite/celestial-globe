@@ -38,10 +38,35 @@ drawn on the sphere.
   it. A **Freeze** pill beside the folded Layers pill holds the sky still while you read it and lets
   it follow again, and the screen is kept awake while you are out under it. Where the browser insists on being
   asked first, as Safari does, the pill reads *Point at sky* until you tap it once.
-- **A planisphere**, in one press. The old brass-and-card instrument is every setting the page
-  already has, put together: the sky drawn stereographically about the pole that stands above you,
-  the horizon as an oval sweeping over it, and the stars held still while time runs, which is the
-  opposite of the usual arrangement. Run the clock and watch the night turn as the instrument does.
+- **A planisphere and an astrolabe**, one press each. Both are instruments rather than views: the
+  sky about the pole that stands above you, laid flat inside a rim that bounds the card, with
+  everything past the rim simply not there. What makes each one itself is where that rim falls and
+  what is drawn inside it.
+
+  The **planisphere** runs out to the farthest point the horizon ever reaches, declination
+  90 − |latitude| on the far side of the pole, so every star that ever rises where you are is on the
+  one card and the horizon aperture just touches the edge. It is drawn in **azimuthal equidistant**,
+  as most modern planispheres are: measuring a real one (a BBC *Sky at Night* card for 50° N) gives a
+  horizon aperture whose near edge is 0.43 of its far edge, against 0.40 predicted for equidistant,
+  0.23 for stereographic and 0.50 for equal-area. Stereographic keeps the constellation shapes true
+  but makes the horizon sky four or five times over-size, which is why the cheap cards give it up;
+  switch the projection to stereographic for the older kind. Two scales ring the card. The inner one
+  turns with the stars and carries the calendar, each date set at the right ascension the Sun has on
+  it; the outer one is fixed to the observer and carries the clock. Today's date lines up against the
+  current time on its own, to within the equation of time, which is the real instrument's own error:
+  +2 minutes on 7 September, +16 in early November, −11 in early March.
+
+  The **astrolabe** is stereographic by definition — projected from the far celestial pole onto the
+  plane of the equator — and stops at the far tropic, declination 23.4° past the equator, because
+  that projection sends the opposite pole to infinity and brass has to stop somewhere. The room left
+  over carries the **tympan**, the altitude and azimuth circles cut for one latitude and drawn only
+  above the horizon, under a **rete** whose ecliptic is a circle offset from the centre, since
+  stereographic projection turns every circle on the sphere into a circle on the plate. The limb is
+  graduated in hours of hour angle. Change the observer and the tympan is recut, which on a real one
+  meant swapping a plate.
+
+  Neither flies into place: an instrument is picked up, not travelled to. Reset view, the *From
+  inside* switch, Reset defaults, or simply dragging the sky puts it down again.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. *Set* sits under both boxes and does whatever was last typed into
   either: a place name that has not been applied yet wins, otherwise the coordinates. The horizon is drawn as a line on the sphere with the zenith marked
