@@ -132,7 +132,8 @@ def build_constellations():
     for f in con['features']:
         p = f['properties']
         c = f['geometry']['coordinates']
-        out['con'].append([f['id'], p['name'], p['gen'], r2(c[0]), r2(c[1]), int(p['rank'])])
+        gen = {'Cru': 'Crucis'}.get(f['id'], p['gen'])       # the source has Crux's genitive wrong
+        out['con'].append([f['id'], p['name'], gen, r2(c[0]), r2(c[1]), int(p['rank'])])
     for f in lines['features']:
         out['conlines'][f['id']] = [[[r2(a), r2(b)] for a, b in seg] for seg in f['geometry']['coordinates']]
     for f in bounds['features']:
