@@ -42,6 +42,8 @@ LIVE = {
     'sat_gnss.json': 'https://celestrak.org/NORAD/elements/gp.php?GROUP=gnss&FORMAT=json',
     'sbdb.json': ('https://ssd-api.jpl.nasa.gov/sbdb_query.api?fields=full_name,diameter,H,epoch,e,a,i,om,w,ma'
                   '&sb-kind=a&sb-cdata=%7B%22AND%22%3A%5B%22diameter%7CGT%7C100%22%5D%7D'),
+    'comets.json': ('https://ssd-api.jpl.nasa.gov/sbdb_query.api?fields=full_name,e,q,i,om,w,tp,epoch,M1,K1,per'
+                    '&sb-kind=c&sb-cdata=%7B%22AND%22%3A%5B%22q%7CLT%7C4.5%22%5D%7D'),
 }
 MOONS = {401: 'Phobos', 402: 'Deimos', 501: 'Io', 502: 'Europa', 503: 'Ganymede', 504: 'Callisto',
          601: 'Mimas', 602: 'Enceladus', 603: 'Tethys', 604: 'Dione', 605: 'Rhea', 606: 'Titan', 607: 'Hyperion', 608: 'Iapetus',
@@ -89,6 +91,13 @@ def bayer(s):
     return GREEK[m.group(1)] + (SUP.get(m.group(2), '') if m.group(2) else '')
 
 
+def dist_code(pc):
+    """distance in parsecs -> 16 bits; 0 means the parallax was too poor to say"""
+    if not pc or pc >= 100000 or pc <= 0:
+        return 0
+    return max(1, min(65535, int(round(math.log10(pc) * 6000)) + 20000))
+
+
 def build_stars():
     print('stars')
     iau = {int(k): v['name'] for k, v in load('starnames.json', SOURCES['starnames.json']).items() if v.get('name')}
@@ -101,22 +110,34 @@ def build_stars():
             rows.append(r)
     rows.sort(key=lambda r: float(r['mag']))
     buf = bytearray()
-    names = []
+    names, spectra, spectIdx, variables = [], [], {}, []
     for idx, r in enumerate(rows):
         ra = float(r['ra']) * 15.0
         dec = float(r['dec'])
         mag = float(r['mag'])
         ci = float(r['ci']) if r['ci'] else 0.6
-        buf += struct.pack('<iiBb', int(round(ra * 1e5)), int(round(dec * 1e5)),
-                           max(0, min(255, int(round((mag + 2) * 20)))), max(-127, min(127, int(round(ci * 50)))))
+        sp = (r['spect'] or '').strip()
+        if sp and sp not in spectIdx:
+            spectra.append(sp)
+            spectIdx[sp] = len(spectra)          # 1-based; 0 means unknown
+        buf += struct.pack('<iiBbHH', int(round(ra * 1e5)), int(round(dec * 1e5)),
+                           max(0, min(255, int(round((mag + 2) * 20)))), max(-127, min(127, int(round(ci * 50)))),
+                           spectIdx.get(sp, 0), dist_code(float(r['dist']) if r['dist'] else 0))
         hip = int(r['hip']) if r['hip'] else 0
         proper = iau.get(hip) or r['proper']
         by = bayer(r['bayer'])
         fl = r['flam']
         if proper or by or (fl and mag < 6.0):
             names.append([idx, proper or '', by, fl if mag < 6.0 else '', r['con']])
-    print('  ', len(rows), 'stars,', len(names), 'designations')
-    return {'stars': base64.b64encode(bytes(buf)).decode('ascii'), 'nstars': len(rows), 'starnames': names}
+        try:
+            lo, hi = float(r['var_max']), float(r['var_min'])       # HYG: var_max is the brighter figure
+            if hi - lo >= 0.1:
+                variables.append([idx, r['var'] or '', round(lo, 2), round(hi, 2)])
+        except (TypeError, ValueError):
+            pass
+    print('  ', len(rows), 'stars,', len(names), 'designations,', len(spectra), 'spectral types,', len(variables), 'variables')
+    return {'stars': base64.b64encode(bytes(buf)).decode('ascii'), 'nstars': len(rows), 'starnames': names,
+            'spectra': spectra, 'starvar': variables}
 
 
 def r2(x):
@@ -360,6 +381,81 @@ def build_asteroids():
     return {'asteroids': out}
 
 
+def build_comets():
+    """Comets that could come within reach of a small telescope, with their orbits as
+    perihelion distance and time rather than a mean anomaly. Long-period comets are kept only
+    while their perihelion passage is near the present; short-period ones propagate from any
+    recent apparition."""
+    print('comets')
+    d = load('comets.json', LIVE['comets.json'], insecure=True)
+    F = {n: i for i, n in enumerate(d['fields'])}
+    import datetime
+    now_jd = datetime.datetime.now(datetime.timezone.utc).timestamp() / 86400 + 2440587.5
+    out = []
+    for r in d['data']:
+        if not r[F['M1']]:
+            continue
+        e, q, tp = float(r[F['e']]), float(r[F['q']]), float(r[F['tp']])
+        per = float(r[F['per']]) / 365.25 if r[F['per']] else None
+        if e < 1 and per and per < 200:
+            if abs(tp - now_jd) / 365.25 > 60:
+                continue
+        elif abs(tp - now_jd) / 365.25 > 4:
+            continue
+        M1 = float(r[F['M1']])
+        K1 = float(r[F['K1']]) if r[F['K1']] else 10.0
+        if M1 + 5 * math.log10(max(q - 0.7, 0.1)) + K1 * math.log10(q) > 13:
+            continue
+        name = r[F['full_name']].strip()
+        out.append([name, round(e, 6), round(q, 6), round(float(r[F['i']]), 4), round(float(r[F['om']]), 4),
+                    round(float(r[F['w']]), 4), round(tp, 5), round(M1, 2), round(K1, 2)])
+    out.sort(key=lambda c: c[0])
+    print('  ', len(out), 'comets')
+    return {'comets': out}
+
+
+# Major visual meteor showers: radiant (J2000 degrees) at the peak, the peak's solar longitude,
+# the radiant's daily drift in degrees per degree of solar longitude, the meteors' speed in km/s
+# and the zenithal hourly rate. Values follow the IAU Meteor Data Center shower list and the
+# International Meteor Organization's working list of visual showers; -1 marks a variable rate.
+SHOWERS = [
+    # code, name, ra, dec, sol.long, drift ra, drift dec, km/s, zhr, from, to, parent
+    ['QUA', 'Quadrantids', 230.0, 49.0, 283.15, 0.56, -0.25, 41, 110, 281.0, 285.5, '(196256) 2003 EH1'],
+    ['ACE', 'Alpha Centaurids', 210.0, -59.0, 319.2, 1.90, -0.50, 56, 6, 315.0, 325.0, ''],
+    ['GNO', 'Gamma Normids', 239.0, -50.0, 353.0, 0.90, -0.25, 56, 6, 340.0, 5.0, ''],
+    ['LYR', 'April Lyrids', 271.0, 34.0, 32.32, 0.66, 0.02, 49, 18, 29.0, 35.0, 'C/1861 G1 Thatcher'],
+    ['PPU', 'Pi Puppids', 110.0, -45.0, 33.5, 0.40, -0.10, 18, -1, 30.0, 38.0, '26P/Grigg-Skjellerup'],
+    ['ETA', 'Eta Aquariids', 338.0, -1.0, 45.5, 0.92, 0.37, 66, 50, 35.0, 60.0, '1P/Halley'],
+    ['ELY', 'Eta Lyrids', 291.0, 43.0, 50.0, 0.56, 0.14, 43, 3, 44.0, 55.0, 'C/1983 H1 IRAS-Araki-Alcock'],
+    ['JBO', 'June Bootids', 224.0, 48.0, 95.7, 0.40, -0.20, 18, -1, 91.0, 100.0, '7P/Pons-Winnecke'],
+    ['CAP', 'Alpha Capricornids', 307.0, -10.0, 127.0, 0.97, 0.24, 23, 5, 110.0, 140.0, '169P/NEAT'],
+    ['SDA', 'Southern Delta Aquariids', 340.0, -16.0, 127.0, 0.75, 0.21, 41, 25, 105.0, 145.0, '96P/Machholz'],
+    ['PER', 'Perseids', 48.0, 58.0, 140.0, 1.40, 0.26, 59, 100, 122.0, 145.5, '109P/Swift-Tuttle'],
+    ['KCG', 'Kappa Cygnids', 286.0, 59.0, 145.0, 0.40, 0.05, 25, 3, 138.0, 153.0, ''],
+    ['AUR', 'Aurigids', 91.0, 39.0, 158.6, 1.24, -0.01, 66, 6, 155.0, 162.0, 'C/1911 N1 Kiess'],
+    ['SPE', 'September Epsilon Perseids', 47.0, 40.0, 166.7, 1.17, 0.26, 64, 5, 160.0, 172.0, ''],
+    ['DRA', 'October Draconids', 262.0, 54.0, 195.4, 0.34, -0.05, 20, -1, 194.5, 196.5, '21P/Giacobini-Zinner'],
+    ['STA', 'Southern Taurids', 52.0, 15.0, 197.0, 0.82, 0.29, 27, 5, 170.0, 230.0, '2P/Encke'],
+    ['ORI', 'Orionids', 95.0, 16.0, 208.0, 1.03, -0.05, 66, 20, 195.0, 220.0, '1P/Halley'],
+    ['NTA', 'Northern Taurids', 58.0, 22.0, 230.0, 1.03, 0.26, 29, 5, 200.0, 245.0, '2P/Encke'],
+    ['LEO', 'Leonids', 152.0, 22.0, 235.27, 0.99, -0.36, 71, 15, 230.0, 241.0, '55P/Tempel-Tuttle'],
+    ['NOO', 'November Orionids', 91.0, 16.0, 246.0, 1.03, -0.01, 41, 3, 240.0, 254.0, ''],
+    ['PHO', 'Phoenicids', 18.0, -53.0, 250.0, 0.80, -0.20, 18, -1, 246.0, 256.0, '289P/Blanpain'],
+    ['MON', 'December Monocerotids', 100.0, 8.0, 257.0, 0.97, -0.09, 41, 3, 245.0, 265.0, ''],
+    ['HYD', 'Sigma Hydrids', 125.0, 2.0, 257.0, 0.92, -0.28, 58, 7, 245.0, 270.0, ''],
+    ['GEM', 'Geminids', 112.0, 33.0, 262.2, 1.15, -0.16, 35, 150, 255.0, 266.0, '(3200) Phaethon'],
+    ['COM', 'Comae Berenicids', 175.0, 18.0, 264.0, 0.96, -0.39, 65, 3, 250.0, 280.0, ''],
+    ['DLM', 'December Leonis Minorids', 161.0, 30.0, 268.0, 0.86, 0.43, 64, 5, 255.0, 295.0, ''],
+    ['URS', 'Ursids', 217.0, 76.0, 270.7, 0.05, -0.31, 33, 10, 268.0, 274.0, '8P/Tuttle'],
+]
+
+
+def build_showers():
+    print('meteor showers')
+    print('  ', len(SHOWERS), 'showers')
+    return {'showers': SHOWERS}
+
+
 SAT_FIELDS = ['OBJECT_NAME', 'OBJECT_ID', 'EPOCH', 'MEAN_MOTION', 'ECCENTRICITY', 'INCLINATION', 'RA_OF_ASC_NODE',
               'ARG_OF_PERICENTER', 'MEAN_ANOMALY', 'EPHEMERIS_TYPE', 'CLASSIFICATION_TYPE', 'NORAD_CAT_ID', 'ELEMENT_SET_NO',
               'REV_AT_EPOCH', 'BSTAR', 'MEAN_MOTION_DOT', 'MEAN_MOTION_DDOT']
@@ -389,7 +485,8 @@ def build_cities():
 
 def main():
     data = {}
-    for fn in (build_stars, build_constellations, build_dsos, build_mw, build_planets, build_moons, build_asteroids, build_sats, build_cities):
+    for fn in (build_stars, build_constellations, build_dsos, build_mw, build_planets, build_moons, build_asteroids,
+               build_comets, build_showers, build_sats, build_cities):
         data.update(fn())
     payload = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
     payload = payload.replace('</', '<\\/')
