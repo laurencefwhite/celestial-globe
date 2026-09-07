@@ -38,7 +38,8 @@ drawn on the sphere.
   it. A **Freeze** pill beside the folded Layers pill holds the sky still while you read it and lets
   it follow again, and the screen is kept awake while you are out under it. Where the browser insists on being
   asked first, as Safari does, the pill reads *Point at sky* until you tap it once.
-- **A planisphere and an astrolabe**, one press each. Both are instruments rather than views: the
+- **A planisphere, an astrolabe and an astronomical clock**, one press each. All three are
+  instruments rather than views: the
   sky about the pole that stands above you, laid flat inside a rim that bounds the card, with
   everything past the rim simply not there. What makes each one itself is where that rim falls and
   what is drawn inside it.
@@ -65,8 +66,24 @@ drawn on the sphere.
   graduated in hours of hour angle. Change the observer and the tympan is recut, which on a real one
   meant swapping a plate.
 
-  Neither flies into place: an instrument is picked up, not travelled to. Reset view, the *From
-  inside* switch, Reset defaults, or simply dragging the sky puts it down again.
+  The **astronomical clock** is the astrolabe with hands, as at Prague. A gilt **sun hand** and a
+  **moon hand** run from the pole at the centre out to the rim, each with a bead on it where the body
+  actually is, and between them lies the **dragon**: one bar along the line where the Moon's path
+  crosses the ecliptic, head at the ascending node and tail at the descending. The dragon is not
+  decoration. An eclipse can only happen when the Sun and the Moon are both near that line, so when a
+  hand lies along the dragon something is about to be covered up — which is what the clock was for.
+  Point at the bar and it says how far the Sun is from the line and whether that is an eclipse season.
+  The mean node follows Meeus 47.7 and runs backwards round the sky in 18.6 years; at the total solar
+  eclipse of 2 August 2027 it puts the Sun 1.6° from the line, which is why that eclipse is so long,
+  and 84.7° away on an ordinary day in May. The hands can be switched on over any of the three from
+  *Clock hands* in the Layers panel.
+
+  All three are held square: the meridian stands upright, with the direction you are facing at the
+  bottom of the card and its opposite at the top. A planisphere for 50° N reads with north low and
+  south high, which is how the printed ones are laid out, and the *Facing* control turns the card to
+  any of the four quarters. None of them flies into place: an instrument is picked up, not travelled
+  to. Reset view, the *From inside* switch, Reset defaults, or simply dragging the sky puts it down
+  again.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. *Set* sits under both boxes and does whatever was last typed into
   either: a place name that has not been applied yet wins, otherwise the coordinates. The horizon is drawn as a line on the sphere with the zenith marked
