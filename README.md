@@ -59,9 +59,14 @@ drawn on the sphere.
   Gonggong, Quaoar, Sedna and Orcus.
 - **104 comets** that come within reach of a small telescope, drawn with a coma and a tail turned away
   from the Sun whose length stands for the brightness. Fainter ones appear as you zoom in.
-- **The 27 major meteor showers**, with the radiant drawn where it stands on the night shown, marked
-  the more strongly the nearer the peak. The card gives the peak date for that year, the rate at
-  best, the speed of the meteors and the comet or asteroid the debris came from.
+- **The 27 major meteor showers**, with the radiant drawn where it stands on the night shown and sized
+  and brightened by the rate the shower is actually running at. That rate is estimated from the peak
+  rate and each shower's own published season, so the Quadrantids are a spike a day wide and the
+  Taurids a plateau lasting weeks, rather than both being treated the same. A shower still a
+  fortnight off is drawn faintly with the days to its peak. The card gives the peak date for that
+  year, the rate overhead now, what you would actually see once the radiant's height is allowed for
+  (nothing at all while it is below the horizon), the rate at its best, the speed of the meteors,
+  the comet or asteroid the debris came from, and a warning when the Moon is up to spoil it.
 - **Satellites** as seen from the observer, propagated with SGP4 from CelesTrak elements: the space
   stations, the brightest hundred-odd, the science missions, or the navigation constellations. Each
   can carry a track across the sky, dashed for the recent past and solid for the minutes ahead, and
@@ -133,7 +138,12 @@ ephemeris.
 
 Meteor shower radiants and rates follow the IAU Meteor Data Center shower list and the International
 Meteor Organization's working list of visual showers; the radiant is drifted with the Sun's longitude
-away from the peak.
+away from the peak. The rate away from the peak is an estimate, not published data: it falls by a
+factor of ten every so many degrees of solar longitude, with that width taken from each shower's own
+activity period on the assumption that the season ends where the rate has fallen to a twentieth of
+the peak, and the two sides of the peak are treated separately. What you would see is that rate
+multiplied by the sine of the radiant's altitude, which assumes a dark, clear sky and an observer
+who catches everything.
 
 ## Refreshing the data
 
