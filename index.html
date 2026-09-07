@@ -236,6 +236,16 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 }
 #status.on{opacity:1}
 
+/* the one control worth having to hand while the sidebar is folded away */
+.floatbtn{
+  position:absolute;display:none;z-index:4;height:30px;padding:0 13px;border-radius:14px;
+  background:var(--panel);border:1px solid var(--panel-brd);box-shadow:var(--shadow);
+  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
+}
+.floatbtn:hover{background:rgba(255,255,255,.07);color:var(--ink)}
+#controls.min ~ #resetfloat{display:block}
+
 /* red-and-black night vision: the stage goes to luminance, then a red multiply leaves only red light */
 #keys{position:fixed;inset:0;z-index:60;background:rgba(4,6,12,.62);display:flex;align-items:center;justify-content:center;padding:20px}
 #keys[hidden]{display:none}
@@ -378,6 +388,16 @@ body.night #stage{filter:grayscale(1)}
         <button class="btn sm" id="pointsky" title="Turn the view to wherever the phone is aimed">Point at the sky</button>
       </div>
     </div>
+    <div class="grp" id="utilgrp">
+      <div class="row">
+        <button class="btn" id="resetview" title="Recentre on the sky overhead and fit the globe">Reset view</button>
+        <button class="btn sm" id="showkeys" title="Keyboard shortcuts (?)">Keys</button>
+      </div>
+      <div class="row">
+        <button class="btn sm" id="copylink" title="Copy a link to this view">Copy link</button>
+        <button class="btn sm" id="saveimg" title="Save the sky as a picture">Save image</button>
+      </div>
+    </div>
     <div class="grp">
       <div class="grp-t">Layers</div>
       <div class="togs">
@@ -456,15 +476,9 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
       </div>
     </div>
-    <div class="grp">
-      <button class="btn" id="resetview" title="Recentre on the sky overhead and fit the globe">Reset View</button>
-      <div class="row">
-        <button class="btn sm" id="copylink" title="Copy a link to this view">Copy link</button>
-        <button class="btn sm" id="saveimg" title="Save the sky as a picture">Save image</button>
-        <button class="btn sm" id="showkeys" title="Keyboard shortcuts (?)">Keys</button>
-      </div>
-    </div>
   </div>
+
+  <button class="btn floatbtn" id="resetfloat" title="Recentre on the sky overhead and fit the globe">Reset view</button>
 
   <div class="panel" id="legend">
     <button class="pmin" data-name="Key" title="Minimise"></button>
@@ -1308,6 +1322,7 @@ function resize() {
   R0 = Math.min(W, H) * (narrow ? 0.45 : 0.455);      /* room outside the rim for the cardinal letters */
   CX = W / 2;
   CY = narrow ? H * 0.46 : H / 2;
+  placeFloatReset();
   var mast = document.getElementById('masthead'), leg = document.getElementById('legend');
   if (W > 860 && !leg.classList.contains('min')) {
     /* the key panel takes whatever height the masthead leaves it, and scrolls if that is not enough */
@@ -1342,6 +1357,17 @@ function rollFor() { return opt.inside ? ROLL[facing] || 0 : 0; }
 function unroll(dx, dy) {
   var g = rotation[2] * DEG, c = Math.cos(g), sn = Math.sin(g);
   return [dx * c + dy * sn, -dx * sn + dy * c];
+}
+/* the floating Reset view sits just inboard of the folded Layers pill, wherever that has landed */
+function placeFloatReset() {
+  var panel = document.getElementById('controls'), fb = document.getElementById('resetfloat');
+  if (!fb) return;
+  var min = panel.classList.contains('min');
+  fb.style.display = min ? 'block' : 'none';
+  if (!min) return;
+  var r = panel.getBoundingClientRect();
+  fb.style.top = Math.round(r.top) + 'px';
+  fb.style.right = Math.round(Math.max(8, window.innerWidth - r.left + 8)) + 'px';
 }
 function applyProjection() {
   rotation[2] = pointing ? pointRoll : rollFor();
@@ -2759,6 +2785,7 @@ document.getElementById('fovsize').addEventListener('change', function (e) {
 });
 document.getElementById('satgrp').addEventListener('change', function (e) { satGroupSel = e.target.value; buildSatList(); skyDirty = true; trackCache = {}; buildSearchIndex(); draw(); });
 document.getElementById('resetview').addEventListener('click', resetView);
+document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
 document.getElementById('tozenith').addEventListener('click', function () { flyToZenith(Math.max(1, zoom)); });
 
 var facingEl = document.getElementById('facing');

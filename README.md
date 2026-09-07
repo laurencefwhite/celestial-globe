@@ -92,6 +92,9 @@ drawn on the sphere.
   every layer, and *Copy link* puts it on the clipboard, so a particular sky can be bookmarked or
   handed to someone else.
 - **Save the sky as a picture**, captioned with the place and the moment.
+- **Reset view, Keys, Copy link and Save image** sit together above the layers. When the sidebar is
+  folded away, Reset view comes out and sits beside the folded pill, so the one control worth having
+  to hand is always there.
 - **Night vision**: a red-on-black rendering of the whole page, for use at the telescope. The `n`
   key toggles it. Press `?` for the other keys.
 
