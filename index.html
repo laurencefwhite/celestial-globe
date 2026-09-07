@@ -99,6 +99,23 @@ body{
 .togs .sub-t{column-span:all}
 .togs .tog,.togs .row{break-inside:avoid}
 .togs .instr{display:flex;gap:6px}
+.optline{margin:6px 0 2px;font-size:10.5px;line-height:1.5;color:var(--dim)}
+.optline b{color:var(--ink);font-weight:600}
+#field{right:18px;bottom:40px;width:252px;padding:12px 12px 10px}
+#field canvas{display:block;width:228px;height:228px;border-radius:50%;background:#02040a;margin:2px auto 0}
+#field .fld-read{margin-top:7px;font-size:10.5px;line-height:1.55;color:var(--dim);text-align:center}
+#field .fld-read b{color:var(--ink);font-weight:600}
+#field .fld-ctl{margin-top:8px;display:flex;gap:8px;align-items:center}
+#field .pad{display:grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,22px);gap:2px}
+#field .pad .btn{width:26px;height:22px;padding:0;font-size:10px}
+#field .pad .btn:nth-child(1){grid-area:1/2}
+#field .pad .btn:nth-child(2){grid-area:2/1}
+#field .pad .btn:nth-child(3){grid-area:2/2}
+#field .pad .btn:nth-child(4){grid-area:2/3}
+#field .pad .btn:nth-child(5){grid-area:3/2}
+#field .fld-sel{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+#field .fld-sel .sel{width:100%;font-size:10.5px;padding:3px 6px}
+@media (max-width:860px){ #field{right:10px;bottom:44px;width:auto} }
 .togs .row.two{display:flex;gap:6px}
 .togs .row.two .sel{flex:1;min-width:0}
 .togs .instr .btn.on{background:rgba(142,208,255,.18);border-color:rgba(142,208,255,.45);color:var(--accent)}
@@ -463,15 +480,12 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-meridian"><span class="sw"></span><span class="tl">Meridian</span></label>
       <div class="sub-t">Eyepiece</div>
       <label class="tog"><input type="checkbox" id="L-fov"><span class="sw"></span><span class="tl">Field circle</span></label>
-      <div class="row"><label for="fovsize">Field</label>
-        <select class="sel" id="fovsize">
-          <option value="6.4">7 × 50 binocular · 6.4°</option>
-          <option value="5">10 × 50 binocular · 5°</option>
-          <option value="2">Finder · 2°</option>
-          <option value="1">Eyepiece · 1°</option>
-          <option value="0.5">Eyepiece · 30′</option>
-          <option value="0.25">Eyepiece · 15′</option>
-        </select></div>
+      <label class="tog"><input type="checkbox" id="L-preview"><span class="sw"></span><span class="tl">Field preview <small>miniviewer</small></span></label>
+      <div class="row"><label for="scope">Optics</label>
+        <select class="sel" id="scope"></select></div>
+      <div class="row" id="eprow"><label for="eyepiece">Eyepiece</label>
+        <select class="sel" id="eyepiece"></select></div>
+      <div class="optline" id="optline"></div>
       <div class="sub-t">Sky conditions</div>
       <label class="tog"><input type="checkbox" id="L-daylight" checked><span class="sw"></span><span class="tl">Daylight &amp; twilight</span></label>
       <label class="tog"><input type="checkbox" id="L-refraction" checked><span class="sw"></span><span class="tl">Refraction <small>near the horizon</small></span></label>
@@ -527,6 +541,36 @@ body.night #stage{filter:grayscale(1)}
   <button class="btn floatbtn" id="pointfloat" title="Hold the sky still, or let it follow the phone again">Freeze</button>
   <button class="btn floatbtn" id="nowfloat" title="Back to the present moment">Now</button>
 
+  <div class="panel" id="field" hidden>
+    <button class="pmin" data-name="Field" title="Minimise"></button>
+    <div class="lt"><span id="fld-title">Field preview</span></div>
+    <canvas id="fld-cv" width="228" height="228"></canvas>
+    <div class="fld-read" id="fld-read"></div>
+    <div class="fld-ctl">
+      <div class="pad">
+        <button class="btn ico" data-slew="n" title="Slew north">▲</button>
+        <button class="btn ico" data-slew="w" title="Slew west">◀</button>
+        <button class="btn ico" id="fld-here" title="Point at what is selected, or at the middle of the view">⊕</button>
+        <button class="btn ico" data-slew="e" title="Slew east">▶</button>
+        <button class="btn ico" data-slew="s" title="Slew south">▼</button>
+      </div>
+      <div class="fld-sel">
+        <select class="sel" id="fld-step" title="How far one press slews">
+          <option value="field">1 field</option>
+          <option value="half">½ field</option>
+          <option value="1">1°</option>
+          <option value="0.25">15′</option>
+          <option value="0.0833">5′</option>
+          <option value="0.0167">1′</option>
+        </select>
+        <select class="sel" id="fld-track" title="What the field is held to as the clock runs">
+          <option value="sidereal">Tracking: sidereal</option>
+          <option value="altaz">Tracking: off</option>
+          <option value="lock">Tracking: locked on</option>
+        </select>
+      </div>
+    </div>
+  </div>
   <div class="panel" id="legend">
     <button class="pmin" data-name="Key" title="Minimise"></button>
     <div class="lt"><span>Stars by magnitude</span></div>
@@ -1373,13 +1417,14 @@ var opt = {
   paths: false, fov: false, daylight: true, refraction: true,
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
-  linecards: true, linelabels: false, meridian: false, hands: false,
+  linecards: true, linelabels: false, meridian: false, hands: false, preview: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
 /* how the page opens, kept so that Reset defaults has something to go back to */
 var OPT_DEFAULTS = JSON.parse(JSON.stringify(opt));
 var DEFAULT_ASTEROID_KM = 300, DEFAULT_SAT_GROUP = 'visual', DEFAULT_FOV = 6.4;
+var DEFAULT_SCOPE = 'bin750', DEFAULT_EYEPIECE = 2;
 var DEFAULT_PROJECTION = 'stereographic', DEFAULT_DAY_STEP = 'solar';
 function cometLimit() { return Math.min(17, 11 + 2.4 * Math.log2(Math.max(0.82, zoom))); }
 var fovDeg = DEFAULT_FOV;               /* the eyepiece or binocular field drawn at the centre */
@@ -1489,6 +1534,11 @@ function resize() {
     leg.style.maxHeight = Math.max(110, H - top - 74) + 'px';
     leg.style.overflowY = 'auto';
   } else { leg.style.maxHeight = ''; leg.style.overflowY = ''; }
+  var fld = document.getElementById('field'), ctl = document.getElementById('controls');
+  if (W > 860 && fld && !fld.hidden && !ctl.classList.contains('min')) {
+    var fh = fld.classList.contains('min') ? 44 : fld.getBoundingClientRect().height;
+    ctl.style.maxHeight = Math.max(140, H - 36 - fh - 14) + 'px';
+  } else if (ctl) { ctl.style.maxHeight = ''; }
   if (W > 860) {
     /* keep the globe, and the cardinal letters outside it, clear of whichever side panels are open */
     var left = 0, right = W;
@@ -1876,6 +1926,7 @@ function draw() {
   ctx.restore();
   if (disc) drawCard(c);
   if (disc && opt.hands) drawHands(c);
+  if (opt.preview) drawFieldSoon();
   if (opt.horizon) drawCardinals(c);
   placeLabels();
 
@@ -2552,8 +2603,10 @@ function drawPaths(c) {
 
 /* ------------------------------------------------- eyepiece field of view */
 function drawFieldCircle() {
-  var centre = projection.invert([CX, CY]);
+  var fc = lonlat(fieldCentre(sky || ensureSky()));
+  var centre = [fc[0] > 180 ? fc[0] - 360 : fc[0], fc[1]];
   if (!centre || isNaN(centre[0])) return;
+  fovDeg = optics().tfov;
   var circ = d3.geoCircle().center(centre).radius(fovDeg / 2).precision(0.4)();
   drawLine(circ, PAL.fov, 1.2, [4, 4]);
   var top = projection([centre[0], Math.min(89.9, centre[1] + fovDeg / 2)]);
@@ -2925,6 +2978,224 @@ function drawHands(c) {
     handGlyph(h, rp, style, style.glyph);
     addHit(CX + h.dx * at, CY + h.dy * at, 10, 'hand', { which: b.key, body: b, off: h.d > rp });
   });
+}
+
+
+/* ------------------------------------------------- the eyepiece, and the field it shows */
+/* A telescope and an eyepiece together settle everything the preview needs. Magnification is the
+   telescope's focal length over the eyepiece's; the true field is the eyepiece's apparent field
+   divided by that magnification; the exit pupil is the aperture over the magnification, and is why
+   a low power on a big instrument throws light away once the pupil grows past the eye's own, about
+   7 mm when young and nearer 5 mm later. How faint a star the aperture will show goes as its area,
+   which is the familiar 2.7 + 5 log D with D in millimetres: about 6.9 for the naked eye, 14.2 for
+   a 200 mm. Binoculars and finders carry their own field instead, since they have no eyepiece to
+   change. */
+var SCOPES = [
+  { key: 'eye',    name: 'Naked eye',                    ap: 7,   fl: 0,    fixed: 60,  mag: 1 },
+  { key: 'bin750', name: '7 \u00d7 50 binocular',        ap: 50,  fl: 0,    fixed: 6.4, mag: 7 },
+  { key: 'bin1050',name: '10 \u00d7 50 binocular',       ap: 50,  fl: 0,    fixed: 5,   mag: 10 },
+  { key: 'find950',name: '9 \u00d7 50 finder',           ap: 50,  fl: 0,    fixed: 5.5, mag: 9 },
+  { key: 'r80',    name: '80 mm f/7 refractor',          ap: 80,  fl: 560 },
+  { key: 'n130',   name: '130 mm f/5 Newtonian',         ap: 130, fl: 650 },
+  { key: 'n200',   name: '200 mm f/6 Newtonian',         ap: 200, fl: 1200 },
+  { key: 'sct200', name: '200 mm f/10 Schmidt\u2013Cassegrain', ap: 200, fl: 2000 },
+  { key: 'd300',   name: '300 mm f/5 Dobsonian',         ap: 300, fl: 1500 }
+];
+var EYEPIECES = [
+  { fl: 40, afov: 43, name: '40 mm Pl\u00f6ssl' },
+  { fl: 32, afov: 52, name: '32 mm Pl\u00f6ssl' },
+  { fl: 25, afov: 52, name: '25 mm Pl\u00f6ssl' },
+  { fl: 17, afov: 68, name: '17 mm wide field' },
+  { fl: 13, afov: 68, name: '13 mm wide field' },
+  { fl: 9,  afov: 82, name: '9 mm ultra wide' },
+  { fl: 6,  afov: 82, name: '6 mm ultra wide' },
+  { fl: 4,  afov: 82, name: '4 mm ultra wide' }
+];
+var SCOPE_BY = {};
+SCOPES.forEach(function (S) { SCOPE_BY[S.key] = S; });
+var scopeKey = DEFAULT_SCOPE, epIndex = DEFAULT_EYEPIECE;
+function apertureLimit(ap) { return 2.7 + 5 * Math.log(ap) / Math.LN10; }
+function optics() {
+  var S = SCOPE_BY[scopeKey] || SCOPES[0];
+  if (S.fixed) return { scope: S, ep: null, mag: S.mag, tfov: S.fixed,
+                        exit: S.ap / S.mag, lim: apertureLimit(S.ap) };
+  var E = EYEPIECES[epIndex] || EYEPIECES[2];
+  var m = S.fl / E.fl;
+  return { scope: S, ep: E, mag: m, tfov: E.afov / m, exit: S.ap / m, lim: apertureLimit(S.ap) };
+}
+
+/* Where the instrument is pointed, which is its own thing and not the middle of the chart: you can
+   look at the whole sky and still have the telescope on one object. What holds it there as the clock
+   runs is the tracking. Sidereal keeps it on the stars, which is what a driven mount does. Off keeps
+   it on the ground instead, so the sky drifts through the field at fifteen arcseconds a second times
+   the cosine of the declination, which is the thing every beginner meets first. Locked on follows a
+   named body, which for the Moon or a comet is not the same as sidereal at all. */
+var fieldTarget = null, trackMode = 'sidereal', fieldAltAz = null, lockKey = null;
+function fieldCentre(c) {
+  if (trackMode === 'lock' && lockKey && bodyByKey[lockKey]) return bodyByKey[lockKey].v;
+  if (trackMode === 'altaz' && fieldAltAz) return vnorm(fromHor(fieldAltAz[0], fieldAltAz[1], c));
+  if (!fieldTarget) fieldTarget = vnorm(viewV.slice());
+  return fieldTarget;
+}
+function setFieldTo(v, c) {
+  fieldTarget = vnorm(v.slice());
+  var h = toHor(fieldTarget, c);
+  fieldAltAz = [h[0], h[1]];
+}
+function slewStepDeg() {
+  var v = document.getElementById('fld-step').value, o = optics();
+  return v === 'field' ? o.tfov : v === 'half' ? o.tfov / 2 : +v;
+}
+function slew(dNorth, dEast) {
+  var c = ensureSky(), step = slewStepDeg();
+  if (trackMode === 'lock') { trackMode = 'sidereal'; document.getElementById('fld-track').value = 'sidereal'; }
+  var ll = lonlat(fieldCentre(c));
+  var dec = clamp(ll[1] + dNorth * step, -89.99, 89.99);
+  var ra = norm360(ll[0] + dEast * step / Math.max(0.02, Math.cos(dec * DEG)));
+  setFieldTo(unitv(ra, dec), c);
+  drawField(); draw();
+}
+
+/* ------------------------------------------------------------- the preview itself */
+/* An eyepiece shows a tangent plane: straight lines on the sky stay straight across a field this
+   small, so the projection is the simple one, each direction divided by its depth. Only the stars
+   the aperture can actually reach are drawn, and they are sized by how much brighter than that
+   limit they are, so a bigger instrument fills the field rather than merely magnifying it. */
+var fldCv = null, fldCtx = null, fldRaf = null;
+function drawFieldSoon() { if (!fldRaf) fldRaf = requestAnimationFrame(function () { fldRaf = null; drawField(); }); }
+function fieldBasis(C) {
+  var n = vnorm(vsub([0, 0, 1], vscale(C, C[2])));
+  if (!isFinite(n[0])) n = [1, 0, 0];
+  return { n: n, e: vnorm(cross(n, C)) };
+}
+function drawField() {
+  if (!opt.preview || !fldCv) return;
+  var g = fldCtx, size = 228, cx = size / 2, cy = size / 2, R = size / 2 - 5;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var c = ensureSky(), C = fieldCentre(c), o = optics();
+  var half = o.tfov / 2 * DEG, scale = R / Math.tan(Math.min(1.35, half));
+  var B = fieldBasis(C), sgn = reflectNow() ? -1 : 1;
+  var cosCut = Math.cos(Math.min(1.4, half * 1.35));
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, size, size);
+  g.save();
+  g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.clip();
+  /* the sky behind, so a daylight field looks like daylight */
+  var hor = toHor(C, c), bri = skyBrightness(c);
+  if (hor[0] < 0) bri = 0;                       /* pointed into the ground: nothing to light it */
+  else bri *= clamp(0.35 + hor[0] / 45, 0, 1);   /* and less of it low down than overhead */
+  g.fillStyle = 'rgb(' + Math.round(4 + 150 * bri) + ',' + Math.round(7 + 168 * bri) + ',' + Math.round(14 + 190 * bri) + ')';
+  g.fillRect(0, 0, size, size);
+  if (hor[0] < 0) {                              /* say so, rather than showing an honest black disc */
+    g.fillStyle = 'rgba(120,140,175,.55)'; g.font = '400 10px ' + FONT;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('below the horizon', cx, cy + R - 26);
+  }
+  var taken = [];
+  function label(text, x, y, colour, font) {
+    if (!text) return;
+    g.font = font; 
+    var w = g.measureText(text).width, box = [x - w / 2 - 2, y - 6, x + w / 2 + 2, y + 6];
+    if (Math.hypot(x - cx, y - cy) > R - 4) return;
+    for (var t = 0; t < taken.length; t++) {
+      var q = taken[t];
+      if (box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1]) return;
+    }
+    taken.push(box);
+    g.fillStyle = colour; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, x, y);
+  }
+  function place(v) {
+    var d = dot(v, C);
+    if (d <= 0.02) return null;
+    var X = dot(v, B.e) / d, Y = dot(v, B.n) / d;
+    return [cx + sgn * X * scale, cy - Y * scale];
+  }
+  /* stars */
+  var lim = Math.min(o.lim, SMAG[NS - 1]), shown = 0, named = [];
+  var fade = 1 - 0.85 * bri;   /* washed out by whatever light is on this part of the sky */
+  for (var i = 0; i < NS; i++) {
+    if (SMAG[i] > lim) break;
+    var vx = SX[i], vy = SY[i], vz = SZ[i];
+    if (vx * C[0] + vy * C[1] + vz * C[2] < cosCut) continue;
+    var q = place([vx, vy, vz]);
+    if (!q) continue;
+    var r = 0.6 + Math.pow(Math.max(0, lim - SMAG[i]), 0.82) * 0.5;
+    var rgb = starRGB(SBV[i]);
+    g.globalAlpha = fade;
+    g.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+    g.beginPath(); g.arc(q[0], q[1], Math.min(7, r), 0, 2 * Math.PI); g.fill();
+    g.globalAlpha = 1;
+    shown++;
+    if (starName[i] && starName[i].name && named.length < 6) named.push([q, starName[i].name]);
+  }
+  /* deep sky */
+  g.font = '400 9px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (var d0 = 0; d0 < dsoList.length; d0++) {
+    var e = dsoList[d0];
+    if (e.mag > o.lim + 1.5) continue;
+    if (dot(e.v, C) < cosCut) continue;
+    var dq = place(e.v);
+    if (!dq) continue;
+    var ra1 = Math.max(2.5, (e.a / 60) * DEG * scale / 2);
+    var rb1 = Math.max(2, (e.b / 60) * DEG * scale / 2);
+    var over = ra1 > R;
+    g.strokeStyle = 'rgba(150,225,190,' + (over ? '.4' : '.65') + ')'; g.lineWidth = 1;
+    g.setLineDash(over ? [3, 4] : []);
+    g.beginPath(); g.ellipse(dq[0], dq[1], Math.min(R * 1.5, ra1), Math.min(R * 1.5, rb1), 0, 0, 2 * Math.PI); g.stroke();
+    g.setLineDash([]);
+    label(e.id || e.name, dq[0], dq[1] - Math.min(R - 10, ra1) - 7,
+          'rgba(170,235,205,.9)', '400 9px ' + FONT);
+  }
+  /* the Sun, Moon, planets and the rest */
+  for (var b0 = 0; b0 < bodies.length; b0++) {
+    var b = bodies[b0];
+    if (dot(b.v, C) < cosCut) continue;
+    var bq = place(b.v);
+    if (!bq) continue;
+    var br = Math.max(2.2, (b.angR || 0) * RAD * DEG * scale);
+    g.fillStyle = b.colour || '#dfe6f2';
+    g.beginPath(); g.arc(bq[0], bq[1], Math.min(R * 1.5, br), 0, 2 * Math.PI); g.fill();
+    if (br > 2.5 || b.kind === 'planet' || b.kind === 'moon' || b.kind === 'sun')
+      label(b.name, bq[0], bq[1] - br - 8, 'rgba(245,240,225,.95)', '500 9.5px ' + FONT);
+  }
+  /* the brightest few stars get their names, once nothing else has claimed the room */
+  for (var k = 0; k < named.length; k++)
+    label(named[k][1], named[k][0][0], named[k][0][1] - 7, 'rgba(200,215,240,.85)', '400 9px ' + FONT);
+  g.restore();
+  /* the field stop, and which way is which */
+  g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI);
+  g.strokeStyle = 'rgba(180,205,240,.55)'; g.lineWidth = 1.4; g.stroke();
+  g.beginPath();
+  g.moveTo(cx, cy - 5); g.lineTo(cx, cy + 5); g.moveTo(cx - 5, cy); g.lineTo(cx + 5, cy);
+  g.strokeStyle = 'rgba(255,255,255,.30)'; g.lineWidth = 1; g.stroke();
+  g.font = '600 9px ' + FONT; g.fillStyle = 'rgba(180,205,240,.8)';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('N', cx, cy - R + 8);
+  g.fillText('S', cx, cy + R - 8);
+  g.fillText('E', cx + sgn * (R - 8), cy);
+  g.fillText('W', cx - sgn * (R - 8), cy);
+  fieldReadout(c, C, o, shown, hor);
+}
+function fmtFov(d) {
+  return d >= 1 ? d.toFixed(d < 3 ? 2 : 1) + '\u00b0'
+       : d * 60 >= 1 ? (d * 60).toFixed(1) + '\u2032' : (d * 3600).toFixed(0) + '\u2033';
+}
+function fieldReadout(c, C, o, shown, hor) {
+  var ll = lonlat(C), h = Math.floor(ll[0] / 15), mnt = (ll[0] / 15 - h) * 60;
+  var ra = h + 'h ' + Math.floor(mnt) + '\u2032';
+  var dec = (ll[1] >= 0 ? '+' : '\u2212') + Math.abs(ll[1]).toFixed(1) + '\u00b0';
+  var drift = 15 * Math.cos(ll[1] * DEG);                /* arcseconds a second, at this declination */
+  var lines = [
+    '<b>' + ra + '</b> ' + dec + ' \u00b7 alt <b>' + hor[0].toFixed(1) + '\u00b0</b> az ' + hor[1].toFixed(0) + '\u00b0',
+    '\u00d7<b>' + (o.mag >= 10 ? o.mag.toFixed(0) : o.mag.toFixed(1)) + '</b> \u00b7 field <b>' + fmtFov(o.tfov) +
+      '</b> \u00b7 to mag <b>' + o.lim.toFixed(1) + '</b>',
+    (o.ep ? 'exit pupil ' + o.exit.toFixed(1) + ' mm \u00b7 ' : '') + shown + ' stars in the field'
+  ];
+  if (trackMode === 'altaz') lines.push('not tracking \u00b7 drifting ' + drift.toFixed(1) + '\u2033 a second');
+  else if (trackMode === 'lock' && lockKey && bodyByKey[lockKey]) lines.push('locked on ' + bodyByKey[lockKey].name);
+  document.getElementById('fld-read').innerHTML = lines.join('<br>');
+  document.getElementById('fld-title').textContent = o.scope.name + (o.ep ? ' \u00b7 ' + o.ep.name : '');
 }
 
 /* ------------------------------------------------------------- zoom badge */
@@ -3372,6 +3643,11 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'sats' && opt.sats && !sats.length) buildSatList();
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
+    if (key === 'preview') {
+      document.getElementById('field').hidden = !opt.preview;
+      if (opt.preview) { if (!fieldTarget) setFieldTo(viewV, ensureSky()); syncOptics(); }
+      resize();
+    }
     if (key === 'inside') {
       clearDisc();
       document.getElementById('facerow').hidden = !opt.inside;
@@ -3386,11 +3662,68 @@ Object.keys(opt).forEach(function (key) {
 var nightEl = document.getElementById('L-night');
 nightEl.addEventListener('change', function () { document.body.classList.toggle('night', nightEl.checked); });
 document.getElementById('astmin').addEventListener('change', function (e) { astMinKm = +e.target.value; skyDirty = true; buildSearchIndex(); draw(); });
-document.getElementById('fovsize').addEventListener('change', function (e) {
-  fovDeg = +e.target.value;
-  if (!opt.fov) { opt.fov = true; document.getElementById('L-fov').checked = true; }
-  draw();
+/* the two selects, and everything that follows from them */
+var scopeEl = document.getElementById('scope'), epEl = document.getElementById('eyepiece');
+SCOPES.forEach(function (S) {
+  var o = document.createElement('option'); o.value = S.key; o.textContent = S.name; scopeEl.appendChild(o);
 });
+EYEPIECES.forEach(function (E, i) {
+  var o = document.createElement('option'); o.value = String(i);
+  o.textContent = E.name + ' \u00b7 ' + E.afov + '\u00b0'; epEl.appendChild(o);
+});
+function syncOptics() {
+  var o = optics();
+  fovDeg = o.tfov;
+  scopeEl.value = scopeKey; epEl.value = String(epIndex);
+  document.getElementById('eprow').hidden = !!o.scope.fixed;
+  document.getElementById('optline').innerHTML =
+    '\u00d7<b>' + (o.mag >= 10 ? o.mag.toFixed(0) : o.mag.toFixed(1)) + '</b> \u00b7 field <b>' + fmtFov(o.tfov) +
+    '</b> \u00b7 reaches mag <b>' + o.lim.toFixed(1) + '</b>' +
+    (o.ep ? '<br>exit pupil ' + o.exit.toFixed(1) + ' mm' +
+            (o.exit > 7 ? ' \u2014 wider than the eye, so light is thrown away'
+             : o.exit < 0.7 ? ' \u2014 tight enough to show the eye\u2019s own floaters' : '') : '');
+  drawField(); draw();
+}
+scopeEl.addEventListener('change', function () { scopeKey = scopeEl.value; syncOptics(); });
+epEl.addEventListener('change', function () { epIndex = +epEl.value; syncOptics(); });
+
+/* the slew pad, the step and the tracking */
+document.querySelectorAll('#field .pad [data-slew]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var d = b.getAttribute('data-slew');
+    slew(d === 'n' ? 1 : d === 's' ? -1 : 0, d === 'e' ? 1 : d === 'w' ? -1 : 0);
+  });
+});
+document.getElementById('fld-here').addEventListener('click', function () {
+  var c = ensureSky();
+  /* whatever is selected, or failing that the middle of the view */
+  if (hover && hover.kind === 'body' && hover.ref && hover.ref.key) {
+    lockKey = hover.ref.key; setFieldTo(hover.ref.v, c);
+    trackMode = 'lock'; document.getElementById('fld-track').value = 'lock';
+    setStatus('Locked on ' + hover.ref.name);
+  } else if (hover && hover.kind === 'star') {
+    setFieldTo([SX[hover.ref], SY[hover.ref], SZ[hover.ref]], c);
+  } else if (hover && hover.kind === 'dso' && dsoList[hover.ref]) {
+    setFieldTo(dsoList[hover.ref].v, c);
+  } else {
+    setFieldTo(viewV, c);
+  }
+  drawField(); draw();
+});
+document.getElementById('fld-step').addEventListener('change', function () { drawField(); });
+document.getElementById('fld-track').addEventListener('change', function (e) {
+  var c = ensureSky(), keep = fieldCentre(c).slice();
+  trackMode = e.target.value;
+  if (trackMode === 'lock' && !(lockKey && bodyByKey[lockKey])) {
+    /* nothing has been picked, so lock on whatever body is nearest the field */
+    var best = null, bd = -2;
+    bodies.forEach(function (b) { var q = dot(b.v, keep); if (q > bd) { bd = q; best = b; } });
+    if (best) { lockKey = best.key; setStatus('Locked on ' + best.name); }
+  }
+  setFieldTo(keep, c);
+  drawField(); draw();
+});
+
 document.getElementById('satgrp').addEventListener('change', function (e) { satGroupSel = e.target.value; buildSatList(); skyDirty = true; trackCache = {}; buildSearchIndex(); draw(); });
 document.getElementById('resetview').addEventListener('click', resetView);
 
@@ -3409,7 +3742,10 @@ function resetDefaults() {
   if (opt.awake) requestWake(); else releaseWake();
   astMinKm = DEFAULT_ASTEROID_KM; document.getElementById('astmin').value = String(DEFAULT_ASTEROID_KM);
   satGroupSel = DEFAULT_SAT_GROUP; document.getElementById('satgrp').value = DEFAULT_SAT_GROUP;
-  fovDeg = DEFAULT_FOV; document.getElementById('fovsize').value = String(DEFAULT_FOV);
+  scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
+  trackMode = 'sidereal'; document.getElementById('fld-track').value = 'sidereal';
+  lockKey = null; fieldTarget = null; fieldAltAz = null;
+  syncOptics();
   projKind = DEFAULT_PROJECTION; projEl.value = DEFAULT_PROJECTION;
   document.getElementById('daystep').value = DEFAULT_DAY_STEP;
   northTop = obs.lat < 0; eastRight = !northTop; syncOrientUI();
@@ -4255,7 +4591,7 @@ function viewHash() {
   var bits = 0;
   for (var i = 0; i < URL_KEYS.length; i++) if (opt[URL_KEYS[i]]) bits += Math.pow(2, i);
   q.push('L=' + bits.toString(36));
-  q.push('e=' + [astMinKm, satGroupSel, fovDeg, nightEl.checked ? 1 : 0, projKind].join(','));
+  q.push('e=' + [astMinKm, satGroupSel, scopeKey, nightEl.checked ? 1 : 0, projKind, epIndex].join(','));
   return '#' + q.join('&');
 }
 function applyHash(h) {
@@ -4290,7 +4626,8 @@ function applyHash(h) {
     var e = q.e.split(',');
     if (+e[0]) { astMinKm = +e[0]; document.getElementById('astmin').value = e[0]; }
     if (e[1]) { satGroupSel = e[1]; document.getElementById('satgrp').value = e[1]; }
-    if (+e[2]) { fovDeg = +e[2]; document.getElementById('fovsize').value = e[2]; }
+    if (e[2] && SCOPE_BY[e[2]]) { scopeKey = e[2]; }
+    if (e[5] !== undefined && +e[5] >= 0 && +e[5] < EYEPIECES.length) epIndex = +e[5];
     if (+e[3]) { nightEl.checked = true; document.body.classList.add('night'); }
     if (e[4] && PROJ_BY[e[4]]) { projKind = e[4]; projEl.value = projKind; }
     any = true;
@@ -4572,6 +4909,16 @@ fetchSatellites(function () {
 });
 
 /* a hook for checking positions against an ephemeris */
+(function initField() {
+  fldCv = document.getElementById('fld-cv');
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  fldCv.width = Math.round(228 * dpr); fldCv.height = Math.round(228 * dpr);
+  fldCtx = fldCv.getContext('2d');
+  fldCtx.scale(dpr, dpr);
+  document.getElementById('field').hidden = !opt.preview;
+  syncOptics();
+})();
+
 window.CG = {
   bodies: function () { return bodies; }, sats: function () { return satState; }, sky: function () { return sky; },
   at: function (date) { var c = skyContext(date); computeBodies(c); computeSats(c); skyDirty = true; return { c: c, bodies: bodies.slice(), sats: satState.slice() }; },
@@ -4584,6 +4931,13 @@ window.CG = {
   setInstrument: setInstrument, clearDisc: clearDisc, orientDisc: orientDisc,
   offset: function () { return offsetMin; },
   moonNode: moonNode, eclPoint: eclPoint,
+  optics: optics, scope: function (k) { if (k) { scopeKey = k; syncOptics(); } return scopeKey; },
+  eyepiece: function (i) { if (i !== undefined) { epIndex = i; syncOptics(); } return epIndex; },
+  fieldCentre: function () { return fieldCentre(ensureSky()).slice(); },
+  setFieldTo: function (v) { setFieldTo(v, ensureSky()); drawField(); draw(); },
+  lock: function (k) { lockKey = k; trackMode = 'lock'; document.getElementById('fld-track').value = 'lock'; drawField(); draw(); return lockKey; },
+  slew: slew, track: function (m) { if (m) { document.getElementById('fld-track').value = m; document.getElementById('fld-track').dispatchEvent(new Event('change')); } return trackMode; },
+  drawField: drawField,
   disc: function () { return disc ? { kind: disc.kind, deg: disc.deg, clip: disc.clip, rpx: discRadiusPx() } : null; },
   haBearing: haBearing, sunRaOn: sunRaOn, tzOffsetMin: tzOffsetMinutes, magLimit: function (m) { if (m !== undefined) { magLimit = m; draw(); } return magLimit; },
   resetDefaults: resetDefaults, settings: function () {
