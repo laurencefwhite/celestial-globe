@@ -502,9 +502,13 @@ body.night #stage{filter:grayscale(1)}
           <option value="W">West</option>
         </select></div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
+      <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands <small>on a card</small></span></label>
       <div class="row instr">
         <button class="btn sm" id="planisphere" title="The whole of the ever-visible sky on one card about the pole, with the horizon as an aperture over it">Planisphere</button>
         <button class="btn sm" id="astrolabe" title="The projection the old brass astrolabes used: the tympan cut for this latitude, bounded at the far tropic">Astrolabe</button>
+      </div>
+      <div class="row instr">
+        <button class="btn sm" id="astroclock" title="An astrolabe with the hands of an astronomical clock: the Sun, the Moon and the dragon over the tympan">Astronomical clock</button>
       </div>
       <label class="tog"><input type="checkbox" id="L-spin"><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
@@ -715,6 +719,20 @@ function moonGeo(jd) {
   r += -0.58 * c(M - 2 * Dm) - 0.46 * c(2 * Dm);
   var ecl = vscale(unitv(lon, lat), r * 6378.14);
   return matVec(rotX(obliquity(jd)), ecl);
+}
+
+/* The mean ascending node of the Moon's orbit, Meeus 47.7: where its path crosses the ecliptic
+   going north. It runs backwards round the sky in a little under 18.6 years, and matters because an
+   eclipse can only happen when the Sun and Moon are both near the line joining the two nodes. That
+   is what the dragon hand on an astronomical clock is for. */
+function moonNode(jd) {
+  var T = (jd - J2000) / 36525;
+  return norm360(125.0445479 - 1934.1362891 * T + 0.0020754 * T * T
+                 + T * T * T / 467441 - T * T * T * T / 60616000);
+}
+/* an ecliptic longitude on the ecliptic itself, as a J2000 unit vector */
+function eclPoint(lon, c) {
+  return vnorm(matVec(c.Pt, matVec(rotX(c.eps), unitv(lon, 0))));
 }
 
 /* ------------------------------------------------------------- magnitudes */
@@ -1349,7 +1367,7 @@ var opt = {
   paths: false, fov: false, daylight: true, refraction: true,
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
-  linecards: true, linelabels: false, meridian: false,
+  linecards: true, linelabels: false, meridian: false, hands: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
@@ -1817,7 +1835,7 @@ function draw() {
   if (opt.cgrid) drawCelestialGrid();
   if (opt.tropics) drawTropics();
   if (opt.ecliptic) {
-    var rete = disc && disc.kind === 'astrolabe';
+    var rete = disc && disc.kind !== 'planisphere';
     lineTrace('ecliptic', ECLIPTIC, rete ? PAL.rete : PAL.ecliptic, rete ? 1.8 : 1, rete ? null : [6, 5]);
   }
   if (opt.galactic) lineTrace('galactic', GALACTIC, PAL.galactic, 1, [2, 4]);
@@ -1839,6 +1857,7 @@ function draw() {
   if (opt.linelabels) drawLineLabels();
   ctx.restore();
   if (disc) drawCard(c);
+  if (disc && opt.hands) drawHands(c);
   if (opt.horizon) drawCardinals(c);
   placeLabels();
 
@@ -2679,9 +2698,9 @@ function drawCardinals(c) {
 }
 function drawHorizonGrid(c) {
   var altStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30, azStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30;
-  if (disc && disc.kind === 'astrolabe') { altStep = 10; azStep = 15; }   /* the tympan, cut for this latitude */
+  if (disc && disc.kind !== 'planisphere') { altStep = 10; azStep = 15; }   /* the tympan, cut for this latitude */
   var lines = { type: 'MultiLineString', coordinates: [] };
-  var plate = disc && disc.kind === 'astrolabe';
+  var plate = disc && disc.kind !== 'planisphere';
   for (var alt = -90 + altStep; alt < 90; alt += altStep) {
     if (alt === 0) continue;
     if (plate && alt < 0) continue;
@@ -2692,8 +2711,8 @@ function drawHorizonGrid(c) {
     for (var a = plate ? 0 : -88; a <= 88; a += 4) { var ll = lonlat(fromHor(a, az, c)); seg.push([ll[0] > 180 ? ll[0] - 360 : ll[0], ll[1]]); }
     lines.coordinates.push(seg);
   }
-  drawLine(lines, disc && disc.kind === 'astrolabe' ? PAL.tympan : PAL.hgrid, 1, null);
-  if (zoom >= 1.6 || (disc && disc.kind === 'astrolabe')) {
+  drawLine(lines, plate ? PAL.tympan : PAL.hgrid, 1, null);
+  if (zoom >= 1.6 || plate) {
     ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = 'rgba(255,196,120,.6)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (var a2 = altStep; a2 < 90; a2 += altStep) {
       var p = proj(fromHor(a2, 180, c)); if (onScreen(p)) { ctx.fillText(a2 + '°', p[0], p[1]); boxes.push([p[0] - 12, p[1] - 7, p[0] + 12, p[1] + 7]); }
@@ -2761,7 +2780,7 @@ function drawCard(c) {
   ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
   ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1.4; ctx.stroke();
   if (rp < 120) return;                                  /* too small to letter */
-  if (disc.kind === 'astrolabe') drawLimb(c, rp); else drawDateAndHour(c, rp);
+  if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp);
 }
 /* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
    date set at the right ascension the Sun has on it. The outer one is fixed to the observer and
@@ -2808,6 +2827,86 @@ function drawLimb(c, rp) {
     cardTick(a, rp, rp + 9, PAL.cardRim, 1.3);
     cardText(a, rp + 12.5, String(k), '600 9.5px ' + FONT, PAL.cardText);
   }
+}
+
+/* ---------------------------------------------------- the hands of an astronomical clock
+   A sun hand and a moon hand, each running from the centre of the card out to the rim through the
+   body itself, and the dragon: one bar along the line of the Moon's nodes, head at the ascending
+   node and tail at the descending. The dragon is not decoration. An eclipse can only happen when
+   the Sun and the Moon are both near that line, so when a hand lies along the dragon, something is
+   about to be covered up. On the clock at Prague the bar is drawn as the beast itself, swallowing
+   whichever body it catches. */
+var HANDS = {
+  sun: { colour: 'rgba(255,206,105,.95)', glow: 'rgba(255,190,70,.30)', width: 2.4, glyph: '\u2609' },
+  moon: { colour: 'rgba(222,231,246,.95)', glow: 'rgba(200,215,245,.22)', width: 2, glyph: '\u263d' },
+  dragon: { colour: 'rgba(168,196,140,.92)', glow: 'rgba(140,180,110,.20)', width: 2.2 }
+};
+function handDir(v) {
+  var q = proj(v);
+  if (!q) return null;
+  var dx = q[0] - CX, dy = q[1] - CY, d = Math.hypot(dx, dy);
+  if (d < 1e-6) return { dx: 0, dy: -1, d: 0 };
+  return { dx: dx / d, dy: dy / d, d: d };
+}
+function handShaft(h, rp, style, from) {
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(CX + h.dx * (from || 0), CY + h.dy * (from || 0));
+  ctx.lineTo(CX + h.dx * rp, CY + h.dy * rp);
+  ctx.strokeStyle = style.glow; ctx.lineWidth = style.width + 3.5; ctx.stroke();
+  ctx.strokeStyle = style.colour; ctx.lineWidth = style.width; ctx.stroke();
+  ctx.lineCap = 'butt';
+}
+function handGlyph(h, rp, style, glyph) {
+  ctx.save();
+  ctx.translate(CX + h.dx * (rp + 13), CY + h.dy * (rp + 13));
+  ctx.font = '600 13px ' + SERIF; ctx.fillStyle = style.colour;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(glyph, 0, 0);
+  ctx.restore();
+}
+function drawHands(c) {
+  var rp = discRadiusPx(), sun = bodyByKey.sol, moon = bodyByKey.lun;
+  /* the dragon first, so the two bright hands lie over it */
+  var om = moonNode(c.jd);
+  var asc = handDir(eclPoint(om, c)), desc = handDir(eclPoint(om + 180, c));
+  if (asc && desc) {
+    handShaft(asc, rp, HANDS.dragon);
+    handShaft(desc, rp, HANDS.dragon);
+    /* a head at the ascending node, a forked tail at the descending */
+    var hx = CX + asc.dx * (rp - 9), hy = CY + asc.dy * (rp - 9), px = -asc.dy, py = asc.dx;
+    ctx.beginPath();
+    ctx.moveTo(CX + asc.dx * rp, CY + asc.dy * rp);
+    ctx.lineTo(hx + px * 5, hy + py * 5);
+    ctx.lineTo(hx - px * 5, hy - py * 5);
+    ctx.closePath();
+    ctx.fillStyle = HANDS.dragon.colour; ctx.fill();
+    var tx = CX + desc.dx * rp, ty = CY + desc.dy * rp, qx = -desc.dy, qy = desc.dx;
+    ctx.beginPath();
+    ctx.moveTo(CX + desc.dx * (rp - 11), CY + desc.dy * (rp - 11));
+    ctx.lineTo(tx + qx * 5, ty + qy * 5);
+    ctx.moveTo(CX + desc.dx * (rp - 11), CY + desc.dy * (rp - 11));
+    ctx.lineTo(tx - qx * 5, ty - qy * 5);
+    ctx.strokeStyle = HANDS.dragon.colour; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.lineCap = 'butt';
+    handGlyph(asc, rp, HANDS.dragon, '\u260a');            /* caput draconis */
+    handGlyph(desc, rp, HANDS.dragon, '\u260b');           /* cauda draconis */
+    addHit(CX + asc.dx * rp * 0.7, CY + asc.dy * rp * 0.7, 8, 'hand',
+           { which: 'dragon', node: om, c: c });
+  }
+  [[sun, HANDS.sun], [moon, HANDS.moon]].forEach(function (pair) {
+    var b = pair[0], style = pair[1];
+    if (!b) return;
+    var h = handDir(b.v);
+    if (!h) return;
+    handShaft(h, rp, style);
+    /* a bead on the hand where the body actually is, since it may be off the card */
+    var at = Math.min(h.d, rp);
+    ctx.beginPath(); ctx.arc(CX + h.dx * at, CY + h.dy * at, style.width + 2.6, 0, 2 * Math.PI);
+    ctx.fillStyle = style.colour; ctx.fill();
+    handGlyph(h, rp, style, style.glyph);
+    addHit(CX + h.dx * at, CY + h.dy * at, 10, 'hand', { which: b.key, body: b, off: h.d > rp });
+  });
 }
 
 /* ------------------------------------------------------------- zoom badge */
@@ -3099,6 +3198,25 @@ function showTip(h, mx, my) {
     if (b.kind === 'comet') html += '<div class="tnote">Brightness from the comet\u2019s own magnitude law, which is a rough guide only.</div>';
     var bimg = pics[b.wiki] && pics[b.wiki].state === 'ok' ? pics[b.wiki].img : null;
     if (bimg && opt.pics && b.kind !== 'sun' && b.kind !== 'moon') html += '<img src="' + bimg.src + '" alt="">';
+  } else if (h.kind === 'hand') {
+    var hd = h.ref;
+    if (hd.which === 'dragon') {
+      var om2 = hd.node, sunL = sky ? lonlat(bodyByKey.sol.v) : null;
+      var sep = bodyByKey.sol ? Math.min(angSep(bodyByKey.sol.v, eclPoint(om2, sky)),
+                                         angSep(bodyByKey.sol.v, eclPoint(om2 + 180, sky))) * RAD : null;
+      html = '<div class="tn">The dragon</div><div class="tc">Line of the Moon\u2019s nodes</div>' +
+        '<div class="tnote">Where the Moon\u2019s path crosses the ecliptic. The head \u260a is the ascending node, ' +
+        'at ecliptic longitude ' + om2.toFixed(1) + '\u00b0; the tail \u260b is opposite it. It runs backwards round ' +
+        'the sky in 18.6 years. An eclipse needs the Sun within about 18\u00b0 of the line, which happens twice a year.' +
+        (sep === null ? '' : ' The Sun is ' + sep.toFixed(1) + '\u00b0 from it now\u2014' +
+          (sep < 18 ? 'inside an eclipse season.' : 'outside one.')) + '</div>';
+    } else {
+      var bh = hd.body;
+      html = '<div class="tn">' + esc(bh.name) + ' hand</div><div class="tc">Clock hand on the card</div>' +
+        '<div class="tnote">The hand runs from the pole at the centre out through the ' + esc(bh.name) +
+        (hd.off ? ', which is off the edge of the card just now, so the bead sits at the rim.' : '.') + '</div>' +
+        '<div class="tgrid">' + coordRows(bh.v, c) + '</div>';
+    }
   } else if (h.kind === 'cardinal') {
     var cd = h.ref;
     html = '<div class="tn">' + esc(cd.name) + '</div><div class="tc">' + esc('Compass point \u00b7 azimuth ' + cd.az + '\u00b0') + '</div>' +
@@ -3195,6 +3313,7 @@ function resetView() { clearDisc('Instrument put down'); flyToZenith(1); }
 function flyToHit(h) {
   var v, z = zoom;
   if (h.kind === 'line' || h.kind === 'cardinal') return;      /* nothing to fly to: they are everywhere */
+  if (h.kind === 'hand') { if (h.ref.body) { v = h.ref.body.v; z = Math.max(zoom, 2); } else return; }
   if (h.kind === 'star') { v = [SX[h.ref], SY[h.ref], SZ[h.ref]]; z = Math.max(zoom, 2.5); }
   else if (h.kind === 'shower') { v = showerState(h.ref, ensureSky()).v; z = Math.max(zoom, 1.6); }
   else if (h.kind === 'shadow') { v = h.ref.parent.v; z = Math.max(zoom, 40); }
@@ -3304,12 +3423,26 @@ var INSTRUMENTS = {
              'Azimuthal equidistant, as most modern planispheres are; switch the projection to stereographic for the older kind.';
     }
   },
+  clock: {
+    name: 'Astronomical clock', proj: 'stereographic',
+    reach: function () { return 90 + 23.44; },
+    margin: 40,
+    opts: { below: true, horizon: true, hgrid: true, cgrid: false, tropics: true,
+            ecliptic: true, connames: false, conlines: false, hold: true, spin: false,
+            hands: true, starnames: false },
+    note: function () {
+      return 'Astronomical clock: an astrolabe with hands. The Sun and the Moon ride round the tympan, ' +
+             'and the dragon lies along the line of the Moon\u2019s nodes \u2014 an eclipse can only happen ' +
+             'when both are near it. Run the clock and watch them turn.';
+    }
+  },
   astrolabe: {
     name: 'Astrolabe', proj: 'stereographic',
     reach: function () { return 90 + 23.44; },           /* the far tropic, where brass has to stop */
     margin: 40,
     opts: { below: true, horizon: true, hgrid: true, cgrid: false, tropics: true,
-            ecliptic: true, connames: false, conlines: true, hold: true, spin: false },
+            ecliptic: true, connames: false, conlines: true, hold: true, spin: false,
+            hands: false },
     note: function (alat) {
       return 'Astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': the tympan\u2019s altitude and azimuth circles cut for here, the rete\u2019s ecliptic over them, ' +
@@ -3331,6 +3464,39 @@ function tuneDisc() {
   disc.clip = Math.min(P.maxClip, Math.ceil(Math.max(disc.deg, 180 - alat) + 4));
   fitDisc();
 }
+/* A card centred on the pole can sit at any angle about it, and the angle it happened to start at
+   was arbitrary, which left the horizon aperture askew. Turn it so the meridian stands upright: the
+   raised pole's own compass point at the bottom, its opposite at the top, which is how a planisphere
+   is held and how an astrolabe is hung. Measured rather than derived, because the roll, the mirror
+   of the inside view and the projection all have a say in it; two probes settle it exactly, the
+   relation being linear in the rotation. */
+var FACE_AZ = { N: 0, E: 90, S: 180, W: 270 };
+/* the screen bearing of a point on the horizon, which is what a card is squared up against */
+function horBearing(az, c) {
+  var q = proj(fromHor(0, az, c));
+  return q ? Math.atan2(q[1] - CY, q[0] - CX) : null;
+}
+function orientDisc() {
+  if (!disc) return;
+  var c = ensureSky(), az = FACE_AZ[facing] || 0, i;
+  for (i = 0; i < 3; i++) {
+    applyProjection();
+    var b = horBearing(az, c);
+    if (b === null) return;
+    var err = ((b * RAD - 90) % 360 + 540) % 360 - 180;      /* degrees short of straight down */
+    if (Math.abs(err) < 0.02) return;
+    var keep = rotation[0];
+    rotation[0] = keep + 5;
+    applyProjection();
+    var b2 = horBearing(az, c);
+    rotation[0] = keep;
+    if (b2 === null) { applyProjection(); return; }
+    var slope = (((b2 - b) * RAD + 540) % 360 - 180) / 5;
+    if (Math.abs(slope) < 1e-6) { applyProjection(); return; }
+    rotation[0] = norm360(keep - err / slope);
+  }
+  applyProjection();
+}
 function clearDisc(note) {
   if (!disc) return false;
   if (zoom < ZMIN_VIEW) zoom = disc.prevZoom;     /* still at the card's scale: take the old one back */
@@ -3348,7 +3514,7 @@ function setInstrument(kind) {
     if (el) el.checked = opt[k];
   });
   if (pointing) stopPointing();
-  facing = south ? 'N' : 'S'; facingEl.value = facing;
+  facing = south ? 'S' : 'N'; facingEl.value = facing;   /* the raised pole low, its opposite high */
   document.getElementById('facerow').hidden = false;
   document.getElementById('projrow').hidden = false;
   disc = { kind: kind, lat: obs.lat, deg: I.reach(alat), margin: I.margin, clip: 90,
@@ -3357,12 +3523,14 @@ function setInstrument(kind) {
   stopMomentum();
   if (flying) { cancelAnimationFrame(flying); flying = null; }
   rotation = [0, south ? 90 : -90, rotation[2]];        /* the raised pole, dead centre */
+  orientDisc();                                         /* and the meridian upright under it */
   holdLst = null; skyDirty = true; pathCache = {}; trackCache = {};
   hideTip(); draw();
   setStatus(I.note(alat));
 }
 document.getElementById('planisphere').addEventListener('click', function () { setInstrument('planisphere'); });
 document.getElementById('astrolabe').addEventListener('click', function () { setInstrument('astrolabe'); });
+document.getElementById('astroclock').addEventListener('click', function () { setInstrument('clock'); });
 document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
 document.getElementById('nowfloat').addEventListener('click', function (e) {
   e.stopPropagation();
@@ -3382,7 +3550,11 @@ projEl.addEventListener('change', function () {
 });
 var facingEl = document.getElementById('facing');
 facingEl.value = facing;
-facingEl.addEventListener('change', function () { facing = facingEl.value; describeView(); hideTip(); draw(); });
+facingEl.addEventListener('change', function () {
+  facing = facingEl.value;
+  orientDisc();
+  describeView(); hideTip(); draw();
+});
 var FACING_NAME = { N: 'north', E: 'east', S: 'south', W: 'west' };
 function describeView() {
   if (!opt.inside) { setStatus('The globe from outside, north up: east is to the right, a mirror image of the sky'); return; }
@@ -4307,7 +4479,8 @@ window.CG = {
   projKind: function (k) { if (k) { projKind = k; projEl.value = k; draw(); } return projKind; },
   lineAt: lineAt, planisphere: function () { setInstrument('planisphere'); },
   astrolabe: function () { setInstrument('astrolabe'); },
-  setInstrument: setInstrument, clearDisc: clearDisc,
+  setInstrument: setInstrument, clearDisc: clearDisc, orientDisc: orientDisc,
+  moonNode: moonNode, eclPoint: eclPoint,
   disc: function () { return disc ? { kind: disc.kind, deg: disc.deg, clip: disc.clip, rpx: discRadiusPx() } : null; },
   haBearing: haBearing, sunRaOn: sunRaOn, tzOffsetMin: tzOffsetMinutes, magLimit: function (m) { if (m !== undefined) { magLimit = m; draw(); } return magLimit; },
   resetDefaults: resetDefaults, settings: function () {
