@@ -102,6 +102,24 @@ drawn on the sphere.
   The defaults are the unmirrored pairing, which is also what printed instruments use: north low and
   south high in the northern hemisphere, north high in the southern. A *BBC Sky at Night* card for
   50° N has north at the bottom and east at the right.
+- **A field preview**, which is the view through whatever you are pointing with. Pick a telescope and
+  an eyepiece and the rest follows: magnification is the telescope's focal length over the
+  eyepiece's, the true field is the eyepiece's apparent field divided by that, the exit pupil is the
+  aperture over the magnification, and how faint a star the aperture reaches is the familiar
+  2.7 + 5 log D — 6.9 for the naked eye, 11.2 for a 50 mm binocular, 14.2 for a 200 mm. Binoculars
+  and finders carry their own field, having no eyepiece to change. The preview draws that field as a
+  tangent plane, which is what an eyepiece shows, with only the stars the aperture can actually
+  reach, and it says where it is pointed in both right ascension and altitude.
+
+  Where it points is its own thing, not the middle of the chart: you can look at the whole sky and
+  still have the telescope on one object. A four-way pad slews it, by a whole field, half a field or
+  a set number of arcminutes, and the middle button sends it to whatever is selected. What holds it
+  there as the clock runs is the tracking. **Sidereal** keeps it on the stars, as a driven mount
+  does. **Off** keeps it on the ground instead, and the sky drifts through the field at 15 arcseconds
+  a second times the cosine of the declination — the first thing anyone meets at the eyepiece.
+  **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
+  all: over three hours the Moon leaves a sidereal field entirely.
+
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. *Set* sits under both boxes and does whatever was last typed into
   either: a place name that has not been applied yet wins, otherwise the coordinates. The horizon is drawn as a line on the sphere with the zenith marked
