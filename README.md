@@ -78,12 +78,30 @@ drawn on the sphere.
   and 84.7° away on an ordinary day in May. The hands can be switched on over any of the three from
   *Clock hands* in the Layers panel.
 
-  All three are held square: the meridian stands upright, with the direction you are facing at the
-  bottom of the card and its opposite at the top. A planisphere for 50° N reads with north low and
-  south high, which is how the printed ones are laid out, and the *Facing* control turns the card to
-  any of the four quarters. None of them flies into place: an instrument is picked up, not travelled
-  to. Reset view, the *From inside* switch, Reset defaults, or simply dragging the sky puts it down
-  again.
+  All three are held square, and none of them can be aimed. An instrument's centre is its pole, its
+  rim is a circle of declination and its horizon is cut for one latitude, so dragging it about would
+  only take it to pieces. What a drag does instead is what your thumb does to a real planisphere: it
+  turns the star disc, and turning the disc is turning time, so the card holds still and the sky runs
+  under it. A quarter turn is a quarter of a sidereal day. The arrow keys step the clock the same
+  way. Everything else still works as usual — point at an object for its card, tap to select, scroll
+  to magnify. None of them flies into place either: an instrument is picked up, not travelled to.
+  Press the lit button again, or Reset view, and it is put down, with every switch it touched — the
+  tympan, the rete, the hands, the projection, the way up — put back as it found them.
+
+- **Which way up, and which hand.** Two menus settle the orientation of any chart seen from inside:
+  *North at top or bottom*, and *East at right or left*. They are not independent in the way they
+  look. A whole-sky chart centred on the pole has only one handedness: going round the horizon N, E,
+  S, W runs one way about the zenith when you stand and look up, and the other way in a mirror, and
+  no rotation turns one into the other. **North at the bottom with east at the right is the sky as
+  you see it**, and so is north at the top with east at the left. The other two pairings are its
+  mirror image — which is not wrong, it is exactly what a celestial globe shows, because you are
+  outside it looking in, but a card held up to the real sky in that arrangement has the
+  constellations back to front. The status line says which of the two you are in whenever you change
+  either menu.
+
+  The defaults are the unmirrored pairing, which is also what printed instruments use: north low and
+  south high in the northern hemisphere, north high in the southern. A *BBC Sky at Night* card for
+  50° N has north at the bottom and east at the right.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. *Set* sits under both boxes and does whatever was last typed into
   either: a place name that has not been applied yet wins, otherwise the coordinates. The horizon is drawn as a line on the sphere with the zenith marked
