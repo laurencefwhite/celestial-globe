@@ -3187,12 +3187,40 @@ function setObserver(lat, lon, name, country, tz, keepView) {
   tickClocks(); updateScrubLabel();
   if (!keepView) flyToZenith(Math.max(1, zoom)); else draw();
 }
+/* Set sits under both the place box and the coordinates, so it should do whatever has just been
+   typed into either. A place name that has not been applied yet wins, since typing a city and
+   pressing Set otherwise re-applied the old coordinates and looked as though nothing had happened. */
+function cityByName(text) {
+  var v = String(text || '').trim().toLowerCase();
+  if (!v) return null;
+  var exact = null, starts = null;
+  for (var i = 0; i < cities.length; i++) {
+    var n = cities[i].name.toLowerCase();
+    if (n === v) { if (!exact || cities[i].pop > exact.pop) exact = cities[i]; }
+    else if (!starts && n.indexOf(v) === 0) starts = cities[i];
+  }
+  return exact || starts;
+}
 document.getElementById('setobs').addEventListener('click', function () {
+  var typed = document.getElementById('pq').value.trim();
+  if (typed && typed.toLowerCase() !== (obs.name || '').toLowerCase()) {
+    var city = cityByName(typed);
+    if (city) { setObserver(city.lat, city.lon, city.name, city.country, city.tz); return; }
+    setStatus('No place called “' + typed + '”. Choose one from the list, or clear the box and set the coordinates.');
+    return;
+  }
   var la = parseFloat(document.getElementById('lat').value), lo = parseFloat(document.getElementById('lon').value);
   if (isNaN(la) || isNaN(lo)) { setStatus('Latitude and longitude must be numbers, degrees north and east'); return; }
-  setObserver(la, lo);
+  /* pressing Set on coordinates that have not moved should not rename the place to "near" itself */
+  var same = Math.abs(la - obs.lat) < 1e-4 && Math.abs(lo - obs.lon) < 1e-4;
+  setObserver(la, lo, same ? obs.name : null, same ? obs.country : null, same ? obs.tz : null);
 });
-['lat', 'lon'].forEach(function (id) { document.getElementById(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('setobs').click(); }); });
+['lat', 'lon'].forEach(function (id) {
+  var el = document.getElementById(id);
+  el.addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('setobs').click(); });
+  /* editing the numbers means the coordinates are what is wanted, not the name left in the box */
+  el.addEventListener('input', function () { document.getElementById('pq').value = ''; });
+});
 document.getElementById('geoloc').addEventListener('click', function () {
   if (!navigator.geolocation) { setStatus('This browser does not offer a location'); return; }
   setStatus('Asking the browser for your location…');
