@@ -23,9 +23,11 @@ drawn on the sphere.
   south (the default north of the equator) has north at the top and east on the left. In both views
   the horizon is held still by default and the sky turns past it as time runs; switch *Hold the
   horizon still* off to fix the stars instead and let the horizon move.
-- **Point the phone at the sky.** On a device with orientation sensors, *Point at the sky* turns the
-  globe to wherever the phone is aimed and tilts it to match how the phone is held, so the screen
-  shows the patch of sky behind it.
+- **Point the phone at the sky.** On a phone the globe follows wherever the phone is aimed from the
+  moment it opens, tilted to match how the phone is held, so the screen shows the patch of sky behind
+  it. A **Freeze** pill in the top corner holds the sky still while you read it and lets it follow
+  again, and the screen is kept awake while you are out under it. Where the browser insists on being
+  asked first, as Safari does, the pill reads *Point at sky* until you tap it once.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. The horizon is drawn as a line on the sphere with the zenith marked,
   the cardinal points sit just outside the globe (or at the edge of the screen when you are zoomed
@@ -98,8 +100,8 @@ drawn on the sphere.
   handed to someone else.
 - **Save the sky as a picture**, captioned with the place and the moment.
 - **Reset view, Keys, Copy link and Save image** sit together above the layers. When the sidebar is
-  folded away, Reset view comes out and sits beside the folded pill, so the one control worth having
-  to hand is always there.
+  folded away, Reset view comes out and sits beside the folded pill, and Freeze in the corner
+  opposite, so the two controls worth having to hand are always there.
 - **Night vision**: a red-on-black rendering of the whole page, for use at the telescope. The `n`
   key toggles it. Press `?` for the other keys.
 
