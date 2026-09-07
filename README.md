@@ -109,7 +109,10 @@ drawn on the sphere.
   every layer, and *Copy link* puts it on the clipboard, so a particular sky can be bookmarked or
   handed to someone else.
 - **Save the sky as a picture**, captioned with the place and the moment.
-- **Reset view, Keys, Copy link and Save image** sit together above the layers. When the sidebar is
+- **Reset defaults** puts every switch and setting back the way the page opens, and deliberately
+  leaves the place you are observing from, the view and the clock alone, since each of those has its
+  own control.
+- **Reset view, Reset defaults, Copy link, Save image and Keys** sit together above the layers. When the sidebar is
   folded away, Reset view and Freeze come out and sit in a row beside the folded pill, running
   towards the middle of the screen, so they land in the same place relative to it whichever corner
   the panel folds into.
