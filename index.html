@@ -382,6 +382,13 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-radec"><span class="sw"></span><span class="tl">Right ascension &amp; declination</span></label>
       <div class="sub-t">View</div>
       <label class="tog"><input type="checkbox" id="L-inside"><span class="sw"></span><span class="tl">From inside <small>as seen from Earth</small></span></label>
+      <div class="row" id="facerow" hidden><label for="facing">Facing</label>
+        <select class="sel" id="facing">
+          <option value="N">North (south at top)</option>
+          <option value="E">East</option>
+          <option value="S">South (north at top)</option>
+          <option value="W">West</option>
+        </select></div>
       <label class="tog"><input type="checkbox" id="L-hold"><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
       <label class="tog"><input type="checkbox" id="L-spin" checked><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
@@ -982,7 +989,19 @@ function resize() {
   draw();
 }
 
+/* In the inside view the sky is a chart held overhead, with the direction you face at the bottom of
+   the screen. That is a roll of the view: facing south leaves north at the top; facing north turns it
+   round; east and west are a quarter turn. From outside there is no roll and north is up. */
+var facing = obs.lat < 0 ? 'N' : 'S';
+var ROLL = { S: 0, N: 180, E: -90, W: 90 };
+function rollFor() { return opt.inside ? ROLL[facing] || 0 : 0; }
+/* a screen displacement turned into the unrolled frame the drag maths expects */
+function unroll(dx, dy) {
+  var g = rotation[2] * DEG, c = Math.cos(g), sn = Math.sin(g);
+  return [dx * c + dy * sn, -dx * sn + dy * c];
+}
 function applyProjection() {
+  rotation[2] = rollFor();
   projection.rotate(rotation).scale(R0 * zoom).translate([CX, CY]).reflectX(opt.inside)
             .clipExtent([[-40, -40], [W + 40, H + 40]]);
   var rot = d3.geoRotation(rotation);
@@ -1721,14 +1740,17 @@ function drawHorizon(c) {
   var step = 360 / names.length;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (var i = 0; i < names.length; i++) {
-    var v = fromHor(0, i * step, c), p = proj(v);
+    /* the anchor sits a hair above the horizon so that it survives the far-side test when the
+       horizon lies on the limb; the label then goes 15 px along the screen direction to the zenith */
+    var p = proj(fromHor(0.02, i * step, c));
     if (!onScreen(p, 10)) continue;
-    var q = proj(fromHor(3, i * step, c));
-    var dx = 0, dy = -1;
-    if (q) { dx = q[0] - p[0]; dy = q[1] - p[1]; var l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; }
+    var q = proj(fromHor(Math.min(8, 8 / Math.sqrt(zoom)), i * step, c));
+    var dx = p[0] - CX, dy = p[1] - CY, l = Math.hypot(dx, dy) || 1;
+    dx = -dx / l; dy = -dy / l;                                   /* inward, for a horizon on the limb */
+    if (q && Math.hypot(q[0] - p[0], q[1] - p[1]) > 2) { dx = q[0] - p[0]; dy = q[1] - p[1]; l = Math.hypot(dx, dy); dx /= l; dy /= l; }
     var major = names[i].length === 1;
     ctx.font = (major ? '600 12px ' : '500 10px ') + FONT;
-    var lx = p[0] + dx * 13, ly = p[1] + dy * 13;
+    var lx = p[0] + dx * 15, ly = p[1] + dy * 15;
     ctx.fillStyle = 'rgba(4,8,16,.7)'; ctx.beginPath(); ctx.arc(lx, ly, major ? 9 : 8, 0, 2 * Math.PI); ctx.fill();
     ctx.fillStyle = major ? PAL.horizon : 'rgba(255,196,120,.7)';
     ctx.fillText(names[i], lx, ly + 0.5);
@@ -1790,7 +1812,7 @@ function startMomentum() {
   var last = performance.now();
   (function tick(t) {
     var dt = Math.min(48, t - last); last = t;
-    rotation = [rotation[0] + spinV[0] * dt, clamp(rotation[1] + spinV[1] * dt, -90, 90), 0];
+    rotation = [rotation[0] + spinV[0] * dt, clamp(rotation[1] + spinV[1] * dt, -90, 90), rotation[2]];
     var decay = Math.pow(0.9958, dt);
     spinV[0] *= decay; spinV[1] *= decay;
     if (Math.abs(spinV[0]) + Math.abs(spinV[1]) > 0.0011) { markInteract(); draw(); momRaf = requestAnimationFrame(tick); }
@@ -1832,7 +1854,8 @@ cv.addEventListener('pointermove', function (e) {
     var k = 57.29578 / (R0 * zoom) * 1.35, sgn = opt.inside ? -1 : 1;
     var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
     if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
-    rotation = [dragStart.rot[0] + sgn * dx * k, clamp(dragStart.rot[1] - dy * k, -90, 90), 0];
+    var u = unroll(dx, dy);
+    rotation = [dragStart.rot[0] + sgn * u[0] * k, clamp(dragStart.rot[1] - u[1] * k, -90, 90), rotation[2]];
     var tnow = performance.now();
     if (dragStart.lastT) {
       var span = Math.max(8, tnow - dragStart.lastT);
@@ -1884,7 +1907,8 @@ function zoomAbout(newZoom, mx, my) {
   var p = projection(ll);
   if (!p) return;
   var k = 57.29578 / (R0 * zoom), sgn = opt.inside ? -1 : 1;
-  rotation = [rotation[0] + sgn * (mx - p[0]) * k, clamp(rotation[1] - (my - p[1]) * k, -90, 90), 0];
+  var u = unroll(mx - p[0], my - p[1]);
+  rotation = [rotation[0] + sgn * u[0] * k, clamp(rotation[1] - u[1] * k, -90, 90), rotation[2]];
 }
 
 var hoverRaf = null, lastHover = [0, 0];
@@ -2011,7 +2035,7 @@ function flyTo(lon, lat, targetZoom) {
   (function step(t) {
     var u = Math.min(1, (t - t0) / dur);
     var e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-    rotation = [from[0] + dl * e, from[1] + (to[1] - from[1]) * e, 0];
+    rotation = [from[0] + dl * e, from[1] + (to[1] - from[1]) * e, rotation[2]];
     zoom = Math.exp(Math.log(z0) + (Math.log(z1) - Math.log(z0)) * e);
     draw();
     if (u < 1) flying = requestAnimationFrame(step); else flying = null;
@@ -2054,7 +2078,12 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'spin') { spinPaused = false; if (opt.spin) startSpin(); }
     if (key === 'sats' && opt.sats && !sats.length) buildSatList();
     if (key === 'hold') holdLst = null;
-    if (key === 'inside') { setStatus(opt.inside ? 'Looking out from inside the sphere: east is to the left' : 'Looking at the globe from outside: east is to the right'); }
+    if (key === 'inside') {
+      document.getElementById('facerow').hidden = !opt.inside;
+      /* from inside you are the observer, so the horizon stays put and the sky turns past it */
+      opt.hold = opt.inside; document.getElementById('L-hold').checked = opt.hold; holdLst = null;
+      describeView();
+    }
     hideTip(); draw();
   });
 });
@@ -2065,6 +2094,15 @@ document.getElementById('satgrp').addEventListener('change', function (e) { satG
 document.getElementById('resetview').addEventListener('click', resetView);
 document.getElementById('tozenith').addEventListener('click', function () { flyToZenith(Math.max(1, zoom)); });
 
+var facingEl = document.getElementById('facing');
+facingEl.value = facing;
+facingEl.addEventListener('change', function () { facing = facingEl.value; describeView(); hideTip(); draw(); });
+var FACING_NAME = { N: 'north', E: 'east', S: 'south', W: 'west' };
+function describeView() {
+  if (!opt.inside) { setStatus('The globe from outside, north up: east is to the right, a mirror image of the sky'); return; }
+  var side = { N: 'east is to the right', S: 'east is to the left', E: 'north is to the left', W: 'north is to the right' }[facing];
+  setStatus('The sky from inside, as a chart held overhead facing ' + FACING_NAME[facing] + ': ' + side);
+}
 var statusEl = document.getElementById('status'), statusTimer = null;
 function setStatus(msg) {
   statusEl.textContent = msg; statusEl.classList.add('on');
@@ -2086,6 +2124,7 @@ function setObserver(lat, lon, name, country, tz, keepView) {
   document.getElementById('lon').value = lon.toFixed(4);
   document.getElementById('subtitle').textContent = 'The sky over ' + obs.name;
   lsSet('cg-obs', obs);
+  facing = lat < 0 ? 'N' : 'S'; facingEl.value = facing;
   skyDirty = true; trackCache = {}; holdLst = null;
   tickClocks();
   if (!keepView) flyToZenith(Math.max(1, zoom)); else draw();
@@ -2377,10 +2416,12 @@ document.addEventListener('keydown', function (e) {
   var a = document.activeElement;
   if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT')) return;
   var step = (e.shiftKey ? 15 : 5) / Math.sqrt(zoom), sgn = opt.inside ? -1 : 1;
-  if (e.key === 'ArrowLeft') { rotation[0] -= sgn * step; draw(); }
-  else if (e.key === 'ArrowRight') { rotation[0] += sgn * step; draw(); }
-  else if (e.key === 'ArrowUp') { rotation[1] = clamp(rotation[1] + step, -90, 90); draw(); }
-  else if (e.key === 'ArrowDown') { rotation[1] = clamp(rotation[1] - step, -90, 90); draw(); }
+  var arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (arrows[e.key]) {
+    var u = unroll(arrows[e.key][0], arrows[e.key][1]);
+    rotation = [rotation[0] + sgn * u[0] * step, clamp(rotation[1] - u[1] * step, -90, 90), rotation[2]];
+    draw();
+  }
   else if (e.key === '+' || e.key === '=') { zoom = clamp(zoom * 1.25, ZMIN, ZMAX); draw(); }
   else if (e.key === '-' || e.key === '_') { zoom = clamp(zoom / 1.25, ZMIN, ZMAX); draw(); }
   else if (e.key === ' ') { e.preventDefault(); setPlaying(playMode ? null : 'clock'); }
@@ -2470,7 +2511,7 @@ function updateLegendLimit() { document.getElementById('lg-maglim').textContent 
 
 /* ------------------------------------------------------------------ boot */
 var savedObs = lsGet('cg-obs');
-if (savedObs && typeof savedObs.lat === 'number') obs = savedObs;
+if (savedObs && typeof savedObs.lat === 'number') { obs = savedObs; facing = obs.lat < 0 ? 'N' : 'S'; }
 document.getElementById('lat').value = obs.lat.toFixed(4);
 document.getElementById('lon').value = obs.lon.toFixed(4);
 document.getElementById('subtitle').textContent = 'The sky over ' + obs.name;
@@ -2505,7 +2546,8 @@ window.CG = {
   at: function (date) { var c = skyContext(date); computeBodies(c); computeSats(c); skyDirty = true; return { c: c, bodies: bodies.slice(), sats: satState.slice() }; },
   setObserver: setObserver, obs: function () { return obs; }, opt: opt, draw: draw, flyTo: flyTo, setZoom: function (z) { zoom = z; draw(); },
   proj: proj, projection: projection, lonlat: lonlat, unitv: unitv, toHor: toHor, hits: function () { return hits; },
-  setTime: function (min, days) { minOffset = min || 0; dayOffset = days || 0; syncSliders(); refreshTime(); }
+  setTime: function (min, days) { minOffset = min || 0; dayOffset = days || 0; syncSliders(); refreshTime(); },
+  setFacing: function (f) { facing = f; facingEl.value = f; draw(); }, rotation: function () { return rotation.slice(); }
 };
 
 })();
