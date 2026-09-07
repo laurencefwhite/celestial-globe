@@ -1345,7 +1345,7 @@ function resize() {
   R0 = Math.min(W, H) * (narrow ? 0.45 : 0.455);      /* room outside the rim for the cardinal letters */
   CX = W / 2;
   CY = narrow ? H * 0.46 : H / 2;
-  placeFloatReset();
+  placePills();
   var mast = document.getElementById('masthead'), leg = document.getElementById('legend');
   if (W > 860 && !leg.classList.contains('min')) {
     /* the key panel takes whatever height the masthead leaves it, and scrolls if that is not enough */
@@ -1381,28 +1381,31 @@ function unroll(dx, dy) {
   var g = rotation[2] * DEG, c = Math.cos(g), sn = Math.sin(g);
   return [dx * c + dy * sn, -dx * sn + dy * c];
 }
-/* The pills that come out when the sidebar is folded away: Reset view beside the folded Layers pill,
-   and, where the phone can be pointed at the sky, Freeze in the corner opposite. */
-function placeFloatReset() {
+/* The pills sit in a row beside the folded Layers pill, running towards the middle of the screen,
+   so they land in the same place relative to it whatever corner the panel happens to fold into. */
+function placePills() {
   var panel = document.getElementById('controls');
-  var fb = document.getElementById('resetfloat'), pf = document.getElementById('pointfloat');
-  if (!fb) return;
   var min = panel.classList.contains('min');
-  fb.style.display = min ? 'block' : 'none';
-  if (pf) pf.style.display = min && pointAvailable ? 'block' : 'none';
-  if (!min) return;
+  var list = pillList();
+  list.forEach(function (el) { el.style.display = min ? 'block' : 'none'; });
+  if (!min || !list.length) return;
   var r = panel.getBoundingClientRect();
-  fb.style.top = Math.round(r.top) + 'px';
-  fb.style.right = Math.round(Math.max(8, window.innerWidth - r.left + 8)) + 'px';
-  if (pf && pointAvailable) {
-    if (smallScreen()) {                       /* the top right corner is the free one on a phone */
-      pf.style.top = '10px';
-      pf.style.right = '10px';
-    } else {                                   /* on a wider screen it continues the row */
-      pf.style.top = Math.round(r.top) + 'px';
-      pf.style.right = Math.round(Math.max(8, window.innerWidth - fb.getBoundingClientRect().left + 8)) + 'px';
-    }
+  var leftwards = (r.left + r.width / 2) > window.innerWidth / 2;
+  var edge = leftwards ? r.left : r.right, gap = 8;
+  for (var i = 0; i < list.length; i++) {
+    var el = list[i], w = el.getBoundingClientRect().width;
+    var x = leftwards ? (edge - gap - w) : (edge + gap);
+    if (x < 6 || x + w > window.innerWidth - 6) { el.style.display = 'none'; continue; }
+    el.style.left = Math.round(x) + 'px';
+    el.style.right = 'auto';
+    el.style.top = Math.round(r.top) + 'px';
+    edge = leftwards ? x : x + w;
   }
+}
+function pillList() {
+  var out = [document.getElementById('resetfloat')];
+  if (pointAvailable) out.push(document.getElementById('pointfloat'));
+  return out.filter(Boolean);
 }
 function applyProjection() {
   rotation[2] = pointing ? pointRoll : rollFor();
@@ -3611,7 +3614,7 @@ function updatePointUI() {
   pill.classList.toggle('on', pointing && !pointFrozen);
   pill.title = !pointing ? 'Turn the view to wherever the phone is aimed'
              : pointFrozen ? 'Let the sky follow the phone again' : 'Hold the sky still while you read it';
-  placeFloatReset();
+  placePills();
 }
 function startPointing() {
   function go() {
@@ -3685,7 +3688,7 @@ document.getElementById('subtitle').textContent = 'The sky over ' + obs.name;
 buildSatList();
 buildSearchIndex();
 window.addEventListener('resize', resize);
-document.fonts && document.fonts.ready && document.fonts.ready.then(function () { draw(); });
+document.fonts && document.fonts.ready && document.fonts.ready.then(function () { draw(); placePills(); });
 var _draw = draw;
 draw = function () { _draw(); updateLegendLimit(); };
 resize();
