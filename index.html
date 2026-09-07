@@ -238,10 +238,12 @@ body.night #night{display:block}
 body.night #stage{filter:grayscale(1)}
 
 @media (max-height:880px){ #legend{bottom:34px} }
-@media (max-height:800px){ #legend .lsec.opt{display:none} }
-@media (max-height:700px){ #legend .lsec{display:none} }
+@media (max-height:800px) and (min-width:861px){ #legend .lsec.opt{display:none} }
+@media (max-height:700px) and (min-width:861px){ #legend .lsec{display:none} }
 @media (max-width:860px){
-  #masthead.min, #controls.min{right:auto}
+  #masthead.min{right:auto}
+  #controls.min{left:auto;right:10px}
+  #legend.min{display:block;left:10px;right:auto;bottom:10px;width:auto}
   #masthead{top:10px;left:10px;right:10px;width:auto;padding:11px 14px 12px}
   #masthead h1{font-size:18px}
   #masthead .sub{display:none}
@@ -250,8 +252,8 @@ body.night #stage{filter:grayscale(1)}
   #obs-line{display:none}
   .scrub{margin-top:8px;padding-top:8px}
 
-  #controls{top:auto;bottom:10px;right:10px;left:10px;width:auto;padding:26px 12px 10px;max-height:46vh}
-  #controls.min{padding:0 !important}
+  #controls{top:auto;bottom:48px;right:10px;left:10px;width:auto;padding:26px 12px 10px;max-height:50vh}
+  #controls.min{padding:0 !important;bottom:10px}
   .grp+.grp{border-top:0;padding-top:9px;margin-top:0}
   #controls .grp-t{display:none}
   .sub-t{display:none}
@@ -263,7 +265,8 @@ body.night #stage{filter:grayscale(1)}
   .tog input:checked~span.tl{color:var(--accent)}
   .results{max-height:180px}
 
-  #legend{display:none}
+  #legend{left:10px;right:10px;bottom:48px;width:auto;max-height:50vh;overflow-y:auto;padding:26px 14px 12px}
+  #legend .lsec{display:block}
   #hint{display:none}
   #credit{display:none}
 }
@@ -1904,6 +1907,7 @@ cv.addEventListener('pointerup', function (e) {
   endPointer(e);
   if (wasMoved) { if (stale) spinV = [0, 0]; else startMomentum(); return; }
   spinV = [0, 0];
+  if (smallScreen() && document.querySelector('.panel:not(.min)')) { foldPanels(null); return; }
   if (e.pointerType === 'touch') { interacting = false; draw(); doHover(e.clientX, e.clientY); return; }
   var h = hitAt(e.clientX, e.clientY);
   if (h) { flyToHit(h); return; }
@@ -2541,18 +2545,32 @@ function lineKey(parent, colour, dash, label) {
 function updateLegendLimit() { document.getElementById('lg-maglim').textContent = 'to mag ' + starLimit().toFixed(1); }
 
 /* ------------------------------------------- panels fold away into corners */
+/* On a phone (narrow, short, or touch-first) the panels start folded into the corners, only one
+   opens at a time, and a tap on the globe folds it again, so the sky is never buried. */
+function smallScreen() {
+  return window.innerWidth <= 860 || window.innerHeight <= 520 ||
+         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches && Math.min(window.innerWidth, window.innerHeight) <= 900);
+}
+function foldPanels(except) {
+  var changed = false;
+  document.querySelectorAll('.panel').forEach(function (p) {
+    if (p !== except && !p.classList.contains('min')) { p.classList.add('min'); changed = true; var b = p.querySelector('.pmin'); if (b) b.title = 'Restore'; }
+  });
+  if (changed) resize();
+}
 (function panels() {
-  var narrow = window.innerWidth <= 860;
+  var small = smallScreen();
   var list = document.querySelectorAll('.panel');
   for (var i = 0; i < list.length; i++) {
     var panel = list[i], btn = panel.querySelector('.pmin');
     if (!btn) continue;
-    if (narrow) panel.classList.add('min');
+    if (small) { panel.classList.add('min'); btn.title = 'Restore'; }
     (function (p, b) {
       b.addEventListener('click', function (e) {
         e.stopPropagation();
         var min = p.classList.toggle('min');
         b.title = min ? 'Restore' : 'Minimise';
+        if (!min && smallScreen()) foldPanels(p);
         if (p.id === 'masthead') { timeSlider.paint(); dateSlider.paint(); }
         resize();
       });
