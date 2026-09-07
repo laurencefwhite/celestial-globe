@@ -11,8 +11,14 @@ all placed for a chosen observer and moment, with the horizon drawn on the spher
 - **A globe you can turn and zoom**, from the whole sky down to a field a few arcseconds wide. Drag to
   turn it, scroll or pinch to zoom, double-click to zoom in on a point, click an object to fly to it.
 - **Two ways of looking at it.** By default you look at the celestial sphere from outside, as at a
-  classical celestial globe, so east is to the right. The *From inside* switch turns it inside out, as
-  the sky appears from Earth, with east to the left.
+  classical celestial globe: north is up, east is to the right, and the constellations are the mirror
+  image of the sky. The *From inside* switch turns it inside out, as the sky appears from Earth, like
+  a planisphere held overhead. A chart held overhead depends on which way you face, so a *Facing*
+  control puts that direction at the bottom of the screen: facing north (the default south of the
+  equator) has south at the top and east on the right, and the Sun crosses from right to left; facing
+  south (the default north of the equator) has north at the top and east on the left. From inside,
+  the horizon is held still and the sky turns past it as time runs; from outside, the sky stays put
+  and the horizon moves. The *Hold the horizon still* switch changes that either way.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. The horizon is drawn as a line on the sphere with the cardinal points
   and the zenith marked, the part of the sky below the horizon is shaded, and an altitude–azimuth grid
