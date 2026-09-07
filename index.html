@@ -212,6 +212,8 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
 }
 #tip.on{opacity:1}
+#tip.touch.on{pointer-events:auto}
+#tip .tgo{margin-top:9px;display:flex;align-items:center;gap:8px;font-size:10px;color:var(--ink-faint)}
 #tip .tn{font-family:var(--serif);font-size:16px;line-height:1.2}
 #tip .tc{font-size:10.5px;color:var(--ink-faint);letter-spacing:.05em;margin-top:1px}
 #tip .tgrid{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.10);font-size:11px}
@@ -1175,6 +1177,7 @@ function ensureSky() {
     computeBodies(sky);
     computeSats(sky);
     skyStamp = t; skyDirty = false;
+    refreshHover();
   }
   return sky;
 }
@@ -1183,7 +1186,16 @@ function ensureSky() {
 var hits = [];
 function addHit(x, y, r, kind, ref) { hits.push({ x: x, y: y, r: r, kind: kind, ref: ref }); }
 var hover = null;                 /* {kind, ref} */
-function isHover(kind, ref) { return hover && hover.kind === kind && hover.ref === ref; }
+function sameRef(a, b) { return a === b || (a && b && a.key !== undefined && a.key === b.key); }
+function isHover(kind, ref) { return hover && hover.kind === kind && sameRef(hover.ref, ref); }
+/* bodies and satellites are rebuilt on every recompute, so a selection made by object must follow its key */
+function refreshHover() {
+  if (!hover || !hover.ref || hover.ref.key === undefined) return;
+  var list = hover.kind === 'body' ? bodies : hover.kind === 'sat' ? satState : null;
+  if (!list) return;
+  for (var i = 0; i < list.length; i++) if (list[i].key === hover.ref.key) { hover.ref = list[i]; return; }
+  hover = null; hideTip();
+}
 
 /* ---------------------------------------------------------------- labels */
 var boxes = [], labelQ = [];
@@ -1880,7 +1892,8 @@ cv.addEventListener('pointermove', function (e) {
   if (dragStart && ids.length === 1) {
     var k = 57.29578 / (R0 * zoom) * 1.35, sgn = opt.inside ? -1 : 1;
     var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    if (!moved && Math.abs(dx) + Math.abs(dy) <= 3) return;      /* a tap or click that wobbles is not a drag */
+    moved = true;
     var u = unroll(dx, dy);
     rotation = [dragStart.rot[0] + sgn * u[0] * k, clamp(dragStart.rot[1] - u[1] * k, -90, 90), rotation[2]];
     var tnow = performance.now();
@@ -1908,13 +1921,26 @@ cv.addEventListener('pointerup', function (e) {
   if (wasMoved) { if (stale) spinV = [0, 0]; else startMomentum(); return; }
   spinV = [0, 0];
   if (smallScreen() && document.querySelector('.panel:not(.min)')) { foldPanels(null); return; }
-  if (e.pointerType === 'touch') { interacting = false; draw(); doHover(e.clientX, e.clientY); return; }
   var h = hitAt(e.clientX, e.clientY);
+  if (e.pointerType === 'touch') {
+    /* no hover on a touch screen: the first tap selects an object and shows its details,
+       a second tap on it flies there, a tap on empty sky clears the selection */
+    interacting = false;
+    if (h) {
+      var same = hover && hover.kind === h.kind && sameRef(hover.ref, h.ref) && tip.classList.contains('on');
+      if (same) { flyToHit(h); return; }
+      hover = { kind: h.kind, ref: h.ref }; draw(); showTip(h, e.clientX, e.clientY);
+      return;
+    }
+    hideTip(); hover = null; draw();
+    if (opt.spin) spinPaused = !spinPaused;
+    return;
+  }
   if (h) { flyToHit(h); return; }
   if (opt.spin) { spinPaused = !spinPaused; hideTip(); }
 });
 cv.addEventListener('pointercancel', endPointer);
-cv.addEventListener('pointerleave', function (e) { endPointer(e); hideTip(); hover = null; });
+cv.addEventListener('pointerleave', function (e) { endPointer(e); if (e.pointerType === 'touch') return; hideTip(); hover = null; });
 cv.addEventListener('wheel', function (e) {
   e.preventDefault();
   var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0016));
@@ -1946,18 +1972,22 @@ function hoverAt(mx, my) {
   hoverRaf = requestAnimationFrame(function () { hoverRaf = null; doHover(lastHover[0], lastHover[1]); });
 }
 function hitAt(mx, my) {
-  var best = null, bd = 1e9;
+  /* point-like targets first, by distance; a big object (a nebula filling the field) only when nothing
+     small is under the pointer, so that a star inside it can still be picked */
+  var best = null, bd = 1e9, big = null, bigD = 1e9;
+  var slack = coarsePointer ? 14 : 7;
   for (var i = 0; i < hits.length; i++) {
     var h = hits[i], d = Math.hypot(h.x - mx, h.y - my);
-    var tol = Math.max(h.r + 3, 7);
+    if (h.r > 14) { if (d < h.r && d < bigD) { bigD = d; big = h; } continue; }
+    var tol = Math.max(h.r + 3, slack);
     if (d < tol && d - h.r < bd) { bd = d - h.r; best = h; }
   }
-  return best;
+  return best || big;
 }
 function doHover(mx, my) {
   var h = hitAt(mx, my);
   if (h) {
-    var same = hover && hover.kind === h.kind && hover.ref === h.ref;
+    var same = hover && hover.kind === h.kind && sameRef(hover.ref, h.ref);
     hover = { kind: h.kind, ref: h.ref };
     showTip(h, mx, my);
     cv.style.cursor = 'pointer';
@@ -1975,6 +2005,12 @@ function placeTip(mx, my) {
   var x = mx + 16, y = my + 16;
   if (x + r.width > W - 8) x = mx - r.width - 16;
   if (y + r.height > H - 8) y = my - r.height - 16;
+  if (coarsePointer) {
+    /* on a touch screen the card sits above the finger, clear of the object just tapped */
+    x = clamp(mx - r.width / 2, 8, W - r.width - 8);
+    y = my - r.height - 28;
+    if (y < 8) y = my + 28;
+  }
   tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
   tipAt = [mx, my];
 }
@@ -2039,10 +2075,15 @@ function showTip(h, mx, my) {
       row('Period', st.sat.period.toFixed(1) + ' min') + row('Light', st.lit ? 'sunlit' : 'in Earth’s shadow', !st.lit) + coordRows(st.v, c) + '</div>' +
       '<div class="tnote">Elements ' + age + ' days old, from CelesTrak. Positions are as seen from the observer.</div>';
   }
+  if (coarsePointer) html += '<div class="tgo"><button class="btn sm" id="tipgo">Fly to</button><span>tap again to fly there</span></div>';
   tip.innerHTML = html;
+  tip.classList.toggle('touch', coarsePointer);
   tip.classList.add('on');
   placeTip(mx, my);
+  var go = document.getElementById('tipgo');
+  if (go) go.addEventListener('click', function (ev) { ev.stopPropagation(); flyToHit(h); });
 }
+var coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 function fmtLight(au) {
   var s = au * 499.004784;
   if (s < 90) return s.toFixed(1) + ' s';
@@ -2616,7 +2657,8 @@ window.CG = {
   setObserver: setObserver, obs: function () { return obs; }, opt: opt, draw: draw, flyTo: flyTo, setZoom: function (z) { zoom = z; draw(); },
   proj: proj, projection: projection, lonlat: lonlat, unitv: unitv, toHor: toHor, hits: function () { return hits; },
   setTime: function (min, days) { offsetMin = (min || 0) + (days || 0) * 1440; refreshTime(); },
-  setFacing: function (f) { facing = f; facingEl.value = f; draw(); }, rotation: function () { return rotation.slice(); }
+  setFacing: function (f) { facing = f; facingEl.value = f; draw(); }, rotation: function () { return rotation.slice(); },
+  debug: function () { return { hover: hover, tipOn: tip.classList.contains('on'), moved: moved, dragStart: !!dragStart, pointers: Object.keys(pointers).length, spinPaused: spinPaused, spin: opt.spin }; }
 };
 
 })();

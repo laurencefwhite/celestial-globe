@@ -9,7 +9,10 @@ all placed for a chosen observer and moment, with the horizon drawn on the spher
 ## What it does
 
 - **A globe you can turn and zoom**, from the whole sky down to a field a few arcseconds wide. Drag to
-  turn it, scroll or pinch to zoom, double-click to zoom in on a point, click an object to fly to it.
+  turn it, scroll or pinch to zoom, double-click to zoom in on a point, hover an object for its
+  details and click it to fly to it. On a touch screen a tap selects an object and shows its details,
+  a second tap (or the card's *Fly to* button) flies there, and a tap on empty sky clears the
+  selection; the panels fold into the corners and a tap on the globe folds an open one.
 - **Two ways of looking at it.** By default you look at the celestial sphere from outside, as at a
   classical celestial globe: north is up, east is to the right, and the constellations are the mirror
   image of the sky. The *From inside* switch turns it inside out, as the sky appears from Earth, like
