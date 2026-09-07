@@ -16,13 +16,14 @@ all placed for a chosen observer and moment, with the horizon drawn on the spher
   a planisphere held overhead. A chart held overhead depends on which way you face, so a *Facing*
   control puts that direction at the bottom of the screen: facing north (the default south of the
   equator) has south at the top and east on the right, and the Sun crosses from right to left; facing
-  south (the default north of the equator) has north at the top and east on the left. From inside,
-  the horizon is held still and the sky turns past it as time runs; from outside, the sky stays put
-  and the horizon moves. The *Hold the horizon still* switch changes that either way.
+  south (the default north of the equator) has north at the top and east on the left. In both views
+  the horizon is held still by default and the sky turns past it as time runs; switch *Hold the
+  horizon still* off to fix the stars instead and let the horizon move.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
-  or use the device's location. The horizon is drawn as a line on the sphere with the cardinal points
-  and the zenith marked, the part of the sky below the horizon is shaded, and an altitude–azimuth grid
-  can be switched on. The masthead shows the observer's local time, local sidereal time and UTC.
+  or use the device's location. The horizon is drawn as a line on the sphere with the zenith marked,
+  the cardinal points sit just outside the globe (or at the edge of the screen when you are zoomed
+  in), the part of the sky below the horizon is shaded, and an altitude–azimuth grid can be switched
+  on. The masthead shows the observer's local time, local sidereal time and UTC.
 - **Coordinates on labels.** Two switches add altitude and azimuth, or right ascension and declination
   (J2000), under the name of every labelled object. Hovering anything gives both, with magnitude,
   distance, size and phase where they apply.
@@ -52,15 +53,19 @@ all placed for a chosen observer and moment, with the horizon drawn on the spher
   can carry a track across the sky, dashed for the recent past and solid for the minutes ahead, and
   is shown dimmed when it is in Earth's shadow. Elements are refreshed from CelesTrak on each visit
   and a snapshot is embedded for when that is not possible.
-- **A time scrubber.** Drag the time and date sliders or press play; *Hold the horizon still* keeps
-  the horizon fixed while the sky turns past it.
+- **Time and date scrubbers** under the clocks. The time track runs from midnight to midnight in the
+  observer's zone and the date track half a year either side of today, each with a tick at the
+  present; arrows step ten minutes or one day (hold to repeat), play runs the clock at about 36
+  minutes a second and rolls into the next day at midnight, and the date's play steps a solar day at
+  a time. The clocks turn blue when the moment shown is in the future and amber when it is in the
+  past; *Now* returns the time of day to the present and *Today* returns the date.
 - **Night vision**: a red-on-black rendering of the whole page, for use at the telescope. The `n`
   key toggles it.
 - **Layers you can switch on and off:** stars, star names, star designations, constellation figures,
   names and boundaries, Milky Way, deep-sky objects, Sun, Moon and planets, planetary moons,
   asteroids, pictures, satellites, satellite tracks, horizon, shading below the horizon, horizon
   grid, celestial grid, equator and tropics, ecliptic, galactic equator, the two coordinate labels,
-  inside view, hold horizon, slow spin and night vision.
+  inside view, hold horizon, a slow spin (off by default) and night vision.
 
 ## Running it
 

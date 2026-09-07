@@ -11,6 +11,7 @@
 <style>
 :root{
   --bg:#04060c;
+  --past:#ffc98a;
   --panel:rgba(16,22,34,.62);
   --panel-brd:rgba(255,255,255,.10);
   --ink:#e9eef7;
@@ -67,7 +68,7 @@ body{
 }
 
 /* ---------- masthead ---------- */
-#masthead{top:18px;left:18px;padding:15px 18px 14px;width:284px}
+#masthead{top:18px;left:18px;padding:15px 18px 14px;width:324px}
 #masthead h1{
   margin:0;
   font-family:var(--serif);
@@ -86,11 +87,8 @@ body{
 .clock .lab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint)}
 .clock .val{font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:.01em;margin-top:1px;white-space:nowrap}
 .clock .zone{font-size:10px;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.clocks.shift .val{color:var(--accent)}
-#shift{display:none;margin-top:9px;padding:6px 9px;border-radius:8px;background:rgba(142,208,255,.12);border:1px solid rgba(142,208,255,.35);color:var(--accent);font-size:11px;line-height:1.4;cursor:pointer}
-#shift.on{display:block}
-#shift b{font-weight:500}
-#shift:hover{background:rgba(142,208,255,.2)}
+.clocks.future .val{color:var(--accent)}
+.clocks.past .val{color:var(--past)}
 #obs-line{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);font-size:10.5px;color:var(--ink-dim);line-height:1.5}
 #obs-line b{font-weight:500;color:var(--ink)}
 #obs-line .sunline{color:var(--ink-faint)}
@@ -150,31 +148,33 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 .results .r .nm{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .results .r .ct{font-size:10px;color:var(--ink-faint);white-space:nowrap}
 
-/* ---------- vertical time / date scrubber ---------- */
-#scrubber{right:18px;bottom:18px;padding:26px 14px 12px}
-.scols{display:flex;gap:16px}
-.scol{display:flex;flex-direction:column;align-items:center;gap:8px}
-.slab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint)}
-.btn.ico{padding:3px 0;width:26px;text-align:center;line-height:1.35}
-.sval{
-  font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--ink-dim);text-align:center;
-  white-space:pre-line;line-height:1.35;min-height:30px;
-}
-.sval.shift{color:var(--accent)}
-.sbtns{display:flex;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
-.sbtns .btn{flex:1;text-align:center}
+/* ---------- horizontal time / date scrubbers, under the clocks ---------- */
+.scrub{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
+.srow+.srow{margin-top:8px}
+.srow .stop{display:flex;align-items:center;gap:8px}
+.slab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);flex:1}
+.sval{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.sval.future{color:var(--accent)}
+.sval.past{color:var(--past)}
+.srow .sbar{display:flex;align-items:center;gap:5px;margin-top:5px}
+.btn.ico{padding:3px 0;width:24px;text-align:center;line-height:1.35;font-size:11px}
+.btn.sm{padding:3px 9px;font-size:10.5px}
+.btn.sm.on{background:rgba(142,208,255,.20);border-color:rgba(142,208,255,.45);color:var(--accent)}
 
-.vslider{position:relative;width:24px;height:216px;cursor:ns-resize;touch-action:none;outline:none}
-.vslider .vtrack{position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1.5px;border-radius:2px;background:rgba(255,255,255,.15)}
-.vslider .vfill{position:absolute;left:50%;width:3px;margin-left:-1.5px;border-radius:2px;background:rgba(142,208,255,.55)}
-.vslider .vthumb{
-  position:absolute;left:50%;width:13px;height:13px;margin-left:-6.5px;margin-top:-6.5px;border-radius:50%;
+.hslider{position:relative;flex:1;height:22px;cursor:ew-resize;touch-action:none;outline:none;min-width:0}
+.hslider .htrack{position:absolute;left:0;right:0;top:50%;height:3px;margin-top:-1.5px;border-radius:2px;background:rgba(255,255,255,.15)}
+.hslider .hfill{position:absolute;top:50%;height:3px;margin-top:-1.5px;border-radius:2px;background:rgba(142,208,255,.55)}
+.hslider .hfill.past{background:rgba(255,201,138,.55)}
+.hslider .hmark{position:absolute;top:50%;width:2px;height:11px;margin:-5.5px 0 0 -1px;border-radius:1px;background:rgba(255,255,255,.6)}
+.hslider .hthumb{
+  position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;
   background:var(--accent);box-shadow:0 0 0 4px rgba(142,208,255,.15);transition:box-shadow .15s;
 }
-.vslider:hover .vthumb,.vslider:focus .vthumb{box-shadow:0 0 0 6px rgba(142,208,255,.22)}
-.vslider .vticks{position:absolute;left:50%;top:0;bottom:0;width:11px;margin-left:-5.5px}
-.vslider .vticks i{position:absolute;left:0;width:11px;height:1px;background:rgba(255,255,255,.13)}
-.vslider .vticks i.major{background:rgba(255,255,255,.26);width:15px;left:-2px}
+.hslider .hthumb.past{background:var(--past);box-shadow:0 0 0 4px rgba(255,201,138,.15)}
+.hslider:hover .hthumb,.hslider:focus .hthumb{box-shadow:0 0 0 6px rgba(142,208,255,.22)}
+.hslider .hticks{position:absolute;left:0;right:0;top:50%;height:11px;margin-top:-5.5px}
+.hslider .hticks i{position:absolute;top:0;width:1px;height:11px;background:rgba(255,255,255,.13)}
+.hslider .hticks i.major{background:rgba(255,255,255,.26);height:15px;top:-2px}
 .btn{
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:var(--ink);
   border-radius:8px;padding:5px 10px;font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap;
@@ -235,20 +235,18 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 body.night #night{display:block}
 body.night #stage{filter:grayscale(1)}
 
-@media (max-height:860px){ .vslider{height:168px} }
-@media (max-height:760px){ .vslider{height:126px} #scrubber{padding:10px 12px 10px} }
 @media (max-height:880px){ #legend{bottom:34px} }
 @media (max-height:800px){ #legend .lsec.opt{display:none} }
 @media (max-height:700px){ #legend .lsec{display:none} }
 @media (max-width:860px){
   #masthead.min, #controls.min{right:auto}
-  #scrubber.min{top:auto;bottom:10px;transform:none}
   #masthead{top:10px;left:10px;right:10px;width:auto;padding:11px 14px 12px}
   #masthead h1{font-size:18px}
   #masthead .sub{display:none}
   #masthead .clocks{margin-top:9px;padding-top:9px}
   #masthead .clock .val{font-size:15px}
   #obs-line{display:none}
+  .scrub{margin-top:8px;padding-top:8px}
 
   #controls{top:auto;bottom:10px;right:10px;left:10px;width:auto;padding:26px 12px 10px;max-height:46vh}
   #controls.min{padding:0 !important}
@@ -264,10 +262,6 @@ body.night #stage{filter:grayscale(1)}
   .results{max-height:180px}
 
   #legend{display:none}
-  #scrubber{right:8px;top:50%;bottom:auto;transform:translateY(-50%);left:auto;padding:9px 10px 9px}
-  #scrubber .vslider{height:128px}
-  #scrubber .sval{font-size:10.5px}
-  #scrubber .scols{gap:11px}
   #hint{display:none}
   #credit{display:none}
 }
@@ -302,7 +296,30 @@ body.night #stage{filter:grayscale(1)}
         <div class="zone" id="cl-utcdate">&nbsp;</div>
       </div>
     </div>
-    <div id="shift" title="Back to the present moment"></div>
+    <div class="scrub">
+      <div class="srow">
+        <div class="stop"><div class="slab">Time</div><button class="btn sm" id="reset" title="Back to the present time of day">Now</button><div class="sval" id="scrublab">--:--</div></div>
+        <div class="sbar">
+          <button class="btn ico" id="play" title="Run the clock (space)">&#9654;</button>
+          <button class="btn ico" id="tback" title="Back ten minutes (hold to repeat)">&#9666;</button>
+          <div class="hslider" id="htime" tabindex="0" role="slider" aria-label="Time of day">
+            <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
+          </div>
+          <button class="btn ico" id="tfwd" title="Forward ten minutes (hold to repeat)">&#9656;</button>
+        </div>
+      </div>
+      <div class="srow">
+        <div class="stop"><div class="slab">Date</div><button class="btn sm" id="today" title="Back to today">Today</button><div class="sval" id="dscrublab">&nbsp;</div></div>
+        <div class="sbar">
+          <button class="btn ico" id="playdate" title="Step forward a day at a time">&#9654;</button>
+          <button class="btn ico" id="dback" title="Back one day (hold to repeat)">&#9666;</button>
+          <div class="hslider" id="hdate" tabindex="0" role="slider" aria-label="Date">
+            <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
+          </div>
+          <button class="btn ico" id="dfwd" title="Forward one day (hold to repeat)">&#9656;</button>
+        </div>
+      </div>
+    </div>
     <div id="obs-line">&nbsp;</div>
   </div>
 
@@ -389,8 +406,8 @@ body.night #stage{filter:grayscale(1)}
           <option value="S">South (north at top)</option>
           <option value="W">West</option>
         </select></div>
-      <label class="tog"><input type="checkbox" id="L-hold"><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
-      <label class="tog"><input type="checkbox" id="L-spin" checked><span class="sw"></span><span class="tl">Slow spin</span></label>
+      <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
+      <label class="tog"><input type="checkbox" id="L-spin"><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
       </div>
     </div>
@@ -425,30 +442,6 @@ body.night #stage{filter:grayscale(1)}
     </div>
   </div>
 
-  <div class="panel" id="scrubber">
-    <button class="pmin" data-name="Time" title="Minimise"></button>
-    <div class="scols">
-      <div class="scol">
-        <div class="slab">Time</div>
-        <button class="btn ico" id="play" title="Run the clock forward (space)">&#9654;</button>
-        <div class="vslider" id="vtime" tabindex="0" role="slider" aria-label="Time of day">
-          <div class="vticks"></div><div class="vtrack"></div><div class="vfill"></div><div class="vthumb"></div>
-        </div>
-        <div class="sval" id="scrublab">--:--</div>
-      </div>
-      <div class="scol">
-        <div class="slab">Date</div>
-        <button class="btn ico" id="playdate" title="Run the calendar forward">&#9654;</button>
-        <div class="vslider" id="vdate" tabindex="0" role="slider" aria-label="Date">
-          <div class="vticks"></div><div class="vtrack"></div><div class="vfill"></div><div class="vthumb"></div>
-        </div>
-        <div class="sval" id="dscrublab">&nbsp;</div>
-      </div>
-    </div>
-    <div class="sbtns">
-      <button class="btn" id="reset" title="Back to the present moment">Now</button>
-    </div>
-  </div>
 
   <div id="hint">Drag to turn &middot; scroll to zoom &middot; hover an object for its position</div>
 </div>
@@ -950,7 +943,7 @@ var opt = {
   stars: true, starnames: true, bayer: false, conlines: true, connames: true, conbounds: false, mw: true, dso: true,
   planets: true, moons: true, asteroids: true, pics: true, sats: true, tracks: true,
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
-  altaz: false, radec: false, inside: false, hold: false, spin: true
+  altaz: false, radec: false, inside: false, hold: true, spin: false
 };
 
 /* ------------------------------------------------------------- projection */
@@ -982,9 +975,21 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   skyCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
   var narrow = W < 700;
-  R0 = Math.min(W, H) * (narrow ? 0.47 : 0.475);
+  R0 = Math.min(W, H) * (narrow ? 0.45 : 0.455);      /* room outside the rim for the cardinal letters */
   CX = W / 2;
   CY = narrow ? H * 0.46 : H / 2;
+  if (W > 860) {
+    /* keep the globe, and the cardinal letters outside it, clear of whichever side panels are open */
+    var left = 0, right = W;
+    document.querySelectorAll('.panel').forEach(function (pn) {
+      if (pn.classList.contains('min')) return;
+      var r = pn.getBoundingClientRect();
+      if (r.left < W / 2) left = Math.max(left, r.right); else right = Math.min(right, r.left);
+    });
+    var span = right - left - 2 * 30;
+    if (span > 200 && span / 2 < R0) { R0 = span / 2; }
+    if (left > 0 || right < W) CX = (left + right) / 2;
+  }
   drawSky();
   draw();
 }
@@ -1148,8 +1153,8 @@ function drawPicCircle(img, x, y, r, vignette) {
 }
 
 /* ------------------------------------------------------------- the clock */
-var minOffset = 0, dayOffset = 0;
-function totalOffset() { return dayOffset * 1440 + minOffset; }
+var offsetMin = 0;                       /* minutes between the moment shown and the present */
+function totalOffset() { return offsetMin; }
 function now() { return new Date(Date.now() + totalOffset() * 60000); }
 
 var sky = null, skyStamp = 0, skyDirty = true;
@@ -1276,6 +1281,7 @@ function draw() {
   if (opt.connames && zoom < 60) drawConNames();
   placeLabels();
   ctx.restore();
+  if (opt.horizon) drawCardinals(c);
 
   /* rim */
   ctx.beginPath(); path(sphere);
@@ -1735,28 +1741,6 @@ function drawHorizon(c) {
   var circ = horizonCircle(c, 0);
   drawLine(circ, PAL.horizonGlow, 5, null);
   drawLine(circ, PAL.horizon, 1.6, null);
-  /* cardinal points */
-  var names = zoom >= 1.8 ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] : ['N', 'E', 'S', 'W'];
-  var step = 360 / names.length;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (var i = 0; i < names.length; i++) {
-    /* the anchor sits a hair above the horizon so that it survives the far-side test when the
-       horizon lies on the limb; the label then goes 15 px along the screen direction to the zenith */
-    var p = proj(fromHor(0.02, i * step, c));
-    if (!onScreen(p, 10)) continue;
-    var q = proj(fromHor(Math.min(8, 8 / Math.sqrt(zoom)), i * step, c));
-    var dx = p[0] - CX, dy = p[1] - CY, l = Math.hypot(dx, dy) || 1;
-    dx = -dx / l; dy = -dy / l;                                   /* inward, for a horizon on the limb */
-    if (q && Math.hypot(q[0] - p[0], q[1] - p[1]) > 2) { dx = q[0] - p[0]; dy = q[1] - p[1]; l = Math.hypot(dx, dy); dx /= l; dy /= l; }
-    var major = names[i].length === 1;
-    ctx.font = (major ? '600 12px ' : '500 10px ') + FONT;
-    var lx = p[0] + dx * 15, ly = p[1] + dy * 15;
-    ctx.fillStyle = 'rgba(4,8,16,.7)'; ctx.beginPath(); ctx.arc(lx, ly, major ? 9 : 8, 0, 2 * Math.PI); ctx.fill();
-    ctx.fillStyle = major ? PAL.horizon : 'rgba(255,196,120,.7)';
-    ctx.fillText(names[i], lx, ly + 0.5);
-    boxes.push([lx - 10, ly - 10, lx + 10, ly + 10]);
-    ctx.fillStyle = PAL.horizon; ctx.beginPath(); ctx.arc(p[0], p[1], major ? 2.2 : 1.6, 0, 2 * Math.PI); ctx.fill();
-  }
   /* zenith */
   var z = proj(c.Z);
   if (onScreen(z)) {
@@ -1767,6 +1751,39 @@ function drawHorizon(c) {
     ctx.fillText('zenith', z[0] + 9, z[1] - 8);
     boxes.push([z[0] - 8, z[1] - 16, z[0] + 44, z[1] + 8]);
   }
+}
+/* the cardinal letters sit outside the globe, on the ray from the centre through each horizon point;
+   when the rim runs off the screen they stop at the screen edge instead */
+function drawCardinals(c) {
+  var names = zoom >= 1.8 ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] : ['N', 'E', 'S', 'W'];
+  var step = 360 / names.length, s = R0 * zoom, m = 13;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (var i = 0; i < names.length; i++) {
+    var v = fromHor(0.02, i * step, c);
+    var x = rotM[0][0] * v[0] + rotM[1][0] * v[1] + rotM[2][0] * v[2];
+    if (x < -0.35) continue;                                       /* well round the back: no useful direction */
+    var y = rotM[0][1] * v[0] + rotM[1][1] * v[1] + rotM[2][1] * v[2], z = rotM[0][2] * v[0] + rotM[1][2] * v[1] + rotM[2][2] * v[2];
+    var dx = opt.inside ? -y : y, dy = -z, l = Math.hypot(dx, dy) || 1;
+    dx /= l; dy /= l;
+    var major = names[i].length === 1, rad = major ? 9 : 8;
+    var t = s + rad + 6;
+    var tx = Infinity;
+    if (dx < 0) tx = Math.min(tx, (m - CX) / dx); if (dx > 0) tx = Math.min(tx, (W - m - CX) / dx);
+    if (dy < 0) tx = Math.min(tx, (m - CY) / dy); if (dy > 0) tx = Math.min(tx, (H - m - CY) / dy);
+    if (tx < t) t = tx;
+    var lx = CX + dx * t, ly = CY + dy * t;
+    ctx.globalAlpha = x < 0 ? 0.45 : 1;
+    ctx.font = (major ? '600 12px ' : '500 10px ') + FONT;
+    ctx.fillStyle = 'rgba(4,8,16,.75)'; ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,196,120,.35)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = major ? PAL.horizon : 'rgba(255,196,120,.75)';
+    ctx.fillText(names[i], lx, ly + 0.5);
+    if (x > 0) {                                                     /* and a dot on the horizon line itself */
+      var p = proj(v);
+      if (onScreen(p)) { ctx.fillStyle = PAL.horizon; ctx.beginPath(); ctx.arc(p[0], p[1], major ? 2.2 : 1.6, 0, 2 * Math.PI); ctx.fill(); }
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 function drawHorizonGrid(c) {
   var altStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30, azStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30;
@@ -2081,7 +2098,7 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'inside') {
       document.getElementById('facerow').hidden = !opt.inside;
       /* from inside you are the observer, so the horizon stays put and the sky turns past it */
-      opt.hold = opt.inside; document.getElementById('L-hold').checked = opt.hold; holdLst = null;
+      if (opt.inside) { opt.hold = true; document.getElementById('L-hold').checked = true; holdLst = null; }
       describeView();
     }
     hideTip(); draw();
@@ -2126,7 +2143,7 @@ function setObserver(lat, lon, name, country, tz, keepView) {
   lsSet('cg-obs', obs);
   facing = lat < 0 ? 'N' : 'S'; facingEl.value = facing;
   skyDirty = true; trackCache = {}; holdLst = null;
-  tickClocks();
+  tickClocks(); updateScrubLabel();
   if (!keepView) flyToZenith(Math.max(1, zoom)); else draw();
 }
 document.getElementById('setobs').addEventListener('click', function () {
@@ -2245,107 +2262,125 @@ function startSpin() {
   })(performance.now());
 }
 
-/* ------------------------------------------- a vertical slider, hand rolled */
-function vSlider(el, o) {
-  var thumb = el.querySelector('.vthumb'), fill = el.querySelector('.vfill');
-  var ticks = el.querySelector('.vticks');
-  var value = o.value || 0, dragging = false;
+/* ------------------------------------------ a horizontal slider, hand rolled */
+function hSlider(el, o) {
+  var thumb = el.querySelector('.hthumb'), fill = el.querySelector('.hfill'), mark = el.querySelector('.hmark');
+  var ticks = el.querySelector('.hticks');
+  var value = o.value || 0, origin = o.origin || 0, dragging = false;
   (o.ticks || []).forEach(function (t) {
     var i = document.createElement('i');
-    i.style.top = ((o.max - t.v) / (o.max - o.min) * 100) + '%';
+    i.style.left = ((t.v - o.min) / (o.max - o.min) * 100) + '%';
     if (t.major) i.className = 'major';
     ticks.appendChild(i);
   });
+  function frac(v) { return (v - o.min) / (o.max - o.min); }
   function paint() {
-    var h = el.clientHeight;
-    var f = (o.max - value) / (o.max - o.min);
-    var zero = (o.max - 0) / (o.max - o.min);
-    thumb.style.top = (f * h) + 'px';
-    fill.style.top = (Math.min(f, zero) * h) + 'px';
-    fill.style.height = (Math.abs(zero - f) * h) + 'px';
+    var w = el.clientWidth, f = frac(value), z = frac(origin);
+    thumb.style.left = (f * w) + 'px';
+    mark.style.left = (z * w) + 'px';
+    fill.style.left = (Math.min(f, z) * w) + 'px';
+    fill.style.width = (Math.abs(f - z) * w) + 'px';
+    fill.classList.toggle('past', value < origin);
+    thumb.classList.toggle('past', value < origin);
     el.setAttribute('aria-valuenow', Math.round(value));
   }
   function setValue(v, fire) {
     v = Math.max(o.min, Math.min(o.max, v));
     if (o.step) v = Math.round(v / o.step) * o.step;
-    if (v === value && fire !== 'force') { paint(); return; }
+    if (v === value && !fire) { paint(); return; }
     value = v; paint();
     if (fire) o.onInput(value);
   }
-  function fromY(clientY) {
+  function fromX(clientX) {
     var r = el.getBoundingClientRect();
-    var f = (clientY - r.top) / (r.height || 1);
-    return o.max - Math.max(0, Math.min(1, f)) * (o.max - o.min);
+    return o.min + Math.max(0, Math.min(1, (clientX - r.left) / (r.width || 1))) * (o.max - o.min);
   }
-  el.addEventListener('pointerdown', function (e) { dragging = true; el.setPointerCapture(e.pointerId); el.focus(); setValue(fromY(e.clientY), true); e.preventDefault(); });
-  el.addEventListener('pointermove', function (e) { if (dragging) setValue(fromY(e.clientY), true); });
+  el.addEventListener('pointerdown', function (e) { dragging = true; el.setPointerCapture(e.pointerId); el.focus(); setValue(fromX(e.clientX), true); e.preventDefault(); });
+  el.addEventListener('pointermove', function (e) { if (dragging) setValue(fromX(e.clientX), true); });
   function stop(e) { dragging = false; try { el.releasePointerCapture(e.pointerId); } catch (err) {} }
   el.addEventListener('pointerup', stop);
   el.addEventListener('pointercancel', stop);
-  el.addEventListener('wheel', function (e) { e.preventDefault(); setValue(value - Math.sign(e.deltaY) * (o.step || 1) * (e.shiftKey ? 10 : 1), true); }, { passive: false });
+  el.addEventListener('wheel', function (e) { e.preventDefault(); setValue(value - Math.sign(e.deltaY) * (o.wheel || o.step || 1) * (e.shiftKey ? 6 : 1), true); }, { passive: false });
   el.addEventListener('keydown', function (e) {
     var k = e.key, big = (o.max - o.min) / 24;
-    if (k === 'ArrowUp' || k === 'ArrowRight') setValue(value + (o.step || 1), true);
-    else if (k === 'ArrowDown' || k === 'ArrowLeft') setValue(value - (o.step || 1), true);
+    if (k === 'ArrowRight' || k === 'ArrowUp') setValue(value + (o.wheel || o.step || 1), true);
+    else if (k === 'ArrowLeft' || k === 'ArrowDown') setValue(value - (o.wheel || o.step || 1), true);
     else if (k === 'PageUp') setValue(value + big, true);
     else if (k === 'PageDown') setValue(value - big, true);
-    else if (k === 'Home') setValue(0, true);
+    else if (k === 'Home') setValue(origin, true);
     else return;
     e.preventDefault();
   });
   window.addEventListener('resize', paint);
   paint();
-  return { set: function (v) { setValue(v, false); }, get: function () { return value; }, paint: paint };
+  return { set: function (v, org) { if (org !== undefined) origin = org; setValue(v, false); }, get: function () { return value; }, paint: paint };
 }
 
-var scrublab = document.getElementById('scrublab');
-var dscrublab = document.getElementById('dscrublab');
-var resetBtn = document.getElementById('reset');
-var playBtn = document.getElementById('play');
-var playDateBtn = document.getElementById('playdate');
-var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-var MONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/* The sliders show the observer's local time of day and the date, not offsets: the time track runs
+   from midnight to midnight and the date track half a year either side of today. A tick marks the
+   present on each. Internally everything is still one offset from the present, in minutes. */
+var scrublab = document.getElementById('scrublab'), dscrublab = document.getElementById('dscrublab');
+var resetBtn = document.getElementById('reset'), todayBtn = document.getElementById('today');
+var playBtn = document.getElementById('play'), playDateBtn = document.getElementById('playdate');
+var clocksEl = document.querySelector('.clocks');
+var MAX_DAYS = 183, MAX_OFFSET = MAX_DAYS * 1440 + 1439;
 var timeTicks = [], dateTicks = [];
-for (var th = -12; th <= 12; th += 3) timeTicks.push({ v: th * 60, major: th === 0 });
+for (var th = 0; th <= 24; th += 3) timeTicks.push({ v: th * 60, major: th % 12 === 0 });
 for (var dd = -180; dd <= 180; dd += 30) dateTicks.push({ v: dd, major: dd === 0 });
-var timeSlider = vSlider(document.getElementById('vtime'), { min: -720, max: 720, step: 1, value: 0, ticks: timeTicks,
-  onInput: function (v) { minOffset = v; stopPlaying(); refreshTime(); } });
-var dateSlider = vSlider(document.getElementById('vdate'), { min: -183, max: 183, step: 1, value: 0, ticks: dateTicks,
-  onInput: function (v) { dayOffset = v; stopPlaying(); refreshTime(); } });
+
+function localParts(d) {
+  var parts = fmt(obs.tz, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: false }, 'p').formatToParts(d);
+  var o = {};
+  parts.forEach(function (x) { o[x.type] = x.value; });
+  return { mins: ((+o.hour) % 24) * 60 + (+o.minute), dayNum: Math.round(Date.UTC(+o.year, +o.month - 1, +o.day) / 86400000) };
+}
+function shownState() {
+  var here = localParts(new Date()), there = localParts(now());
+  return { mins: there.mins, nowMins: here.mins, days: there.dayNum - here.dayNum };
+}
+function clampOffset() { offsetMin = clamp(offsetMin, -MAX_DAYS * 1440, MAX_OFFSET); }
+function wrapOffset() {              /* running past either end of the date track comes round the other side */
+  if (offsetMin > MAX_OFFSET) offsetMin -= (2 * MAX_DAYS + 1) * 1440;
+  if (offsetMin < -MAX_DAYS * 1440) offsetMin += (2 * MAX_DAYS + 1) * 1440;
+}
+
+var timeSlider = hSlider(document.getElementById('htime'), { min: 0, max: 1439, step: 1, wheel: 10, value: 0, ticks: timeTicks,
+  onInput: function (v) { var st = shownState(); offsetMin += v - st.mins; clampOffset(); stopPlaying(); refreshTime(); } });
+var dateSlider = hSlider(document.getElementById('hdate'), { min: -MAX_DAYS, max: MAX_DAYS, step: 1, value: 0, ticks: dateTicks,
+  onInput: function (v) { var st = shownState(); offsetMin += (v - st.days) * 1440; clampOffset(); stopPlaying(); refreshTime(); } });
 
 function refreshTime() { skyDirty = true; updateScrubLabel(); tickClocks(); draw(); }
 function updateScrubLabel() {
-  var d = now();
-  scrublab.textContent = pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + '\nUTC';
-  dscrublab.textContent = DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONS[d.getUTCMonth()] + '\n' + d.getUTCFullYear();
-  scrublab.classList.toggle('shift', minOffset !== 0);
-  dscrublab.classList.toggle('shift', dayOffset !== 0);
-  resetBtn.style.opacity = totalOffset() === 0 ? 0.45 : 1;
-  var off = totalOffset();
-  document.querySelector('.clocks').classList.toggle('shift', off !== 0);
-  shiftEl.classList.toggle('on', off !== 0);
-  if (off !== 0) {
-    var a = Math.abs(off), dd = Math.floor(a / 1440), hh = Math.floor((a % 1440) / 60), mm = Math.round(a % 60);
-    var parts = [];
-    if (dd) parts.push(dd + (dd === 1 ? ' day' : ' days'));
-    if (hh) parts.push(hh + ' h');
-    if (mm || !parts.length) parts.push(mm + ' min');
-    shiftEl.innerHTML = 'The clock is set <b>' + parts.join(' ') + (off > 0 ? ' ahead' : ' behind') + '</b> of the present' +
-                        (playMode ? ' and running' : '') + '. Click here to return to now.';
-  }
+  var st = shownState(), d = now();
+  timeSlider.set(st.mins, st.nowMins);
+  dateSlider.set(clamp(st.days, -MAX_DAYS, MAX_DAYS), 0);
+  scrublab.textContent = fmt(obs.tz, { hour: '2-digit', minute: '2-digit', hour12: false }, 't').format(d);
+  dscrublab.textContent = fmt(obs.tz, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }, 'dl').format(d);
+  var timeShift = st.mins !== st.nowMins, dateShift = st.days !== 0;
+  var cls = offsetMin > 0.5 ? 'future' : offsetMin < -0.5 ? 'past' : '';
+  [scrublab, dscrublab, clocksEl].forEach(function (el) { el.classList.toggle('future', cls === 'future'); el.classList.toggle('past', cls === 'past'); });
+  resetBtn.classList.toggle('on', timeShift);
+  todayBtn.classList.toggle('on', dateShift);
 }
-var shiftEl = document.getElementById('shift');
-shiftEl.addEventListener('click', function () { resetBtn.click(); });
-resetBtn.addEventListener('click', function () { dayOffset = 0; minOffset = 0; timeSlider.set(0); dateSlider.set(0); stopPlaying(); refreshTime(); });
+/* Now puts the time of day back to the present and keeps the date; Today puts the date back and keeps the time */
+resetBtn.addEventListener('click', function () { var st = shownState(); offsetMin -= st.mins - st.nowMins; stopPlaying(); refreshTime(); });
+todayBtn.addEventListener('click', function () { var st = shownState(); offsetMin -= st.days * 1440; stopPlaying(); refreshTime(); });
 
-var playRaf = null, playLast = 0, playMode = null;
-function syncSliders() { timeSlider.set(minOffset); dateSlider.set(dayOffset); }
-function clampDays() { if (dayOffset > 183) dayOffset = -183; if (dayOffset < -183) dayOffset = 183; }
-function rollMinutes() {
-  while (minOffset > 720) { minOffset -= 1440; dayOffset++; }
-  while (minOffset < -720) { minOffset += 1440; dayOffset--; }
-  clampDays();
+/* step buttons, repeating while held */
+function stepper(id, delta) {
+  var el = document.getElementById(id), timer = null, rep = null;
+  function go() { offsetMin += delta; clampOffset(); stopPlaying(); refreshTime(); }
+  el.addEventListener('pointerdown', function (e) {
+    e.preventDefault(); go();
+    timer = setTimeout(function () { rep = setInterval(go, 140); }, 420);
+  });
+  function end() { clearTimeout(timer); clearInterval(rep); timer = rep = null; }
+  el.addEventListener('pointerup', end); el.addEventListener('pointerleave', end); el.addEventListener('pointercancel', end);
 }
+stepper('tback', -10); stepper('tfwd', 10); stepper('dback', -1440); stepper('dfwd', 1440);
+
+/* running: the clock runs continuously and rolls into the next day at midnight; the calendar steps a whole day at a time */
+var playRaf = null, playLast = 0, playMode = null, dayAccum = 0;
 function paintPlayButtons() {
   playBtn.classList.toggle('on', playMode === 'clock');
   playBtn.innerHTML = playMode === 'clock' ? '&#10074;&#10074;' : '&#9654;';
@@ -2357,15 +2392,14 @@ function setPlaying(mode) {
   if (!mode || playMode === mode) { stopPlaying(); return; }
   playMode = mode; paintPlayButtons();
   cancelAnimationFrame(playRaf);
-  playLast = performance.now();
+  playLast = performance.now(); dayAccum = 0;
   (function tick(t) {
     if (!playMode) return;
     var dt = Math.min(120, t - playLast); playLast = t;
-    if (playMode === 'clock') { minOffset += dt * 0.0006 * 60; rollMinutes(); }      /* about 36 minutes of sky a second */
-    else { dayOffset += dt * 0.004; clampDays(); }                                    /* about four days a second */
-    syncSliders();
-    skyDirty = true;
-    updateScrubLabel(); tickClocks(); draw();
+    var changed = false;
+    if (playMode === 'clock') { offsetMin += dt * 0.0006 * 60; changed = true; }          /* about 36 minutes of sky a second */
+    else { dayAccum += dt; if (dayAccum >= 450) { dayAccum -= 450; offsetMin += 1440; changed = true; } }   /* one solar day per step */
+    if (changed) { wrapOffset(); skyDirty = true; updateScrubLabel(); tickClocks(); draw(); }
     playRaf = requestAnimationFrame(tick);
   })(performance.now());
 }
@@ -2503,7 +2537,8 @@ function updateLegendLimit() { document.getElementById('lg-maglim').textContent 
         e.stopPropagation();
         var min = p.classList.toggle('min');
         b.title = min ? 'Restore' : 'Minimise';
-        if (p.id === 'scrubber') { timeSlider.paint(); dateSlider.paint(); }
+        if (p.id === 'masthead') { timeSlider.paint(); dateSlider.paint(); }
+        resize();
       });
     })(panel, btn);
   }
@@ -2546,7 +2581,7 @@ window.CG = {
   at: function (date) { var c = skyContext(date); computeBodies(c); computeSats(c); skyDirty = true; return { c: c, bodies: bodies.slice(), sats: satState.slice() }; },
   setObserver: setObserver, obs: function () { return obs; }, opt: opt, draw: draw, flyTo: flyTo, setZoom: function (z) { zoom = z; draw(); },
   proj: proj, projection: projection, lonlat: lonlat, unitv: unitv, toHor: toHor, hits: function () { return hits; },
-  setTime: function (min, days) { minOffset = min || 0; dayOffset = days || 0; syncSliders(); refreshTime(); },
+  setTime: function (min, days) { offsetMin = (min || 0) + (days || 0) * 1440; refreshTime(); },
   setFacing: function (f) { facing = f; facingEl.value = f; draw(); }, rotation: function () { return rotation.slice(); }
 };
 
