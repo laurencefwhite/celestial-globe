@@ -785,11 +785,30 @@ function showerActive(sh, sl) {
   if (a <= b) return sl >= a && sl <= b;
   return sl >= a || sl <= b;                     /* one that runs across the equinox */
 }
+/* How many meteors an hour the shower is throwing at the moment shown. The rate falls away from the
+   peak by the usual factor of ten every so many degrees of the Sun's longitude, and the width of
+   that falloff comes from the shower's own published season rather than from a fixed number of days:
+   a shower whose season lasts two days is sharp, one that lasts two months is flat. The two sides of
+   the peak are taken separately, since most showers build slowly and fall away quickly. */
+var SHOWER_EDGE = 1.301;                          /* the season's edge is a twentieth of the peak rate */
+var SHOWER_NOMINAL = 15;                          /* stands in for the showers whose rate cannot be foretold */
+function showerZhr(sh, d) {
+  var before = ((sh.sol - sh.from) + 360) % 360, after = ((sh.to - sh.sol) + 360) % 360;
+  var half = Math.max(0.4, d < 0 ? before : after);
+  var peak = sh.zhr > 0 ? sh.zhr : SHOWER_NOMINAL;
+  return peak * Math.pow(10, -(SHOWER_EDGE / half) * Math.abs(d));
+}
 function showerState(sh, c) {
   var sl = c.sunLon;
   var d = ((sl - sh.sol) + 540) % 360 - 180;                 /* degrees of solar longitude from the peak */
   var v = unitv(sh.ra + sh.dra * d, clamp(sh.dec + sh.ddec * d, -89.9, 89.9));
-  return { v: v, active: showerActive(sh, sl), fromPeak: d, peakJd: solarLongitudeToJd(sh.sol, c.jd - d / 0.9856) };
+  var h = toHor(v, c);
+  var zhr = showerZhr(sh, d);
+  /* what could actually be counted: the zenithal rate falls off as the sine of the radiant's height,
+     and nothing at all arrives while the radiant is below the horizon */
+  var seen = h[0] > 0 ? zhr * Math.sin(h[0] * DEG) : 0;
+  return { v: v, alt: h[0], az: h[1], active: showerActive(sh, sl), fromPeak: d, zhr: zhr, seen: seen,
+           known: sh.zhr > 0, peakJd: solarLongitudeToJd(sh.sol, c.jd - d / 0.9856) };
 }
 var ASTEROID_WIKI = { Ceres: 'Ceres_(dwarf_planet)', Vesta: '4_Vesta', Pallas: '2_Pallas', Hygiea: '10_Hygiea', Eris: 'Eris_(dwarf_planet)',
   Makemake: 'Makemake', Haumea: 'Haumea', Quaoar: '50000_Quaoar', Sedna: '90377_Sedna', Orcus: '90482_Orcus', Gonggong: '225088_Gonggong',
@@ -2202,15 +2221,19 @@ function drawShowers(c) {
   for (var i = 0; i < showers.length; i++) {
     var sh = showers[i], st = showerState(sh, c);
     sh.state = st;
-    if (!st.active && Math.abs(st.fromPeak) > 25) continue;
+    /* drawn while the shower is running at all, and for a fortnight before it starts so that what is
+       coming can be seen; either way it carries its name */
+    var coming = !st.active && st.fromPeak < 0 && st.fromPeak > -20;
+    if (st.zhr < 0.8 && !coming) continue;
     var p = proj(st.v);
     if (!onScreen(p, 40)) continue;
-    var near = Math.abs(st.fromPeak) < 3;
-    var strength = st.active ? (near ? 1 : 0.65) : 0.3;
-    var r = 7 + (sh.zhr > 0 ? Math.min(7, Math.log2(sh.zhr + 1) * 2) : 4);
+    var frac = clamp(st.zhr / (sh.zhr > 0 ? sh.zhr : SHOWER_NOMINAL), 0, 1);
+    var up = st.alt > 0;
+    var strength = (coming ? 0.3 : 0.32 + 0.68 * Math.pow(frac, 0.4)) * (up ? 1 : 0.5);
+    var r = coming ? 7 : clamp(5 + 3.4 * Math.log2(1 + st.zhr), 7, 23);
     ctx.save();
     ctx.globalAlpha = strength;
-    ctx.strokeStyle = PAL.shower; ctx.lineWidth = near ? 1.3 : 1;
+    ctx.strokeStyle = PAL.shower; ctx.lineWidth = frac > 0.5 ? 1.4 : 1;
     for (var k = 0; k < 8; k++) {
       var a = k * Math.PI / 4 + 0.2;
       ctx.beginPath();
@@ -2223,10 +2246,13 @@ function drawShowers(c) {
     ctx.restore();
     addHit(p[0], p[1], r, 'shower', sh);
     if (isHover('shower', sh)) ring(p[0], p[1], r + 4);
-    if (st.active || isHover('shower', sh)) {
-      queueLabel(p[0], p[1], r, sh.name, { font: '400 10.5px ' + FONT, colour: near ? 'rgba(255,190,220,.95)' : 'rgba(230,190,215,.72)',
-                                           prio: near ? 8 : 3, sub: coordLines(st.v, c), kind: 'shower', ref: sh });
-    }
+    var text = sh.name;
+    if (coming) text += ' \u00b7 in ' + Math.max(1, Math.round(-st.fromPeak / 0.9856)) + ' days';
+    else if (st.known && st.zhr >= 3) text += ' \u00b7 ' + Math.round(st.zhr) + '/h';
+    queueLabel(p[0], p[1], r, text, {
+      font: (frac > 0.5 ? '500 11px ' : '400 10.5px ') + FONT,
+      colour: coming ? 'rgba(225,185,210,.6)' : 'rgba(255,190,220,' + (0.55 + 0.4 * frac).toFixed(2) + ')',
+      prio: coming ? 2 : 2 + Math.round(7 * frac), sub: coordLines(st.v, c), kind: 'shower', ref: sh });
   }
 }
 
@@ -2551,6 +2577,12 @@ function hitAt(mx, my) {
   var slack = coarsePointer ? 14 : 7;
   for (var i = 0; i < hits.length; i++) {
     var h = hits[i], d = Math.hypot(h.x - mx, h.y - my);
+    /* a meteor radiant is a wide ring of rays rather than a solid target: it answers at its own
+       centre, and stands aside for any star or object lying out in the ring */
+    if (h.kind === 'shower') {
+      if (d < h.r) { var sc = d < 6 ? d - 4 : d + 4; if (sc < bd) { bd = sc; best = h; } }
+      continue;
+    }
     if (h.r > 14) { if (d < h.r && d < bigD) { bigD = d; big = h; } continue; }
     var tol = Math.max(h.r + 3, slack);
     if (d < tol && d - h.r < bd) { bd = d - h.r; best = h; }
@@ -2628,7 +2660,7 @@ function showTip(h, mx, my) {
     var sub = [];
     if (e && e.name && starDesig(e)) sub.push(starDesigLong(e));
     var con = e && e.con && conByAbbr[e.con] ? conByAbbr[e.con].name : conName(v);
-    var sp = starSpect(i), words = spectWords(sp), vr = starVar[i];
+    var sp = starSpect(i).replace(/\.+$/, ''), words = spectWords(sp), vr = starVar[i];
     var kind = sp ? sp + (words ? ' · ' + words : '') : 'Star';
     html = '<div class="tn">' + esc(title) + '</div><div class="tc">' + esc((sub.length ? sub[0] + ' · ' : '') + kind + ' in ' + con) + '</div>' +
       '<div class="tgrid">' + row('Magnitude', SMAG[i].toFixed(2) + (vr ? ' · varies ' + vr.min.toFixed(1) + ' to ' + vr.max.toFixed(1) : '')) +
@@ -2672,12 +2704,27 @@ function showTip(h, mx, my) {
   } else if (h.kind === 'shower') {
     var sh = h.ref, sst = sh.state || showerState(sh, c);
     var when = fmt(obs.tz, { day: 'numeric', month: 'long' }, 'ms').format(jdToDate(sst.peakJd));
-    html = '<div class="tn">' + esc(sh.name) + '</div><div class="tc">' + esc('Meteor shower · radiant in ' + conName(sst.v)) + '</div>' +
-      '<div class="tgrid">' + row('Peak', when + (Math.abs(sst.fromPeak) < 1 ? ' · tonight' : ' · ' + Math.round(Math.abs(sst.fromPeak) / 0.9856) + ' days ' + (sst.fromPeak < 0 ? 'away' : 'ago'))) +
-      row('Rate', sh.zhr > 0 ? 'about ' + sh.zhr + ' an hour at best' : 'variable, sometimes a storm') +
+    var mn = bodyByKey.lun;
+    var moonUp = mn && mn.alt > 0 && mn.phase > 0.35;
+    var nowRow;
+    if (!sst.known) nowRow = 'cannot be foretold \u2014 this one either fails or storms';
+    else if (sst.zhr < 0.5) nowRow = 'quiet, well under one an hour';
+    else nowRow = 'about ' + Math.round(sst.zhr) + ' an hour with the radiant overhead';
+    var seenRow;
+    if (sst.alt <= 0) seenRow = 'nothing \u2014 the radiant is below the horizon';
+    else if (!sst.known) seenRow = 'radiant ' + Math.round(sst.alt) + '\u00b0 up';
+    else seenRow = (sst.seen < 1 ? 'under one an hour' : 'about ' + Math.round(sst.seen) + ' an hour') +
+                   ', radiant ' + Math.round(sst.alt) + '\u00b0 up';
+    html = '<div class="tn">' + esc(sh.name) + '</div><div class="tc">' + esc('Meteor shower \u00b7 radiant in ' + conName(sst.v)) + '</div>' +
+      '<div class="tgrid">' + row('Peak', when + (Math.abs(sst.fromPeak) < 1 ? ' \u00b7 tonight' : ' \u00b7 ' + Math.round(Math.abs(sst.fromPeak) / 0.9856) + ' days ' + (sst.fromPeak < 0 ? 'away' : 'ago'))) +
+      row('Rate now', nowRow, sst.zhr < 0.5) +
+      row('You would see', seenRow, sst.alt <= 0) +
+      row('At its best', sh.zhr > 0 ? 'about ' + sh.zhr + ' an hour' : 'variable, sometimes a storm') +
       row('Speed', sh.speed + ' km/s') + coordRows(sst.v, c) + '</div>' +
       (sh.parent ? '<div class="tnote">Debris of ' + esc(sh.parent) + '.</div>' : '') +
-      (sst.active ? '' : '<div class="tnote">Not active at the moment shown.</div>');
+      '<div class="tnote">Rates assume a dark, clear sky, and are cut by the radiant\u2019s height.' +
+      (moonUp ? ' A ' + Math.round(mn.phase * 100) + '% Moon is up, which will cut the count further.' : '') + '</div>' +
+      (sst.active ? '' : '<div class="tnote">Outside the shower\u2019s active season.</div>');
   } else if (h.kind === 'shadow') {
     var sm = h.ref;
     html = '<div class="tn">' + esc(sm.name + '’s shadow') + '</div><div class="tc">' + esc('On ' + sm.parent.name) + '</div>' +
@@ -3278,7 +3325,7 @@ function lineKey(parent, colour, dash, label) {
   key(ssK, function () {
     ctx.strokeStyle = PAL.shower; ctx.lineWidth = 1;
     for (var k = 0; k < 8; k++) { var a = k * Math.PI / 4 + 0.2; ctx.beginPath(); ctx.moveTo(11 + Math.cos(a) * 3, 8 + Math.sin(a) * 3); ctx.lineTo(11 + Math.cos(a) * 7, 8 + Math.sin(a) * 7); ctx.stroke(); }
-  }, 'Meteor radiant');
+  }, 'Meteor radiant, sized by rate');
   var lnK = document.getElementById('lg-lines');
   lineKey(lnK, PAL.horizon, null, 'Horizon'); lineKey(lnK, 'rgba(255,190,120,.6)', null, 'Horizon grid');
   lineKey(lnK, 'rgba(150,190,240,.6)', null, 'Celestial grid'); lineKey(lnK, PAL.equator, null, 'Equator');
@@ -3600,7 +3647,7 @@ window.CG = {
   setFacing: function (f) { facing = f; facingEl.value = f; draw(); }, rotation: function () { return rotation.slice(); },
   debug: function () { return { hover: hover, tipOn: tip.classList.contains('on'), moved: moved, dragStart: !!dragStart, pointers: Object.keys(pointers).length, spinPaused: spinPaused, spin: opt.spin }; },
   riseSet: riseSet, refract: refract, comets: function () { return comets; }, showers: function () { return showers; },
-  showerState: showerState, viewHash: viewHash, applyHash: applyHash, skyBrightness: function () { return skyBrightness(sky); },
+  showerState: showerState, showerZhr: showerZhr, viewHash: viewHash, applyHash: applyHash, skyBrightness: function () { return skyBrightness(sky); },
   pointing: function () { return { on: pointing, roll: pointRoll }; }, startPointing: startPointing, stopPointing: stopPointing,
   saveImage: saveImage, rotation: function () { return rotation.slice(); }, zoom: function () { return zoom; },
   bodyByKey: function (k) { return bodyByKey[k]; }, localHM: localHM, tzOffset: tzOffsetMinutes
