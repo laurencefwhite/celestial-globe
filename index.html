@@ -98,6 +98,8 @@ body{
 .togs{column-count:2;column-gap:16px}
 .togs .sub-t{column-span:all}
 .togs .tog,.togs .row{break-inside:avoid}
+.togs .instr{display:flex;gap:6px}
+.togs .instr .btn{flex:1}
 #controls::-webkit-scrollbar{width:6px}
 #controls::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:3px}
 .grp+.grp{margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08)}
@@ -500,7 +502,10 @@ body.night #stage{filter:grayscale(1)}
           <option value="W">West</option>
         </select></div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
-      <div class="row"><button class="btn sm" id="planisphere" title="Set the view up as a planisphere: the whole sky on the pole, the horizon sweeping over it as time runs">Planisphere</button></div>
+      <div class="row instr">
+        <button class="btn sm" id="planisphere" title="The whole of the ever-visible sky on one card about the pole, with the horizon as an aperture over it">Planisphere</button>
+        <button class="btn sm" id="astrolabe" title="The projection the old brass astrolabes used: the tympan cut for this latitude, bounded at the far tropic">Astrolabe</button>
+      </div>
       <label class="tog"><input type="checkbox" id="L-spin"><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
       <label class="tog"><input type="checkbox" id="L-awake"><span class="sw"></span><span class="tl">Keep the screen awake</span></label>
@@ -1364,7 +1369,8 @@ var skyCtx = skyCv.getContext('2d');
 var W = 0, H = 0, DPR = 1, R0 = 1, CX = 0, CY = 0;
 var rotation = [-12, -18, 0];
 var zoom = 1;
-var ZMIN = 0.82, ZMAX = 4000;
+var ZMIN = 0.3, ZMAX = 4000;
+var ZMIN_VIEW = 0.82;                            /* as close in as an ordinary view ever needs to be */
 
 /* How the sky is laid out on a flat screen. Each is an azimuthal projection, scaled so that a point
    90 degrees from the middle of the view lands on the same circle, which keeps the horizon in the
@@ -1377,14 +1383,36 @@ var ZMIN = 0.82, ZMAX = 4000;
               itself past 90 degrees and so must stop there; the others carry on outwards, which is
               what lets the inside view show the ground beyond the horizon. */
 var PROJECTIONS = [
-  { key: 'stereographic', name: 'Stereographic', d3: 'geoStereographic', clip: 140, k: 1,
-    f: function (c) { return 1 / (1 + c); }, ang: function (r) { return 2 * Math.atan(r); } },
-  { key: 'equidistant', name: 'Equal spacing', d3: 'geoAzimuthalEquidistant', clip: 150, k: 2 / Math.PI,
+  { key: 'stereographic', name: 'Stereographic', d3: 'geoStereographic', clip: 140, maxClip: 168, k: 1,
+    f: function (c) { return 1 / (1 + c); }, ang: function (r) { return 2 * Math.atan(r); },
+    rad: function (a) { return Math.tan(a / 2); } },
+  { key: 'equidistant', name: 'Equal spacing', d3: 'geoAzimuthalEquidistant', clip: 150, maxClip: 172, k: 2 / Math.PI,
     f: function (c, m) { return m > 1e-9 ? (2 / Math.PI) * Math.atan2(m, c) / m : 2 / Math.PI; },
-    ang: function (r) { return r * Math.PI / 2; } },
-  { key: 'orthographic', name: 'Globe', d3: 'geoOrthographic', clip: 90, k: 1,
-    f: function () { return 1; }, ang: function (r) { return Math.asin(Math.min(1, r)); } }
+    ang: function (r) { return r * Math.PI / 2; },
+    rad: function (a) { return 2 * a / Math.PI; } },
+  { key: 'orthographic', name: 'Globe', d3: 'geoOrthographic', clip: 90, maxClip: 90, k: 1,
+    f: function () { return 1; }, ang: function (r) { return Math.asin(Math.min(1, r)); },
+    rad: function (a) { return Math.sin(Math.min(Math.PI / 2, a)); } }
 ];
+/* --------------------------------------------------- planisphere and astrolabe
+   Both are the same idea and neither is a kind of view: the sky about the raised pole, laid flat,
+   inside a rim that bounds the card. What makes each one itself is where that rim falls and what is
+   drawn within it.
+
+   A planisphere runs out to the farthest point the horizon ever reaches, declination 90 - |lat| on
+   the far side of the pole, so every star that ever rises at the design latitude is on the card and
+   the horizon aperture just touches the edge. An astrolabe stops at the far tropic: stereographic
+   projection sends the opposite pole to infinity, so brass has to stop somewhere, and the tropic is
+   where it has always stopped. The room left over is filled with the tympan, the altitude and
+   azimuth grid cut for one latitude, under a rete carrying the ecliptic.
+
+   The projections differ too. The astrolabe is stereographic by definition. Modern planispheres are
+   usually azimuthal equidistant: it gives up the true constellation shapes near the rim, but spares
+   the observer a card on which the horizon sky is four or five times over-sized. */
+var disc = null;                     /* {kind, deg, clip, lat} while an instrument is set up */
+function discRadiusPx() { return disc ? curProj().rad(disc.deg * DEG) * R0 * zoom : 0; }
+function outsideDisc(x, y, slack) { return disc && Math.hypot(x - CX, y - CY) > discRadiusPx() + (slack || 0); }
+
 var PROJ_BY = {};
 PROJECTIONS.forEach(function (P) { PROJ_BY[P.key] = P; });
 var projKind = 'stereographic';                 /* the choice, used by the inside view */
@@ -1392,6 +1420,7 @@ var projNow = null, projF = PROJ_BY.orthographic.f, projClipCos = 0, projCentreF
 /* Only as much sky as the window can hold is projected at all. Zoomed out that is the projection's
    full reach; zoomed in it is a few degrees, which saves clipping and drawing the rest of the sky. */
 function clipFor(P) {
+  if (disc) return Math.min(P.maxClip, disc.clip);   /* the rim decides, not the window */
   var corner = Math.hypot(Math.max(CX, W - CX), Math.max(CY, H - CY)) + 60;
   var need = P.ang(corner / (R0 * zoom)) * RAD;
   return Math.min(P.clip, Math.max(15, Math.ceil(need + 1)));
@@ -1416,6 +1445,7 @@ var viewV = [1, 0, 0];                            /* J2000 direction at the cent
 
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
+  setTimeout(fitDisc, 0);
   W = window.innerWidth; H = window.innerHeight;
   [cv, skyCv].forEach(function (c) {
     c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
@@ -1553,10 +1583,12 @@ function drawSky() {
 var PAL = {
   sphere0: '#0b1426', sphere1: '#050a16',
   grat: 'rgba(150,190,240,.13)', gratLab: 'rgba(150,190,240,.55)',
-  hgrid: 'rgba(255,190,120,.16)', horizon: 'rgba(255,196,120,.85)', horizonGlow: 'rgba(255,170,80,.25)',
-  ecliptic: 'rgba(255,215,120,.55)', equator: 'rgba(160,210,255,.45)', tropic: 'rgba(160,210,255,.28)', galactic: 'rgba(210,180,255,.45)',
+  hgrid: 'rgba(255,190,120,.16)', tympan: 'rgba(255,196,130,.34)', horizon: 'rgba(255,196,120,.85)', horizonGlow: 'rgba(255,170,80,.25)',
+  ecliptic: 'rgba(255,215,120,.55)', rete: 'rgba(255,222,150,.9)', equator: 'rgba(160,210,255,.45)', tropic: 'rgba(160,210,255,.28)', galactic: 'rgba(210,180,255,.45)',
   conline: 'rgba(140,180,240,.34)', conbound: 'rgba(255,255,255,.11)', conname: 'rgba(170,196,235,.62)',
   mw: 'rgba(170,190,235,.05)', rim: 'rgba(150,205,255,.42)', below: 'rgba(2,4,10,.62)',
+  card: '#04070e', belowCard: 'rgba(2,4,10,.80)', cardRim: 'rgba(150,205,255,.55)',
+  cardTick: 'rgba(185,208,242,.5)', cardText: 'rgba(198,218,248,.85)', cardBand: 'rgba(120,150,200,.10)',
   sat: '#ffd98a', satDark: 'rgba(170,180,200,.55)', track: 'rgba(255,217,138,.42)', trackPast: 'rgba(255,217,138,.16)',
   comet: 'rgba(168,255,216,.95)', shower: 'rgba(255,170,210,.8)', path: 'rgba(190,205,235,.5)', fov: 'rgba(255,255,255,.5)'
 };
@@ -1673,7 +1705,10 @@ function ensureSky() {
 
 /* ------------------------------------------------------------ hit testing */
 var hits = [];
-function addHit(x, y, r, kind, ref) { hits.push({ x: x, y: y, r: r, kind: kind, ref: ref }); }
+function addHit(x, y, r, kind, ref) {
+  if (outsideDisc(x, y, r)) return;               /* nothing off the card is there to be pointed at */
+  hits.push({ x: x, y: y, r: r, kind: kind, ref: ref });
+}
 var hover = null;                 /* {kind, ref} */
 function sameRef(a, b) { return a === b || (a && b && a.key !== undefined && a.key === b.key); }
 function isHover(kind, ref) { return hover && hover.kind === kind && sameRef(hover.ref, ref); }
@@ -1710,6 +1745,7 @@ function placeLabels() {
   var subFont = '400 9.5px ' + FONT;
   for (var i = 0; i < labelQ.length; i++) {
     var L = labelQ[i];
+    if (outsideDisc(L.x, L.y, 0)) continue;
     ctx.font = L.font;
     var w = ctx.measureText(L.text).width, fh = parseFloat(L.font.match(/(\d+(?:\.\d+)?)px/)[1]);
     var subW = 0, subH = 0;
@@ -1780,7 +1816,10 @@ function draw() {
   lineHits = [];
   if (opt.cgrid) drawCelestialGrid();
   if (opt.tropics) drawTropics();
-  if (opt.ecliptic) lineTrace('ecliptic', ECLIPTIC, PAL.ecliptic, 1, [6, 5]);
+  if (opt.ecliptic) {
+    var rete = disc && disc.kind === 'astrolabe';
+    lineTrace('ecliptic', ECLIPTIC, rete ? PAL.rete : PAL.ecliptic, rete ? 1.8 : 1, rete ? null : [6, 5]);
+  }
   if (opt.galactic) lineTrace('galactic', GALACTIC, PAL.galactic, 1, [2, 4]);
   if (opt.conbounds) drawLine(conBoundsAll, PAL.conbound, 1, null);
   if (opt.conlines) drawLine(conLinesAll, PAL.conline, zoom > 3 ? 1.4 : 1.1, null);
@@ -1799,6 +1838,7 @@ function draw() {
   if (opt.fov) drawFieldCircle();
   if (opt.linelabels) drawLineLabels();
   ctx.restore();
+  if (disc) drawCard(c);
   if (opt.horizon) drawCardinals(c);
   placeLabels();
 
@@ -2554,6 +2594,19 @@ function lineAt(mx, my) {
 function zenithLL(c) { var ll = lonlat(c.Z); return [ll[0] > 180 ? ll[0] - 360 : ll[0], ll[1]]; }
 function horizonCircle(c, alt) { return d3.geoCircle().center(zenithLL(c)).radius(90 - alt).precision(0.5)(); }
 function shadeBelow(c) {
+  if (disc) {
+    /* On a card the ground is the ring between the horizon and the rim, not the far half of a
+       sphere: the nadir is off the edge, so the usual circle about it has nothing to fill. */
+    var rp = discRadiusPx();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI); ctx.clip();
+    ctx.beginPath();
+    ctx.moveTo(CX + rp, CY); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
+    path(horizonCircle(c, 0));
+    ctx.fillStyle = PAL.belowCard; ctx.fill('evenodd');
+    ctx.restore();
+    return;
+  }
   var nz = lonlat(vscale(c.Z, -1));
   ctx.beginPath(); path(d3.geoCircle().center([nz[0] > 180 ? nz[0] - 360 : nz[0], nz[1]]).radius(90).precision(0.5)());
   ctx.fillStyle = PAL.below; ctx.fill();
@@ -2607,6 +2660,10 @@ function drawCardinals(c) {
       if (dy < 0) t = Math.min(t, (m + rad - CY) / dy); if (dy > 0) t = Math.min(t, (H - m - rad - CY) / dy);
       lx = CX + dx * t; ly = CY + dy * t;
     }
+    if (disc) {                                   /* pulled in to the rim rather than to the window */
+      var rp = discRadiusPx() - rad - 2, ddx = lx - CX, ddy = ly - CY, dd = Math.hypot(ddx, ddy);
+      if (dd > rp) { lx = CX + ddx * rp / dd; ly = CY + ddy * rp / dd; }
+    }
     lx = clamp(lx, m + rad, W - m - rad);
     ly = clamp(ly, m + rad, H - m - rad);
     ctx.globalAlpha = behind ? 0.4 : 1;
@@ -2622,22 +2679,134 @@ function drawCardinals(c) {
 }
 function drawHorizonGrid(c) {
   var altStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30, azStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30;
+  if (disc && disc.kind === 'astrolabe') { altStep = 10; azStep = 15; }   /* the tympan, cut for this latitude */
   var lines = { type: 'MultiLineString', coordinates: [] };
+  var plate = disc && disc.kind === 'astrolabe';
   for (var alt = -90 + altStep; alt < 90; alt += altStep) {
     if (alt === 0) continue;
+    if (plate && alt < 0) continue;
     lines.coordinates.push(horizonCircle(c, alt).coordinates[0]);
   }
   for (var az = 0; az < 360; az += azStep) {
     var seg = [];
-    for (var a = -88; a <= 88; a += 4) { var ll = lonlat(fromHor(a, az, c)); seg.push([ll[0] > 180 ? ll[0] - 360 : ll[0], ll[1]]); }
+    for (var a = plate ? 0 : -88; a <= 88; a += 4) { var ll = lonlat(fromHor(a, az, c)); seg.push([ll[0] > 180 ? ll[0] - 360 : ll[0], ll[1]]); }
     lines.coordinates.push(seg);
   }
-  drawLine(lines, PAL.hgrid, 1, null);
-  if (zoom >= 1.6) {
+  drawLine(lines, disc && disc.kind === 'astrolabe' ? PAL.tympan : PAL.hgrid, 1, null);
+  if (zoom >= 1.6 || (disc && disc.kind === 'astrolabe')) {
     ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = 'rgba(255,196,120,.6)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (var a2 = altStep; a2 < 90; a2 += altStep) {
       var p = proj(fromHor(a2, 180, c)); if (onScreen(p)) { ctx.fillText(a2 + '°', p[0], p[1]); boxes.push([p[0] - 12, p[1] - 7, p[0] + 12, p[1] + 7]); }
     }
+  }
+}
+
+/* ---------------------------------------------------- the card, its rim and its scales */
+/* The bearing on screen of an hour angle. Everything about the pole hangs off this one function:
+   the date scale and the hour scale are both drawn through it, so today's date lines up against the
+   clock without either being told where the other is, which is the check that the geometry is right. */
+function haBearing(ha, c) {
+  var H = ha * DEG, phi = obs.lat * DEG;
+  var alt = Math.asin(clamp(Math.cos(phi) * Math.cos(H), -1, 1)) * RAD;     /* on the equator, dec 0 */
+  var az = Math.atan2(-Math.sin(H), -Math.sin(phi) * Math.cos(H)) * RAD;
+  var q = proj(fromHor(alt, az, c));
+  return q ? Math.atan2(q[1] - CY, q[0] - CX) : null;
+}
+/* the Sun's right ascension on a given day, to a few arcminutes, which is all a month scale needs */
+function sunRaOn(jd) {
+  var n = jd - 2451545.0;
+  var L = norm360(280.460 + 0.9856474 * n);
+  var g = norm360(357.528 + 0.9856003 * n) * DEG;
+  var lam = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * DEG;
+  var eps = (23.439 - 0.0000004 * n) * DEG;
+  return norm360(Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)) * RAD);
+}
+function cardTick(a, r0, r1, colour, width) {
+  ctx.beginPath();
+  ctx.moveTo(CX + Math.cos(a) * r0, CY + Math.sin(a) * r0);
+  ctx.lineTo(CX + Math.cos(a) * r1, CY + Math.sin(a) * r1);
+  ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.stroke();
+}
+function cardText(a, r, text, font, colour) {
+  var turn = a + Math.PI / 2;
+  if (Math.cos(turn) < 0) turn += Math.PI;        /* never upside down, card or no card */
+  ctx.save();
+  ctx.translate(CX + Math.cos(a) * r, CY + Math.sin(a) * r);
+  ctx.rotate(turn);
+  ctx.font = font; ctx.fillStyle = colour;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+function cardRing(r0, r1) {
+  ctx.beginPath();
+  ctx.moveTo(CX + r1, CY); ctx.arc(CX, CY, r1, 0, 2 * Math.PI);
+  ctx.moveTo(CX + r0, CY); ctx.arc(CX, CY, r0, 0, 2 * Math.PI);
+  ctx.fillStyle = PAL.cardBand; ctx.fill('evenodd');
+  [r0, r1].forEach(function (r) {
+    ctx.beginPath(); ctx.arc(CX, CY, r, 0, 2 * Math.PI);
+    ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1; ctx.stroke();
+  });
+}
+/* Everything beyond the rim is off the card and simply is not there. Painted over the sky rather
+   than clipped out of it, so the drawing above stays exactly as it is for the ordinary views. */
+function drawCard(c) {
+  var rp = discRadiusPx();
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-80, -80, W + 160, H + 160);
+  ctx.moveTo(CX + rp, CY); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
+  ctx.fillStyle = PAL.card; ctx.fill('evenodd');
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
+  ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1.4; ctx.stroke();
+  if (rp < 120) return;                                  /* too small to letter */
+  if (disc.kind === 'astrolabe') drawLimb(c, rp); else drawDateAndHour(c, rp);
+}
+/* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
+   date set at the right ascension the Sun has on it. The outer one is fixed to the observer and
+   carries the clock. Read one against the other and you have the instrument. */
+function drawDateAndHour(c, rp) {
+  var r1 = rp + 15, r2 = rp + 32;
+  cardRing(rp, r1); cardRing(r1, r2);
+  var y = c.date.getUTCFullYear(), m, d, a;
+  for (m = 0; m < 12; m++) {
+    for (d = 5; d <= 25; d += 5) {
+      a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, d)))), c);
+      if (a !== null) cardTick(a, rp, rp + (d === 15 ? 6 : 4), PAL.cardTick, 1);
+    }
+    a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 1)))), c);
+    if (a !== null) cardTick(a, rp, rp + 9, PAL.cardRim, 1.2);
+    a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 16)))), c);
+    if (a !== null) cardText(a, rp + 8.5, MONS[m].toUpperCase(), '600 9.5px ' + FONT, PAL.cardText);
+  }
+  /* the clock scale: the hour angle of the mean sun at that local time, on this meridian */
+  var tzh = tzOffsetMinutes(c.date) / 60, h, half;
+  for (h = 0; h < 24; h++) {
+    for (half = 0; half < 2; half++) {
+      a = haBearing((h + half / 2 - 12) * 15 - tzh * 15 + obs.lon, c);
+      if (a !== null) cardTick(a, r1, r1 + (half ? 4 : 7), half ? PAL.cardTick : PAL.cardRim, half ? 1 : 1.2);
+    }
+    if (h % 2) continue;
+    a = haBearing((h - 12) * 15 - tzh * 15 + obs.lon, c);
+    if (a !== null) cardText(a, r1 + 12, (h < 10 ? '0' : '') + h + ':00', '500 9px ' + FONT, PAL.cardText);
+  }
+}
+/* The astrolabe's limb, which belongs to the mater and so stands still: hours of hour angle outside,
+   and the 360 degrees the alidade is read against inside them. */
+function drawLimb(c, rp) {
+  var r1 = rp + 18;
+  cardRing(rp, r1);
+  var k, a;
+  for (k = 0; k < 72; k++) {
+    a = haBearing(k * 5, c);
+    if (a !== null) cardTick(a, rp, rp + (k % 3 === 0 ? 6 : 3.5), k % 3 === 0 ? PAL.cardRim : PAL.cardTick, 1);
+  }
+  for (k = 0; k < 24; k++) {
+    a = haBearing(k * 15, c);
+    if (a === null) continue;
+    cardTick(a, rp, rp + 9, PAL.cardRim, 1.3);
+    cardText(a, rp + 12.5, String(k), '600 9.5px ' + FONT, PAL.cardText);
   }
 }
 
@@ -2708,6 +2877,7 @@ cv.addEventListener('pointermove', function (e) {
     if (!moved && Math.abs(dx) + Math.abs(dy) <= 3) return;      /* a tap or click that wobbles is not a drag */
     moved = true;
     var u = unroll(dx, dy);
+    if (disc) clearDisc('Instrument put down');
     rotation = [dragStart.rot[0] + sgn * u[0] * k, clamp(dragStart.rot[1] - u[1] * k, -90, 90), rotation[2]];
     var tnow = performance.now();
     if (dragStart.lastT) {
@@ -3021,7 +3191,7 @@ function flyToZenith(z) {
   var c = ensureSky(), ll = lonlat(c.Z);
   flyTo(ll[0], ll[1], z === undefined ? 1 : z);
 }
-function resetView() { flyToZenith(1); }
+function resetView() { clearDisc('Instrument put down'); flyToZenith(1); }
 function flyToHit(h) {
   var v, z = zoom;
   if (h.kind === 'line' || h.kind === 'cardinal') return;      /* nothing to fly to: they are everywhere */
@@ -3062,6 +3232,7 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
     if (key === 'inside') {
+      clearDisc();
       document.getElementById('facerow').hidden = !opt.inside;
       document.getElementById('projrow').hidden = !opt.inside;
       /* from inside you are the observer, so the horizon stays put and the sky turns past it */
@@ -3085,6 +3256,7 @@ document.getElementById('resetview').addEventListener('click', resetView);
 /* Every switch and setting back to how the page opens. Deliberately not the observer, the view or
    the clock: those have their own controls, and a stray press should not lose the place you set. */
 function resetDefaults() {
+  clearDisc();
   Object.keys(OPT_DEFAULTS).forEach(function (k) {
     opt[k] = OPT_DEFAULTS[k];
     var el = document.getElementById('L-' + k);
@@ -3113,28 +3285,84 @@ function resetDefaults() {
 }
 document.getElementById('resetdefaults').addEventListener('click', resetDefaults);
 
-/* A planisphere is the old brass-and-card instrument: the whole sky drawn stereographically about
-   the celestial pole, with the horizon as an oval that sweeps round as the night runs. Every piece
-   of that is already here, so this is a preset rather than a new kind of view: look from inside,
-   stereographic, centre on the pole that is up from here, and let the sky stand still while the
-   horizon turns, which is the opposite of the usual setting. */
-function planisphere() {
+/* Setting an instrument up is a matter of settling everything before anything is drawn: the
+   projection, how far the rim reaches, how far to clip, and the scale that makes the rim fit the
+   window. Then the pole is put at the centre outright. The old version flew there instead, and
+   because the projection, the clip and the roll all changed under the flight, the horizon swelled,
+   was cut about by the clip circle and turned itself inside out twice on the way. There is nothing
+   to fly through here: an instrument is picked up, not travelled to. */
+var INSTRUMENTS = {
+  planisphere: {
+    name: 'Planisphere', proj: 'equidistant',
+    reach: function (alat) { return 180 - alat; },       /* to the farthest the horizon ever reaches */
+    margin: 48,
+    opts: { below: true, horizon: true, hgrid: false, cgrid: false, tropics: false,
+            ecliptic: false, connames: true, conlines: true, hold: true, spin: false },
+    note: function (alat) {
+      return 'Planisphere for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
+             ': every star that ever rises here, on one card. Run the clock and the sky turns under the horizon. ' +
+             'Azimuthal equidistant, as most modern planispheres are; switch the projection to stereographic for the older kind.';
+    }
+  },
+  astrolabe: {
+    name: 'Astrolabe', proj: 'stereographic',
+    reach: function () { return 90 + 23.44; },           /* the far tropic, where brass has to stop */
+    margin: 40,
+    opts: { below: true, horizon: true, hgrid: true, cgrid: false, tropics: true,
+            ecliptic: true, connames: false, conlines: true, hold: true, spin: false },
+    note: function (alat) {
+      return 'Astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
+             ': the tympan\u2019s altitude and azimuth circles cut for here, the rete\u2019s ecliptic over them, ' +
+             'the limb in hours. Stereographic, bounded at the far tropic \u2014 the opposite pole is at infinity.';
+    }
+  }
+};
+function fitDisc() {
+  if (!disc) return;
+  var P = curProj();
+  zoom = clamp((R0 - disc.margin) / (P.rad(disc.deg * DEG) * R0), ZMIN, ZMAX);
+}
+function tuneDisc() {
+  if (!disc) return;
+  var P = curProj(), alat = Math.abs(disc.lat);
+  /* far enough out that the whole horizon is projected before the rim cuts it, or the ground would
+     be shaded on the wrong side of the line */
+  disc.deg = Math.min(INSTRUMENTS[disc.kind].reach(alat), P.maxClip - 6);
+  disc.clip = Math.min(P.maxClip, Math.ceil(Math.max(disc.deg, 180 - alat) + 4));
+  fitDisc();
+}
+function clearDisc(note) {
+  if (!disc) return false;
+  if (zoom < ZMIN_VIEW) zoom = disc.prevZoom;     /* still at the card's scale: take the old one back */
+  disc = null; skyDirty = true;
+  if (note) setStatus(note);
+  return true;
+}
+function setInstrument(kind) {
+  var I = INSTRUMENTS[kind], alat = Math.abs(obs.lat), south = obs.lat < 0;
   if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; }
-  projKind = 'stereographic'; projEl.value = projKind;
-  opt.hold = false; document.getElementById('L-hold').checked = false;
-  opt.below = true; document.getElementById('L-below').checked = true;
-  opt.horizon = true; document.getElementById('L-horizon').checked = true;
-  opt.cgrid = true; document.getElementById('L-cgrid').checked = true;
-  opt.spin = false; document.getElementById('L-spin').checked = false;
-  facing = obs.lat < 0 ? 'N' : 'S'; facingEl.value = facing;
+  projKind = I.proj; projEl.value = projKind;
+  Object.keys(I.opts).forEach(function (k) {
+    opt[k] = I.opts[k];
+    var el = document.getElementById('L-' + k);
+    if (el) el.checked = opt[k];
+  });
+  if (pointing) stopPointing();
+  facing = south ? 'N' : 'S'; facingEl.value = facing;
   document.getElementById('facerow').hidden = false;
   document.getElementById('projrow').hidden = false;
-  holdLst = null; skyDirty = true;
-  var pole = obs.lat < 0 ? -90 : 90;             /* the pole that stands above this observer */
-  flyTo(0, pole, 1);
-  setStatus('Planisphere: the sky about the ' + (pole > 0 ? 'north' : 'south') + ' pole, with the horizon sweeping over it. Run the clock to watch it turn.');
+  disc = { kind: kind, lat: obs.lat, deg: I.reach(alat), margin: I.margin, clip: 90,
+           prevZoom: clamp(zoom, ZMIN_VIEW, 3) };
+  tuneDisc();
+  stopMomentum();
+  if (flying) { cancelAnimationFrame(flying); flying = null; }
+  rotation = [0, south ? 90 : -90, rotation[2]];        /* the raised pole, dead centre */
+  holdLst = null; skyDirty = true; pathCache = {}; trackCache = {};
+  hideTip(); draw();
+  setStatus(I.note(alat));
 }
-document.getElementById('planisphere').addEventListener('click', planisphere);
+document.getElementById('planisphere').addEventListener('click', function () { setInstrument('planisphere'); });
+document.getElementById('astrolabe').addEventListener('click', function () { setInstrument('astrolabe'); });
 document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
 document.getElementById('nowfloat').addEventListener('click', function (e) {
   e.stopPropagation();
@@ -3146,6 +3374,7 @@ var projEl = document.getElementById('projection');
 projEl.value = projKind;
 projEl.addEventListener('change', function () {
   projKind = projEl.value;
+  tuneDisc();                                     /* an instrument keeps its rim through a change of projection */
   if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; }
   document.getElementById('projrow').hidden = false;
   document.getElementById('facerow').hidden = false;
@@ -3591,6 +3820,7 @@ document.addEventListener('keydown', function (e) {
   var arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   if (arrows[e.key]) {
     var u = unroll(arrows[e.key][0], arrows[e.key][1]);
+    if (disc) clearDisc('Instrument put down');
     rotation = [rotation[0] + sgn * u[0] * step, clamp(rotation[1] - u[1] * step, -90, 90), rotation[2]];
     draw();
   }
@@ -4075,7 +4305,11 @@ window.CG = {
   proj: proj, projection: projection, lonlat: lonlat, unitv: unitv, toHor: toHor, fromHor: fromHor,
   hits: function () { return hits; },
   projKind: function (k) { if (k) { projKind = k; projEl.value = k; draw(); } return projKind; },
-  lineAt: lineAt, planisphere: planisphere, magLimit: function (m) { if (m !== undefined) { magLimit = m; draw(); } return magLimit; },
+  lineAt: lineAt, planisphere: function () { setInstrument('planisphere'); },
+  astrolabe: function () { setInstrument('astrolabe'); },
+  setInstrument: setInstrument, clearDisc: clearDisc,
+  disc: function () { return disc ? { kind: disc.kind, deg: disc.deg, clip: disc.clip, rpx: discRadiusPx() } : null; },
+  haBearing: haBearing, sunRaOn: sunRaOn, tzOffsetMin: tzOffsetMinutes, magLimit: function (m) { if (m !== undefined) { magLimit = m; draw(); } return magLimit; },
   resetDefaults: resetDefaults, settings: function () {
     return { opt: JSON.parse(JSON.stringify(opt)), astMinKm: astMinKm, satGroup: satGroupSel, fovDeg: fovDeg,
              projKind: projKind, facing: facing, night: nightEl.checked,
