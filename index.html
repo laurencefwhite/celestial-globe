@@ -341,7 +341,7 @@ body.night #stage{filter:grayscale(1)}
       <div class="grp-t">Find an object</div>
       <div class="search" id="search">
         <span class="ico">&#9906;</span>
-        <input id="q" type="text" placeholder="Jupiter, Sirius, M42, Orion, ISS&hellip;" autocomplete="off" spellcheck="false">
+        <input id="q" type="text" placeholder="Jupiter, Sirius, M42, NGC 253, ISS&hellip;" title="Search by name or catalogue number (Ctrl-F)" autocomplete="off" spellcheck="false">
         <div class="results" id="results"></div>
       </div>
     </div>
@@ -455,7 +455,7 @@ body.night #stage{filter:grayscale(1)}
   </div>
 
 
-  <div id="hint">Drag to turn &middot; scroll to zoom &middot; hover an object for its position</div>
+  <div id="hint">Drag to turn &middot; scroll to zoom &middot; hover an object for its position &middot; Ctrl-F to search</div>
 </div>
 <div id="night"></div>
 
@@ -2263,6 +2263,23 @@ searchBox('pq', 'presults', function (v) {
 }, function (m) { setObserver(m.city.lat, m.city.lon, m.city.name, m.city.country, m.city.tz); });
 
 var searchIdx = [];
+/* search keys with Greek letters spelled out, superscripts and accents dropped, and catalogue numbers
+   accepted with or without a space, so that "alpha cen", "omega centauri", "m 31" and "ngc253" all work */
+function normKey(k) {
+  var t = String(k).toLowerCase().replace(/[¹²³⁴⁵⁶⁷⁸⁹]/g, '');
+  t = t.replace(/[α-ω]/g, function (g) { return (GREEK_NAMES[g] || g).toLowerCase() + ' '; });
+  try { t = t.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+  return t.replace(/\s+/g, ' ').trim();
+}
+function keyVariants(keys) {
+  var out = {};
+  keys.forEach(function (k) {
+    if (!k) return;
+    var n = normKey(k);
+    [k.toLowerCase(), n, n.replace(/([a-z])\s+(\d)/g, '$1$2'), n.replace(/([a-z])(\d)/g, '$1 $2')].forEach(function (v) { if (v) out[v] = 1; });
+  });
+  return Object.keys(out);
+}
 function buildSearchIndex() {
   searchIdx = [];
   ['sol', 'lun'].concat(PLANET_ORDER).forEach(function (k) { searchIdx.push({ label: PLANETS[k].name, sub: k === 'sol' ? 'the Sun' : k === 'lun' ? 'the Moon' : (k === 'plu' ? 'dwarf planet' : 'planet'), keys: [PLANETS[k].name.toLowerCase()], kind: 'body', key: k }); });
@@ -2283,8 +2300,10 @@ function buildSearchIndex() {
     searchIdx.push({ label: d.name ? d.name + ' (' + d.id + ')' : d.id, sub: DSO_TYPES[d.type] || 'deep-sky object', keys: keys, kind: 'dso', ref: i });
   });
   sats.forEach(function (s) { searchIdx.push({ label: s.name, sub: 'satellite · NORAD ' + s.id, keys: [s.name.toLowerCase(), String(s.id)], kind: 'sat', key: s.key }); });
+  searchIdx.forEach(function (m) { m.keys = keyVariants(m.keys); });
 }
 searchBox('q', 'results', function (v) {
+  v = normKey(v);
   return rank(searchIdx, v, function (m) { return m.keys; }, 24);
 }, function (m) {
   ensureSky();
@@ -2507,7 +2526,15 @@ setInterval(function () {
 }, 1000);
 
 /* ------------------------------------------------------------- keyboard */
+/* Ctrl-F or Cmd-F goes to the object search rather than the browser's find */
+function openSearch() {
+  var panel = document.getElementById('controls');
+  if (panel.classList.contains('min')) { panel.classList.remove('min'); panel.querySelector('.pmin').title = 'Minimise'; resize(); }
+  var q = document.getElementById('q');
+  q.focus(); q.select();
+}
 document.addEventListener('keydown', function (e) {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); openSearch(); return; }
   var a = document.activeElement;
   if (a && (a.tagName === 'INPUT' || a.tagName === 'SELECT')) return;
   var step = (e.shiftKey ? 15 : 5) / Math.sqrt(zoom), sgn = opt.inside ? -1 : 1;
