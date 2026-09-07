@@ -86,6 +86,11 @@ body{
 .clock .lab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint)}
 .clock .val{font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:.01em;margin-top:1px;white-space:nowrap}
 .clock .zone{font-size:10px;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clocks.shift .val{color:var(--accent)}
+#shift{display:none;margin-top:9px;padding:6px 9px;border-radius:8px;background:rgba(142,208,255,.12);border:1px solid rgba(142,208,255,.35);color:var(--accent);font-size:11px;line-height:1.4;cursor:pointer}
+#shift.on{display:block}
+#shift b{font-weight:500}
+#shift:hover{background:rgba(142,208,255,.2)}
 #obs-line{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);font-size:10.5px;color:var(--ink-dim);line-height:1.5}
 #obs-line b{font-weight:500;color:var(--ink)}
 #obs-line .sunline{color:var(--ink-faint)}
@@ -297,6 +302,7 @@ body.night #stage{filter:grayscale(1)}
         <div class="zone" id="cl-utcdate">&nbsp;</div>
       </div>
     </div>
+    <div id="shift" title="Back to the present moment"></div>
     <div id="obs-line">&nbsp;</div>
   </div>
 
@@ -2276,7 +2282,21 @@ function updateScrubLabel() {
   scrublab.classList.toggle('shift', minOffset !== 0);
   dscrublab.classList.toggle('shift', dayOffset !== 0);
   resetBtn.style.opacity = totalOffset() === 0 ? 0.45 : 1;
+  var off = totalOffset();
+  document.querySelector('.clocks').classList.toggle('shift', off !== 0);
+  shiftEl.classList.toggle('on', off !== 0);
+  if (off !== 0) {
+    var a = Math.abs(off), dd = Math.floor(a / 1440), hh = Math.floor((a % 1440) / 60), mm = Math.round(a % 60);
+    var parts = [];
+    if (dd) parts.push(dd + (dd === 1 ? ' day' : ' days'));
+    if (hh) parts.push(hh + ' h');
+    if (mm || !parts.length) parts.push(mm + ' min');
+    shiftEl.innerHTML = 'The clock is set <b>' + parts.join(' ') + (off > 0 ? ' ahead' : ' behind') + '</b> of the present' +
+                        (playMode ? ' and running' : '') + '. Click here to return to now.';
+  }
 }
+var shiftEl = document.getElementById('shift');
+shiftEl.addEventListener('click', function () { resetBtn.click(); });
 resetBtn.addEventListener('click', function () { dayOffset = 0; minOffset = 0; timeSlider.set(0); dateSlider.set(0); stopPlaying(); refreshTime(); });
 
 var playRaf = null, playLast = 0, playMode = null;
