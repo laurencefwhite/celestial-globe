@@ -17,7 +17,17 @@ drawn on the sphere.
 - **Two ways of looking at it.** By default you look at the celestial sphere from outside, as at a
   classical celestial globe: north is up, east is to the right, and the constellations are the mirror
   image of the sky. The *From inside* switch turns it inside out, as the sky appears from Earth, like
-  a planisphere held overhead. A chart held overhead depends on which way you face, so a *Facing*
+  a planisphere held overhead.
+- **How the sky is laid out** is a choice, in the inside view. A globe seen from outside crowds at its
+  limb, because a sphere does, and that is right for the outside view. From inside there is no sphere
+  to look at, only the sky, and crowding the horizon hides the very things that happen there. So the
+  inside view uses **stereographic** by default, the projection of planispheres and of Stellarium,
+  which keeps constellation shapes true and gives the horizon room: an object 5° up sits 8% of the way
+  in from the horizon rather than the 0.4% a globe allows. **Equal spacing** is the alternative, where
+  height reads straight off the radius, 5° up being one eighteenth of the way in. Both reach past the
+  horizon, so the sky fills the window with the ground beyond the horizon circle rather than stopping
+  at a rim, and you can pan anywhere without meeting an edge. The **Globe** layout is there if you want
+  the view from infinity inside as well. A chart held overhead depends on which way you face, so a *Facing*
   control puts that direction at the bottom of the screen: facing north (the default south of the
   equator) has south at the top and east on the right, and the Sun crosses from right to left; facing
   south (the default north of the equator) has north at the top and east on the left. In both views

@@ -465,6 +465,12 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-radec"><span class="sw"></span><span class="tl">Right ascension &amp; declination</span></label>
       <div class="sub-t">View</div>
       <label class="tog"><input type="checkbox" id="L-inside"><span class="sw"></span><span class="tl">From inside <small>as seen from Earth</small></span></label>
+      <div class="row" id="projrow" hidden><label for="projection">Layout</label>
+        <select class="sel" id="projection">
+          <option value="stereographic">Stereographic · shapes true</option>
+          <option value="equidistant">Equal spacing · height true</option>
+          <option value="orthographic">Globe · from infinity</option>
+        </select></div>
       <div class="row" id="facerow" hidden><label for="facing">Facing</label>
         <select class="sel" id="facing">
           <option value="N">North (south at top)</option>
@@ -1323,8 +1329,44 @@ var W = 0, H = 0, DPR = 1, R0 = 1, CX = 0, CY = 0;
 var rotation = [-12, -18, 0];
 var zoom = 1;
 var ZMIN = 0.82, ZMAX = 4000;
+
+/* How the sky is laid out on a flat screen. Each is an azimuthal projection, scaled so that a point
+   90 degrees from the middle of the view lands on the same circle, which keeps the horizon in the
+   same place and lets one be swapped for another without the view jumping.
+     f(c, m)  the radial factor: a point whose components across the line of sight are (y, z), with
+              c the cosine of its angle from the centre and m the sine, lands at f * (y, z) * scale.
+     ang(r)   the angle from the centre for a screen radius r, in units of that scale.
+     k        what d3's own scale must be multiplied by to agree with f.
+     clip     how far from the centre the projection is allowed to reach. Orthographic folds back on
+              itself past 90 degrees and so must stop there; the others carry on outwards, which is
+              what lets the inside view show the ground beyond the horizon. */
+var PROJECTIONS = [
+  { key: 'stereographic', name: 'Stereographic', d3: 'geoStereographic', clip: 140, k: 1,
+    f: function (c) { return 1 / (1 + c); }, ang: function (r) { return 2 * Math.atan(r); } },
+  { key: 'equidistant', name: 'Equal spacing', d3: 'geoAzimuthalEquidistant', clip: 150, k: 2 / Math.PI,
+    f: function (c, m) { return m > 1e-9 ? (2 / Math.PI) * Math.atan2(m, c) / m : 2 / Math.PI; },
+    ang: function (r) { return r * Math.PI / 2; } },
+  { key: 'orthographic', name: 'Globe', d3: 'geoOrthographic', clip: 90, k: 1,
+    f: function () { return 1; }, ang: function (r) { return Math.asin(Math.min(1, r)); } }
+];
+var PROJ_BY = {};
+PROJECTIONS.forEach(function (P) { PROJ_BY[P.key] = P; });
+var projKind = 'stereographic';                 /* the choice, used by the inside view */
+var projNow = null, projF = PROJ_BY.orthographic.f, projClipCos = 0, projCentreF = 1, projClipDeg = -1;
+/* Only as much sky as the window can hold is projected at all. Zoomed out that is the projection's
+   full reach; zoomed in it is a few degrees, which saves clipping and drawing the rest of the sky. */
+function clipFor(P) {
+  var corner = Math.hypot(Math.max(CX, W - CX), Math.max(CY, H - CY)) + 60;
+  var need = P.ang(corner / (R0 * zoom)) * RAD;
+  return Math.min(P.clip, Math.max(15, Math.ceil(need + 1)));
+}
+/* Seen from outside it is a globe, and a globe crowds at its limb because that is what a sphere
+   does. Seen from inside there is no sphere to look at, only the sky, so the choice applies there. */
+function curProj() { return opt.inside ? (PROJ_BY[projKind] || PROJ_BY.stereographic) : PROJ_BY.orthographic; }
 var projection = d3.geoOrthographic().clipAngle(90).precision(0.35);
 var path = d3.geoPath(projection, ctx);
+/* degrees of turn per pixel at the middle of the view, which differs between projections */
+function pxToDeg() { return 57.29578 / (R0 * zoom * projCentreF); }
 var sphere = { type: 'Sphere' };
 var FONT = "'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 var SERIF = "'Spectral', Georgia, 'Times New Roman', serif";
@@ -1409,20 +1451,33 @@ function pillList() {
 }
 function applyProjection() {
   rotation[2] = pointing ? pointRoll : rollFor();
-  projection.rotate(rotation).scale(R0 * zoom).translate([CX, CY]).reflectX(opt.inside)
+  var P = curProj();
+  if (P !== projNow) {
+    projection = d3[P.d3]().precision(0.35);
+    path = d3.geoPath(projection, ctx);
+    projNow = P;
+    if (window.CG) window.CG.projection = projection;   /* the hook keeps pointing at the live one */
+    projF = P.f;
+    projCentreF = P.f(1, 0);
+    projClipDeg = -1;
+    pathCache = {}; trackCache = {};
+  }
+  var cd = clipFor(P);
+  if (cd !== projClipDeg) { projClipDeg = cd; projClipCos = Math.cos(cd * DEG); projection.clipAngle(cd); }
+  projection.rotate(rotation).scale(R0 * zoom * P.k).translate([CX, CY]).reflectX(opt.inside)
             .clipExtent([[-40, -40], [W + 40, H + 40]]);
   var rot = d3.geoRotation(rotation);
   var ex = unitv.apply(null, rot([0, 0])), ey = unitv.apply(null, rot([90, 0])), ez = unitv.apply(null, rot([0, 90]));
   rotM = [ex, ey, ez];
   viewV = unitv(-rotation[0], -rotation[1]);
 }
-/* screen position of a J2000 unit vector, or null when on the far side */
+/* screen position of a J2000 unit vector, or null when it lies beyond what the projection reaches */
 function proj(v) {
   var x = rotM[0][0] * v[0] + rotM[1][0] * v[1] + rotM[2][0] * v[2];
-  if (x <= 0) return null;
+  if (x <= projClipCos) return null;
   var y = rotM[0][1] * v[0] + rotM[1][1] * v[1] + rotM[2][1] * v[2];
   var z = rotM[0][2] * v[0] + rotM[1][2] * v[1] + rotM[2][2] * v[2];
-  var s = R0 * zoom;
+  var s = R0 * zoom * projF(x, Math.sqrt(y * y + z * z));
   return [CX + (opt.inside ? -s * y : s * y), CY - s * z, x];
 }
 function onScreen(p, m) { m = m || 0; return p && p[0] > -m && p[0] < W + m && p[1] > -m && p[1] < H + m; }
@@ -1702,13 +1757,15 @@ function draw() {
   ctx.restore();
   if (opt.horizon) drawCardinals(c);
 
-  /* rim */
-  ctx.beginPath(); path(sphere);
-  ctx.lineWidth = 1.2; ctx.strokeStyle = PAL.rim; ctx.stroke();
-  ctx.beginPath(); ctx.arc(CX, CY, s + 4, 0, 2 * Math.PI);
-  var rg = ctx.createRadialGradient(CX, CY, s, CX, CY, s + 22);
-  rg.addColorStop(0, 'rgba(120,180,255,.22)'); rg.addColorStop(1, 'rgba(120,180,255,0)');
-  ctx.fillStyle = rg; ctx.fillRect(CX - s - 24, CY - s - 24, 2 * s + 48, 2 * s + 48);
+  /* the rim, which belongs to the globe: from inside there is no sphere to have an edge */
+  if (curProj().clip <= 90 && projClipDeg >= 90) {
+    ctx.beginPath(); path(sphere);
+    ctx.lineWidth = 1.2; ctx.strokeStyle = PAL.rim; ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX, CY, s + 4, 0, 2 * Math.PI);
+    var rg = ctx.createRadialGradient(CX, CY, s, CX, CY, s + 22);
+    rg.addColorStop(0, 'rgba(120,180,255,.22)'); rg.addColorStop(1, 'rgba(120,180,255,0)');
+    ctx.fillStyle = rg; ctx.fillRect(CX - s - 24, CY - s - 24, 2 * s + 48, 2 * s + 48);
+  }
   drawZoomBadge();
 }
 var holdLst = null;
@@ -1867,14 +1924,16 @@ function drawStars(c) {
   var paths = STAR_BINS.map(function () { return new Path2D(); });
   var glow = [];
   var hitLim = lim - 1.5;
+  var flat = projF === PROJ_BY.orthographic.f;         /* orthographic needs no radial factor at all */
   for (var i = 0; i < NS; i++) {
     var mag = SMAG[i];
     if (mag > lim) break;                              /* sorted by magnitude */
     var vx = SX[i], vy = SY[i], vz = SZ[i];
     var x = m00 * vx + m10 * vy + m20 * vz;
-    if (x <= 0) continue;
+    if (x <= projClipCos) continue;
     var y = m01 * vx + m11 * vy + m21 * vz, z = m02 * vx + m12 * vy + m22 * vz;
-    var px = CX + sgn * s * y, py = CY - s * z;
+    var sf = flat ? s : s * projF(x, Math.sqrt(y * y + z * z));
+    var px = CX + sgn * sf * y, py = CY - sf * z;
     if (px < -10 || px > W + 10 || py < -10 || py > H + 10) continue;
     var r = starRadius(mag, lim);
     var bv = SBV[i], b = 0;
@@ -2449,7 +2508,7 @@ function drawHorizonGrid(c) {
 /* ------------------------------------------------------------- zoom badge */
 function drawZoomBadge() {
   if (zoom < 3) return;
-  var fov = 2 * Math.asin(Math.min(1, Math.min(W, H) / 2 / (R0 * zoom))) * RAD;
+  var fov = 2 * curProj().ang(Math.min(W, H) / 2 / (R0 * zoom)) * RAD;
   var txt = 'field ' + (fov >= 1 ? fov.toFixed(1) + '°' : fov * 60 >= 1 ? (fov * 60).toFixed(1) + '′' : (fov * 3600).toFixed(0) + '″');
   ctx.font = '400 10px ' + FONT; ctx.fillStyle = 'rgba(150,170,200,.7)'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillText(txt, CX, H - 30);
@@ -2508,7 +2567,7 @@ cv.addEventListener('pointermove', function (e) {
     return;
   }
   if (dragStart && ids.length === 1) {
-    var k = 57.29578 / (R0 * zoom) * 1.35, sgn = opt.inside ? -1 : 1;
+    var k = pxToDeg() * 1.35, sgn = opt.inside ? -1 : 1;
     var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
     if (!moved && Math.abs(dx) + Math.abs(dy) <= 3) return;      /* a tap or click that wobbles is not a drag */
     moved = true;
@@ -2584,7 +2643,7 @@ function zoomAbout(newZoom, mx, my) {
   applyProjection();
   var p = projection(ll);
   if (!p) return;
-  var k = 57.29578 / (R0 * zoom), sgn = opt.inside ? -1 : 1;
+  var k = pxToDeg(), sgn = opt.inside ? -1 : 1;
   var u = unroll(mx - p[0], my - p[1]);
   rotation = [rotation[0] + sgn * u[0] * k, clamp(rotation[1] - u[1] * k, -90, 90), rotation[2]];
 }
@@ -2841,6 +2900,7 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
     if (key === 'inside') {
       document.getElementById('facerow').hidden = !opt.inside;
+      document.getElementById('projrow').hidden = !opt.inside;
       /* from inside you are the observer, so the horizon stays put and the sky turns past it */
       if (opt.inside) { opt.hold = true; document.getElementById('L-hold').checked = true; holdLst = null; }
       describeView();
@@ -2861,6 +2921,15 @@ document.getElementById('resetview').addEventListener('click', resetView);
 document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
 document.getElementById('tozenith').addEventListener('click', function () { flyToZenith(Math.max(1, zoom)); });
 
+var projEl = document.getElementById('projection');
+projEl.value = projKind;
+projEl.addEventListener('change', function () {
+  projKind = projEl.value;
+  if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; }
+  document.getElementById('projrow').hidden = false;
+  document.getElementById('facerow').hidden = false;
+  describeView(); hideTip(); draw();
+});
 var facingEl = document.getElementById('facing');
 facingEl.value = facing;
 facingEl.addEventListener('change', function () { facing = facingEl.value; describeView(); hideTip(); draw(); });
@@ -2868,7 +2937,8 @@ var FACING_NAME = { N: 'north', E: 'east', S: 'south', W: 'west' };
 function describeView() {
   if (!opt.inside) { setStatus('The globe from outside, north up: east is to the right, a mirror image of the sky'); return; }
   var side = { N: 'east is to the right', S: 'east is to the left', E: 'north is to the left', W: 'north is to the right' }[facing];
-  setStatus('The sky from inside, as a chart held overhead facing ' + FACING_NAME[facing] + ': ' + side);
+  setStatus('The sky from inside, as a chart held overhead facing ' + FACING_NAME[facing] + ': ' + side +
+            ' \u00b7 ' + curProj().name.toLowerCase());
 }
 var statusEl = document.getElementById('status'), statusTimer = null;
 function setStatus(msg) {
@@ -3417,7 +3487,7 @@ function viewHash() {
   var bits = 0;
   for (var i = 0; i < URL_KEYS.length; i++) if (opt[URL_KEYS[i]]) bits += Math.pow(2, i);
   q.push('L=' + bits.toString(36));
-  q.push('e=' + [astMinKm, satGroupSel, fovDeg, nightEl.checked ? 1 : 0].join(','));
+  q.push('e=' + [astMinKm, satGroupSel, fovDeg, nightEl.checked ? 1 : 0, projKind].join(','));
   return '#' + q.join('&');
 }
 function applyHash(h) {
@@ -3454,6 +3524,7 @@ function applyHash(h) {
     if (e[1]) { satGroupSel = e[1]; document.getElementById('satgrp').value = e[1]; }
     if (+e[2]) { fovDeg = +e[2]; document.getElementById('fovsize').value = e[2]; }
     if (+e[3]) { nightEl.checked = true; document.body.classList.add('night'); }
+    if (e[4] && PROJ_BY[e[4]]) { projKind = e[4]; projEl.value = projKind; }
     any = true;
   }
   if (q.t && /^\d{12}$/.test(q.t)) {
@@ -3619,7 +3690,7 @@ function updatePointUI() {
 function startPointing() {
   function go() {
     pointing = true;
-    if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; document.getElementById('facerow').hidden = false; }
+    if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; document.getElementById('facerow').hidden = false; document.getElementById('projrow').hidden = false; }
     if (!opt.hold) { opt.hold = true; document.getElementById('L-hold').checked = true; }
     pointHandler = applyOrientation;
     if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', pointHandler, true);
@@ -3711,6 +3782,7 @@ updateScrubLabel();
 })();
 (function intro() {
   document.getElementById('facerow').hidden = !opt.inside;
+  document.getElementById('projrow').hidden = !opt.inside;
   if (hashHadView) { draw(); if (opt.spin) startSpin(); return; }
   var c = ensureSky(), z = lonlat(c.Z);
   rotation = [-z[0] - 50, -z[1] - 30, 0];
@@ -3734,7 +3806,11 @@ window.CG = {
   bodies: function () { return bodies; }, sats: function () { return satState; }, sky: function () { return sky; },
   at: function (date) { var c = skyContext(date); computeBodies(c); computeSats(c); skyDirty = true; return { c: c, bodies: bodies.slice(), sats: satState.slice() }; },
   setObserver: setObserver, obs: function () { return obs; }, opt: opt, draw: draw, flyTo: flyTo, setZoom: function (z) { zoom = z; draw(); },
-  proj: proj, projection: projection, lonlat: lonlat, unitv: unitv, toHor: toHor, fromHor: fromHor, hits: function () { return hits; },
+  proj: proj, projection: projection, lonlat: lonlat, unitv: unitv, toHor: toHor, fromHor: fromHor,
+  hits: function () { return hits; },
+  projKind: function (k) { if (k) { projKind = k; projEl.value = k; draw(); } return projKind; },
+  projList: function () { return PROJECTIONS.map(function (P) { return P.key; }); },
+  R0: function () { return R0; },
   setTime: function (min, days) { offsetMin = (min || 0) + (days || 0) * 1440; refreshTime(); },
   setFacing: function (f) { facing = f; facingEl.value = f; draw(); }, rotation: function () { return rotation.slice(); },
   debug: function () { return { hover: hover, tipOn: tip.classList.contains('on'), moved: moved, dragStart: !!dragStart, pointers: Object.keys(pointers).length, spinPaused: spinPaused, spin: opt.spin }; },
