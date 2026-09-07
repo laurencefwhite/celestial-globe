@@ -38,18 +38,31 @@ drawn on the sphere.
   it. A **Freeze** pill beside the folded Layers pill holds the sky still while you read it and lets
   it follow again, and the screen is kept awake while you are out under it. Where the browser insists on being
   asked first, as Safari does, the pill reads *Point at sky* until you tap it once.
+- **A planisphere**, in one press. The old brass-and-card instrument is every setting the page
+  already has, put together: the sky drawn stereographically about the pole that stands above you,
+  the horizon as an oval sweeping over it, and the stars held still while time runs, which is the
+  opposite of the usual arrangement. Run the clock and watch the night turn as the instrument does.
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
-  or use the device's location. The horizon is drawn as a line on the sphere with the zenith marked,
-  the cardinal points sit just outside the globe (or at the edge of the screen when you are zoomed
-  in), the part of the sky below the horizon is shaded, and an altitude–azimuth grid can be switched
+  or use the device's location. The horizon is drawn as a line on the sphere with the zenith marked
+  and all eight points of the compass on it, north through north-west, each staying in view by
+  moving to the edge of the window when its own bearing goes round the back. The part of the sky
+  below the horizon is shaded, and an altitude–azimuth grid can be switched
   on. The masthead shows the observer's local time, local sidereal time and UTC, the state of the
   twilight, and today's rising and setting of the Sun and Moon.
+- **The lines answer too.** Point at the horizon, the ecliptic, the celestial equator, a tropic, a
+  polar circle, the galactic equator or the meridian and it says what that line is and where on it
+  you are pointing. A switch puts their names on the lines themselves.
 - **Rise, transit and set** for anything you hover or tap, worked out for the observer's own day:
   when it rises, when it is highest and how high, and when it sets, or that it never rises or never
   sets.
 - **Coordinates on labels.** Two switches add altitude and azimuth, or right ascension and declination
   (J2000), under the name of every labelled object. Hovering anything gives both, with magnitude,
   distance, size and phase where they apply.
+- **A brightness scrubber** in the key: hold the faintest magnitude wherever you like, from −1 to 8,
+  or leave it on Auto to follow the zoom as it always has.
+- **Names you can turn off one class at a time**: stars, deep-sky objects, planets, moons, asteroids,
+  comets, satellites, meteor showers and the lines each have their own switch, and the switches sit
+  in two columns.
 - **41,000 stars** from the HYG database, coloured by B−V, with IAU proper names and Bayer and
   Flamsteed designations. Each star's card gives its spectral type in words, its distance in light
   years and, for the 1,869 variables, the range it varies over. Fainter stars appear as you zoom in.
@@ -112,6 +125,8 @@ drawn on the sphere.
 - **Reset defaults** puts every switch and setting back the way the page opens, and deliberately
   leaves the place you are observing from, the view and the clock alone, since each of those has its
   own control.
+- **On a phone** the stars are drawn smaller and far fewer names are shown, both scaled from the
+  short side of the window, so a small screen is not covered in labels.
 - **Reset view, Reset defaults, Copy link, Save image and Keys** sit together above the layers. When the sidebar is
   folded away, Reset view and Freeze come out and sit in a row beside the folded pill, running
   towards the middle of the screen, so they land in the same place relative to it whichever corner

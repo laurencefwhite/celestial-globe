@@ -94,7 +94,10 @@ body{
 #obs-line .sunline{color:var(--ink-faint)}
 
 /* ---------- controls ---------- */
-#controls{top:18px;right:18px;width:252px;padding:14px 16px 15px;max-height:calc(100vh - 36px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
+#controls{top:18px;right:18px;width:392px;padding:14px 16px 15px;max-height:calc(100vh - 36px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
+.togs{column-count:2;column-gap:16px}
+.togs .sub-t{column-span:all}
+.togs .tog,.togs .row{break-inside:avoid}
 #controls::-webkit-scrollbar{width:6px}
 #controls::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:3px}
 .grp+.grp{margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08)}
@@ -195,6 +198,10 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 #legend .key canvas{width:22px;height:16px;flex:none}
 #legend .mags{display:flex;align-items:center;gap:10px;font-size:10px;color:var(--ink-dim)}
 #legend .mags canvas{width:150px;height:18px}
+#legend .maglim{display:flex;align-items:center;gap:6px;margin-top:4px}
+#legend .maglim .hslider{height:18px}
+#legend .maglim .btn.ico{width:auto;padding:3px 8px;font-size:10px}
+#legend .maglim .btn.ico.on{background:rgba(142,208,255,.20);border-color:rgba(142,208,255,.45);color:var(--accent)}
 #legend .line{width:22px;height:0;border-top:1.5px solid;flex:none}
 #legend .note{margin-top:6px;font-size:10px;line-height:1.45;color:var(--ink-faint)}
 #credit{
@@ -279,6 +286,7 @@ body.night #stage{filter:grayscale(1)}
   .scrub{margin-top:8px;padding-top:8px}
 
   #controls{top:auto;bottom:48px;right:10px;left:10px;width:auto;padding:26px 12px 10px;max-height:50vh}
+  .togs{column-count:1}
   #controls.min{padding:0 !important;bottom:10px}
   .grp+.grp{border-top:0;padding-top:9px;margin-top:0}
   #controls .grp-t{display:none}
@@ -447,6 +455,7 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-tropics" checked><span class="sw"></span><span class="tl">Equator &amp; tropics</span></label>
       <label class="tog"><input type="checkbox" id="L-ecliptic" checked><span class="sw"></span><span class="tl">Ecliptic</span></label>
       <label class="tog"><input type="checkbox" id="L-galactic"><span class="sw"></span><span class="tl">Galactic equator</span></label>
+      <label class="tog"><input type="checkbox" id="L-meridian"><span class="sw"></span><span class="tl">Meridian</span></label>
       <div class="sub-t">Eyepiece</div>
       <label class="tog"><input type="checkbox" id="L-fov"><span class="sw"></span><span class="tl">Field circle</span></label>
       <div class="row"><label for="fovsize">Field</label>
@@ -461,6 +470,17 @@ body.night #stage{filter:grayscale(1)}
       <div class="sub-t">Sky conditions</div>
       <label class="tog"><input type="checkbox" id="L-daylight" checked><span class="sw"></span><span class="tl">Daylight &amp; twilight</span></label>
       <label class="tog"><input type="checkbox" id="L-refraction" checked><span class="sw"></span><span class="tl">Refraction <small>near the horizon</small></span></label>
+      <div class="sub-t">Names shown</div>
+      <label class="tog"><input type="checkbox" id="L-lstars" checked><span class="sw"></span><span class="tl">Star names</span></label>
+      <label class="tog"><input type="checkbox" id="L-ldso" checked><span class="sw"></span><span class="tl">Deep-sky names</span></label>
+      <label class="tog"><input type="checkbox" id="L-lplanets" checked><span class="sw"></span><span class="tl">Planet names</span></label>
+      <label class="tog"><input type="checkbox" id="L-lmoons" checked><span class="sw"></span><span class="tl">Moon names</span></label>
+      <label class="tog"><input type="checkbox" id="L-lasteroids" checked><span class="sw"></span><span class="tl">Asteroid names</span></label>
+      <label class="tog"><input type="checkbox" id="L-lcomets" checked><span class="sw"></span><span class="tl">Comet names</span></label>
+      <label class="tog"><input type="checkbox" id="L-lsats" checked><span class="sw"></span><span class="tl">Satellite names</span></label>
+      <label class="tog"><input type="checkbox" id="L-lshowers" checked><span class="sw"></span><span class="tl">Shower names</span></label>
+      <label class="tog"><input type="checkbox" id="L-linelabels"><span class="sw"></span><span class="tl">Line names</span></label>
+      <label class="tog"><input type="checkbox" id="L-linecards" checked><span class="sw"></span><span class="tl">Lines answer when pointed at</span></label>
       <div class="sub-t">Coordinates on labels</div>
       <label class="tog"><input type="checkbox" id="L-altaz"><span class="sw"></span><span class="tl">Altitude &amp; azimuth</span></label>
       <label class="tog"><input type="checkbox" id="L-radec"><span class="sw"></span><span class="tl">Right ascension &amp; declination</span></label>
@@ -480,6 +500,7 @@ body.night #stage{filter:grayscale(1)}
           <option value="W">West</option>
         </select></div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
+      <div class="row"><button class="btn sm" id="planisphere" title="Set the view up as a planisphere: the whole sky on the pole, the horizon sweeping over it as time runs">Planisphere</button></div>
       <label class="tog"><input type="checkbox" id="L-spin"><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
       <label class="tog"><input type="checkbox" id="L-awake"><span class="sw"></span><span class="tl">Keep the screen awake</span></label>
@@ -489,11 +510,18 @@ body.night #stage{filter:grayscale(1)}
 
   <button class="btn floatbtn" id="resetfloat" title="Recentre on the sky overhead and fit the globe">Reset view</button>
   <button class="btn floatbtn" id="pointfloat" title="Hold the sky still, or let it follow the phone again">Freeze</button>
+  <button class="btn floatbtn" id="nowfloat" title="Back to the present moment">Now</button>
 
   <div class="panel" id="legend">
     <button class="pmin" data-name="Key" title="Minimise"></button>
     <div class="lt"><span>Stars by magnitude</span></div>
     <div class="mags"><canvas id="lg-mags"></canvas><span id="lg-maglim">to mag 6</span></div>
+    <div class="sbar maglim">
+      <button class="btn ico" id="magauto" title="Let the faintest magnitude follow the zoom">Auto</button>
+      <div class="hslider" id="hmag" tabindex="0" role="slider" aria-label="Faintest stars shown">
+        <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
+      </div>
+    </div>
     <div class="lsec">
       <div class="lt"><span>Deep sky</span></div>
       <div class="keys" id="lg-dso"></div>
@@ -1315,7 +1343,10 @@ var opt = {
   planets: true, moons: true, asteroids: true, comets: true, showers: true, pics: true, sats: true, tracks: true,
   paths: false, fov: false, daylight: true, refraction: true,
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
-  altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false
+  altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
+  linecards: true, linelabels: false, meridian: false,
+  lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
+  ldso: true, lsats: true, lshowers: true
 };
 /* how the page opens, kept so that Reset defaults has something to go back to */
 var OPT_DEFAULTS = JSON.parse(JSON.stringify(opt));
@@ -1376,6 +1407,10 @@ var sphere = { type: 'Sphere' };
 var FONT = "'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 var SERIF = "'Spectral', Georgia, 'Times New Roman', serif";
 var interacting = false;
+/* Everything is sized for a desktop window. A phone has a third of the width and a screen held at
+   arm's length, so stars drawn at desktop sizes look like blobs and every label fights its neighbour.
+   One factor, taken from the shorter side of the window, scales both. */
+function screenScale() { return clamp(Math.min(W, H) / 780, 0.62, 1); }
 var rotM = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];    /* the rotation as a matrix, for the star loop */
 var viewV = [1, 0, 0];                            /* J2000 direction at the centre of the view */
 
@@ -1434,8 +1469,11 @@ function placePills() {
   var panel = document.getElementById('controls');
   var min = panel.classList.contains('min');
   var list = pillList();
-  list.forEach(function (el) { el.style.display = min ? 'block' : 'none'; });
-  if (!min || !list.length) return;
+  /* The pills live just inboard of the panel they belong to, whether it is open or folded away. On a
+     phone an open panel is a sheet across the whole width, so there they wait until it is folded. */
+  var show = min || !smallScreen();
+  list.forEach(function (el) { el.style.display = show ? 'block' : 'none'; });
+  if (!show || !list.length) return;
   var r = panel.getBoundingClientRect();
   var leftwards = (r.left + r.width / 2) > window.innerWidth / 2;
   var edge = leftwards ? r.left : r.right, gap = 8;
@@ -1450,7 +1488,7 @@ function placePills() {
   }
 }
 function pillList() {
-  var out = [document.getElementById('resetfloat')];
+  var out = [document.getElementById('resetfloat'), document.getElementById('nowfloat')];
   if (pointAvailable) out.push(document.getElementById('pointfloat'));
   return out.filter(Boolean);
 }
@@ -1739,10 +1777,11 @@ function draw() {
 
   if (opt.mw) drawMilkyWay();
   if (opt.dso) drawDSOs(c, 'pics');
+  lineHits = [];
   if (opt.cgrid) drawCelestialGrid();
   if (opt.tropics) drawTropics();
-  if (opt.ecliptic) drawLine(ECLIPTIC, PAL.ecliptic, 1, [6, 5]);
-  if (opt.galactic) drawLine(GALACTIC, PAL.galactic, 1, [2, 4]);
+  if (opt.ecliptic) lineTrace('ecliptic', ECLIPTIC, PAL.ecliptic, 1, [6, 5]);
+  if (opt.galactic) lineTrace('galactic', GALACTIC, PAL.galactic, 1, [2, 4]);
   if (opt.conbounds) drawLine(conBoundsAll, PAL.conbound, 1, null);
   if (opt.conlines) drawLine(conLinesAll, PAL.conline, zoom > 3 ? 1.4 : 1.1, null);
   if (opt.dso) drawDSOs(c, 'icons');
@@ -1758,9 +1797,10 @@ function draw() {
   if (opt.horizon) drawHorizon(c);
   if (opt.connames && zoom < 60) drawConNames();
   if (opt.fov) drawFieldCircle();
-  placeLabels();
+  if (opt.linelabels) drawLineLabels();
   ctx.restore();
   if (opt.horizon) drawCardinals(c);
+  placeLabels();
 
   /* the rim, which belongs to the globe: from inside there is no sphere to have an edge */
   if (curProj().clip <= 90 && projClipDeg >= 90) {
@@ -1857,19 +1897,23 @@ function drawCelestialGrid() {
   }
 }
 function drawTropics() {
-  drawLine(EQUATOR, PAL.equator, 1.2, null);
-  drawLine(TROPIC_N, PAL.tropic, 1, [3, 4]); drawLine(TROPIC_S, PAL.tropic, 1, [3, 4]);
-  drawLine(POLAR_N, PAL.tropic, 0.8, [1, 4]); drawLine(POLAR_S, PAL.tropic, 0.8, [1, 4]);
+  lineTrace('equator', EQUATOR, PAL.equator, 1.2, null);
+  lineTrace('tropicN', TROPIC_N, PAL.tropic, 1, [3, 4]);
+  lineTrace('tropicS', TROPIC_S, PAL.tropic, 1, [3, 4]);
+  lineTrace('polarN', POLAR_N, PAL.tropic, 0.8, [1, 4]);
+  lineTrace('polarS', POLAR_S, PAL.tropic, 0.8, [1, 4]);
 }
 
 /* -------------------------------------------------------- constellations */
 function drawConNames() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  var size = zoom < 1.6 ? 11 : zoom < 4 ? 13 : 15;
+  var size = (zoom < 1.6 ? 11 : zoom < 4 ? 13 : 15) * Math.max(0.85, screenScale());
+  var small = screenScale() < 0.9;
   for (var i = 0; i < D.con.length; i++) {
     var cn = D.con[i];
     if (zoom < 1.3 && cn[5] > 2) continue;
     if (zoom < 0.95 && cn[5] > 1) continue;
+    if (small && zoom < 2 && cn[5] > 1) continue;
     var v = unitv(cn[3], cn[4]);
     var p = proj(v);
     if (!onScreen(p, -10) || p[2] < 0.22) continue;
@@ -1913,13 +1957,15 @@ function drawDaylight(c) {
 }
 
 /* ------------------------------------------------------------- stars */
+var magLimit = null;                             /* null: let the zoom decide, as it always has */
+function autoStarLimit() { return Math.min(8.0, 6.0 + 2.2 * Math.log2(Math.max(0.82, zoom))); }
 function starLimit() {
-  var lim = Math.min(8.0, 6.0 + 2.2 * Math.log2(Math.max(0.82, zoom)));
+  var lim = magLimit === null ? autoStarLimit() : magLimit;
   return lim - 4.5 * skyBrightness(sky);         /* daylight drowns all but the brightest */
 }
 function starRadius(mag, lim) {
   var r = 0.55 + Math.pow(Math.max(0, lim - mag), 1.15) * 0.45;
-  return r * Math.min(1.9, 1 + 0.12 * Math.max(0, Math.log2(zoom)));
+  return r * Math.min(1.9, 1 + 0.12 * Math.max(0, Math.log2(zoom))) * screenScale();
 }
 var STAR_BINS = [-0.05, 0.25, 0.55, 0.85, 1.15, 1.5, 9];
 var starBinPaths = STAR_BINS.map(function () { return null; });
@@ -1976,7 +2022,9 @@ function queueStarLabel(i, px, py, r, mag, lim, c) {
   var e = starName[i];
   if (!e) return;
   var nameLim = zoom < 1.2 ? 1.6 : zoom < 2 ? 2.4 : zoom < 4 ? 3.6 : 5.0;
+  nameLim -= 2.2 * (1 - screenScale());          /* fewer names on a small screen, brightest first */
   var text = '';
+  if (!opt.lstars) { if (!isHover('star', i)) return; }
   if (opt.starnames && e.name && (mag <= nameLim || zoom >= 6)) text = e.name;
   else if (opt.bayer && (e.bayer || e.flam) && (zoom >= 2.2 || mag <= 2.6) && mag <= lim - 0.5) text = starDesig(e);
   if (!text && isHover('star', i)) text = e.name || starDesig(e);
@@ -1990,7 +2038,7 @@ function queueStarLabel(i, px, py, r, mag, lim, c) {
 }
 
 /* --------------------------------------------------------------- DSOs */
-function dsoLimit() { return 6.0 + 2.4 * Math.log2(Math.max(0.82, zoom)); }
+function dsoLimit() { return 6.0 + 2.4 * Math.log2(Math.max(0.82, zoom)) - 3 * (1 - screenScale()); }
 function drawDSOs(c, pass) {
   var s = R0 * zoom, lim = dsoLimit();
   for (var i = 0; i < dsoList.length; i++) {
@@ -2010,7 +2058,7 @@ function drawDSOs(c, pass) {
     else if (isHover('dso', i)) ring(p[0], p[1], r + 3);
     addHit(p[0], p[1], Math.max(5, r), 'dso', i);
     var labelOk = d.messier ? zoom >= 1.15 || d.mag < 5 : (zoom >= 1.8 && (d.mag <= lim - 1 || sizePx >= 10 || (d.name && zoom > 2.5)));
-    if (labelOk || isHover('dso', i)) {
+    if ((labelOk && opt.ldso) || isHover('dso', i)) {
       var text = d.name ? (zoom >= 2.5 && d.messier ? d.id + ' · ' + d.name : d.name) : d.id;
       if (d.messier && !d.name) text = d.id;
       if (d.messier && d.name && zoom < 2.5) text = d.id;
@@ -2114,7 +2162,10 @@ function drawBodies(c) {
     addHit(p[0], p[1], Math.max(6, Math.min(r, 13)), 'body', b);
     if (isHover('body', b)) ring(p[0], p[1], r + 4);
     var label = null, font = '500 12px ' + FONT, colour = 'rgba(245,240,225,.95)', prio = 10;
-    if (b.kind === 'sun' || b.kind === 'moon' || b.kind === 'planet') label = b.name;
+    var wanted = b.kind === 'pmoon' ? opt.lmoons : b.kind === 'asteroid' ? opt.lasteroids
+               : b.kind === 'comet' ? opt.lcomets : opt.lplanets;
+    if (!wanted && !isHover('body', b)) label = null;
+    else if (b.kind === 'sun' || b.kind === 'moon' || b.kind === 'planet') label = b.name;
     else if (b.kind === 'pmoon') { if (b.sepPx > 9 || isHover('body', b)) { label = b.name; font = '400 10.5px ' + FONT; colour = 'rgba(215,222,235,.9)'; prio = 7; } }
     else if (b.kind === 'asteroid') { if (b.dwarf || zoom >= 1.4 || isHover('body', b)) { label = b.name; font = '400 10.5px ' + FONT; colour = 'rgba(200,210,225,.85)'; prio = b.dwarf ? 6 : 5; } }
     else if (b.kind === 'comet') { label = zoom >= 1.4 || b.mag < 9 || isHover('body', b) ? b.shortName : null; font = '400 11px ' + FONT; colour = 'rgba(180,255,220,.9)'; prio = 8; }
@@ -2251,7 +2302,7 @@ function drawSats(c) {
     st.px = p[0]; st.py = p[1];
     addHit(p[0], p[1], 7, 'sat', st);
     if (hov) ring(p[0], p[1], 10);
-    if (station || showNames || hov) {
+    if ((station || showNames || hov) && (opt.lsats || hov)) {
       queueLabel(p[0], p[1], img ? 9 : r, st.name, { font: '400 10.5px ' + FONT, colour: st.lit ? 'rgba(255,225,170,.92)' : 'rgba(200,205,215,.8)',
                                                     prio: station ? 9 : 4, sub: coordLines(st.v, c), kind: 'sat', ref: st });
     }
@@ -2330,9 +2381,10 @@ function drawShowers(c) {
     addHit(p[0], p[1], r, 'shower', sh);
     if (isHover('shower', sh)) ring(p[0], p[1], r + 4);
     var text = sh.name;
-    if (coming) text += ' \u00b7 in ' + Math.max(1, Math.round(-st.fromPeak / 0.9856)) + ' days';
-    else if (st.known && st.zhr >= 3) text += ' \u00b7 ' + Math.round(st.zhr) + '/h';
-    queueLabel(p[0], p[1], r, text, {
+    if (!opt.lshowers && !isHover('shower', sh)) text = null;
+    if (text && coming) text += ' \u00b7 in ' + Math.max(1, Math.round(-st.fromPeak / 0.9856)) + ' days';
+    else if (text && st.known && st.zhr >= 3) text += ' \u00b7 ' + Math.round(st.zhr) + '/h';
+    if (text) queueLabel(p[0], p[1], r, text, {
       font: (frac > 0.5 ? '500 11px ' : '400 10.5px ') + FONT,
       colour: coming ? 'rgba(225,185,210,.6)' : 'rgba(255,190,220,' + (0.55 + 0.4 * frac).toFixed(2) + ')',
       prio: coming ? 2 : 2 + Math.round(7 * frac), sub: coordLines(st.v, c), kind: 'shower', ref: sh });
@@ -2433,6 +2485,71 @@ function drawFieldCircle() {
   if (top && onScreen(top, -20)) { ctx.fillText(lab, top[0], top[1] - 4); boxes.push([top[0] - 30, top[1] - 18, top[0] + 30, top[1]]); }
 }
 
+/* --------------------------------------------- the lines, and what they are */
+/* A great circle is a thing on the sky like any other, so it should say what it is when pointed at.
+   Each keeps the points it was last drawn through, and the hit test measures to the nearest segment.
+   Labels ride along the line itself, upright, repeated so one is always in view. */
+var LINE_INFO = {
+  horizon: { name: 'Horizon', colour: 'rgba(255,196,120,.95)', what: 'Where the sky meets the ground for this observer. Everything above it is up; everything below is under your feet.' },
+  equator: { name: 'Celestial equator', colour: 'rgba(160,210,255,.9)', what: 'The Earth\u2019s equator projected on the sky. Declination zero. The Sun crosses it at the equinoxes.' },
+  ecliptic: { name: 'Ecliptic', colour: 'rgba(255,215,120,.95)', what: 'The path the Sun takes through the stars over a year, and near enough the plane the planets keep to. Tilted 23.4\u00b0 to the equator.' },
+  tropicN: { name: 'Tropic of Cancer', colour: 'rgba(160,210,255,.7)', what: 'Declination +23.4\u00b0: the furthest north the Sun reaches, at the June solstice.' },
+  tropicS: { name: 'Tropic of Capricorn', colour: 'rgba(160,210,255,.7)', what: 'Declination \u221223.4\u00b0: the furthest south the Sun reaches, at the December solstice.' },
+  polarN: { name: 'North polar circle', colour: 'rgba(160,210,255,.6)', what: 'Declination +66.6\u00b0. A star inside it never sets for an observer at the Arctic Circle.' },
+  polarS: { name: 'South polar circle', colour: 'rgba(160,210,255,.6)', what: 'Declination \u221266.6\u00b0. A star inside it never sets for an observer at the Antarctic Circle.' },
+  galactic: { name: 'Galactic equator', colour: 'rgba(210,180,255,.9)', what: 'The mid-line of the Milky Way, the plane of our own galaxy. Tilted 60\u00b0 to the celestial equator.' },
+  meridian: { name: 'Meridian', colour: 'rgba(255,196,120,.75)', what: 'The line from due north through the zenith to due south. An object is highest as it crosses it.' }
+};
+var lineHits = [];                                /* {key, pts: [[x,y],...]} rebuilt each frame */
+function lineTrace(key, geo, colour, width, dash, labelable) {
+  drawLine(geo, colour, width, dash);
+  if (!opt.linecards && !opt.linelabels) return;
+  /* keep a thinned copy of where it landed, for hit testing and for hanging a label on */
+  var pts = [];
+  var segs = geo.type === 'LineString' ? [geo.coordinates] : geo.coordinates;
+  for (var i = 0; i < segs.length; i++) {
+    for (var j = 0; j < segs[i].length; j += 2) {
+      var q = projection(segs[i][j]);
+      if (q && q[0] > -50 && q[0] < W + 50 && q[1] > -50 && q[1] < H + 50) pts.push(q);
+    }
+  }
+  if (pts.length) lineHits.push({ key: key, pts: pts, labelable: labelable !== false });
+}
+function drawLineLabels() {
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '400 10px ' + FONT;
+  for (var i = 0; i < lineHits.length; i++) {
+    var lh = lineHits[i], info = LINE_INFO[lh.key];
+    if (!info || !lh.labelable || lh.pts.length < 6) continue;
+    /* two or three along the run, spaced apart, so one is in view wherever you are looking */
+    var wanted = lh.pts.length > 40 ? 3 : 2;
+    for (var k = 1; k <= wanted; k++) {
+      var pt = lh.pts[Math.floor(lh.pts.length * k / (wanted + 1))];
+      if (!pt) continue;
+      var w = ctx.measureText(info.name).width;
+      var box = [pt[0] - w / 2 - 4, pt[1] - 8, pt[0] + w / 2 + 4, pt[1] + 8];
+      if (box[0] < 4 || box[2] > W - 4 || box[1] < 4 || box[3] > H - 4) continue;
+      if (hitsBox(box)) continue;
+      boxes.push(box);
+      ctx.fillStyle = 'rgba(6,10,20,.72)';
+      ctx.fillRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+      ctx.fillStyle = info.colour;
+      ctx.fillText(info.name, pt[0], pt[1] + 0.5);
+    }
+  }
+}
+function lineAt(mx, my) {
+  var best = null, bd = 9;                        /* within nine pixels of the line counts */
+  for (var i = 0; i < lineHits.length; i++) {
+    var pts = lineHits[i].pts;
+    for (var j = 0; j < pts.length; j++) {
+      var d = Math.hypot(pts[j][0] - mx, pts[j][1] - my);
+      if (d < bd) { bd = d; best = lineHits[i].key; }
+    }
+  }
+  return best;
+}
+
 /* ---------------------------------------------------------- the horizon */
 function zenithLL(c) { var ll = lonlat(c.Z); return [ll[0] > 180 ? ll[0] - 360 : ll[0], ll[1]]; }
 function horizonCircle(c, alt) { return d3.geoCircle().center(zenithLL(c)).radius(90 - alt).precision(0.5)(); }
@@ -2444,7 +2561,12 @@ function shadeBelow(c) {
 function drawHorizon(c) {
   var circ = horizonCircle(c, 0);
   drawLine(circ, PAL.horizonGlow, 5, null);
-  drawLine(circ, PAL.horizon, 1.6, null);
+  lineTrace('horizon', circ, PAL.horizon, 1.6, null);
+  /* the meridian, which is what an object transits */
+  var mer = [], mk;
+  for (mk = -90; mk <= 90; mk += 3) { var lm = lonlat(fromHor(mk, 0, c)); mer.push([lm[0] > 180 ? lm[0] - 360 : lm[0], lm[1]]); }
+  for (mk = 90; mk >= -90; mk -= 3) { var lp = lonlat(fromHor(mk, 180, c)); mer.push([lp[0] > 180 ? lp[0] - 360 : lp[0], lp[1]]); }
+  if (opt.meridian) lineTrace('meridian', { type: 'LineString', coordinates: mer }, LINE_INFO.meridian.colour, 1, [2, 5]);
   /* zenith */
   var z = proj(c.Z);
   if (onScreen(z)) {
@@ -2458,36 +2580,45 @@ function drawHorizon(c) {
 }
 /* the cardinal letters sit outside the globe, on the ray from the centre through each horizon point;
    when the rim runs off the screen they stop at the screen edge instead */
+/* All eight points of the compass, always, sitting on the horizon where they belong. One that has
+   gone round the back of the sphere is pinned to the rim on its own bearing instead, so the set is
+   never incomplete: with the horizon crossing the view you can still see which way you are facing. */
+var CARDINALS = [['N', 0], ['NE', 45], ['E', 90], ['SE', 135], ['S', 180], ['SW', 225], ['W', 270], ['NW', 315]];
 function drawCardinals(c) {
-  var names = zoom >= 1.8 ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] : ['N', 'E', 'S', 'W'];
-  var step = 360 / names.length, s = R0 * zoom, m = 13;
+  var s = R0 * zoom, m = 15;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (var i = 0; i < names.length; i++) {
-    var v = fromHor(0.02, i * step, c);
+  for (var i = 0; i < CARDINALS.length; i++) {
+    var name = CARDINALS[i][0], az = CARDINALS[i][1];
+    var v = fromHor(0, az, c);
     var x = rotM[0][0] * v[0] + rotM[1][0] * v[1] + rotM[2][0] * v[2];
-    if (x < -0.35) continue;                                       /* well round the back: no useful direction */
-    var y = rotM[0][1] * v[0] + rotM[1][1] * v[1] + rotM[2][1] * v[2], z = rotM[0][2] * v[0] + rotM[1][2] * v[1] + rotM[2][2] * v[2];
-    var dx = opt.inside ? -y : y, dy = -z, l = Math.hypot(dx, dy) || 1;
-    dx /= l; dy /= l;
-    var major = names[i].length === 1, rad = major ? 9 : 8;
-    var t = s + rad + 6;
-    var tx = Infinity;
-    if (dx < 0) tx = Math.min(tx, (m - CX) / dx); if (dx > 0) tx = Math.min(tx, (W - m - CX) / dx);
-    if (dy < 0) tx = Math.min(tx, (m - CY) / dy); if (dy > 0) tx = Math.min(tx, (H - m - CY) / dy);
-    if (tx < t) t = tx;
-    var lx = CX + dx * t, ly = CY + dy * t;
-    ctx.globalAlpha = x < 0 ? 0.45 : 1;
-    ctx.font = (major ? '600 12px ' : '500 10px ') + FONT;
-    ctx.fillStyle = 'rgba(4,8,16,.75)'; ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,196,120,.35)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = major ? PAL.horizon : 'rgba(255,196,120,.75)';
-    ctx.fillText(names[i], lx, ly + 0.5);
-    if (x > 0) {                                                     /* and a dot on the horizon line itself */
+    var y = rotM[0][1] * v[0] + rotM[1][1] * v[1] + rotM[2][1] * v[2];
+    var z = rotM[0][2] * v[0] + rotM[1][2] * v[1] + rotM[2][2] * v[2];
+    var major = name.length === 1, rad = major ? 9.5 : 8.5;
+    var lx, ly, behind = x <= projClipCos;
+    if (!behind) {
       var p = proj(v);
-      if (onScreen(p)) { ctx.fillStyle = PAL.horizon; ctx.beginPath(); ctx.arc(p[0], p[1], major ? 2.2 : 1.6, 0, 2 * Math.PI); ctx.fill(); }
+      lx = p[0]; ly = p[1];
+    } else {
+      /* off the front of the sphere: put it at the edge of the window on the same bearing */
+      var dx = opt.inside ? -y : y, dy = -z, l = Math.hypot(dx, dy) || 1;
+      dx /= l; dy /= l;
+      var t = Infinity;
+      if (dx < 0) t = Math.min(t, (m + rad - CX) / dx); if (dx > 0) t = Math.min(t, (W - m - rad - CX) / dx);
+      if (dy < 0) t = Math.min(t, (m + rad - CY) / dy); if (dy > 0) t = Math.min(t, (H - m - rad - CY) / dy);
+      lx = CX + dx * t; ly = CY + dy * t;
     }
+    lx = clamp(lx, m + rad, W - m - rad);
+    ly = clamp(ly, m + rad, H - m - rad);
+    ctx.globalAlpha = behind ? 0.4 : 1;
+    ctx.font = (major ? '600 12px ' : '500 10px ') + FONT;
+    ctx.fillStyle = 'rgba(4,8,16,.8)'; ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,196,120,' + (behind ? '.25' : '.45') + ')'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = major ? PAL.horizon : 'rgba(255,196,120,.8)';
+    ctx.fillText(name, lx, ly + 0.5);
+    boxes.push([lx - rad - 2, ly - rad - 2, lx + rad + 2, ly + rad + 2]);
+    ctx.globalAlpha = 1;
+    if (!behind) addHit(lx, ly, rad + 2, 'cardinal', { name: name, az: az });
   }
-  ctx.globalAlpha = 1;
 }
 function drawHorizonGrid(c) {
   var altStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30, azStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30;
@@ -2604,6 +2735,10 @@ cv.addEventListener('pointerup', function (e) {
   spinV = [0, 0];
   if (smallScreen() && document.querySelector('.panel:not(.min)')) { foldPanels(null); return; }
   var h = hitAt(e.clientX, e.clientY);
+  if (!h && opt.linecards) {
+    var lk2 = lineAt(e.clientX, e.clientY);
+    if (lk2) h = { kind: 'line', ref: lk2, x: e.clientX, y: e.clientY, r: 4 };
+  }
   if (e.pointerType === 'touch') {
     /* no hover on a touch screen: the first tap selects an object and shows its details,
        a second tap on it flies there, a tap on empty sky clears the selection */
@@ -2680,6 +2815,10 @@ function hitAt(mx, my) {
 }
 function doHover(mx, my) {
   var h = hitAt(mx, my);
+  if (!h && opt.linecards) {
+    var lk = lineAt(mx, my);
+    if (lk) h = { kind: 'line', ref: lk, x: mx, y: my, r: 4 };
+  }
   if (h) {
     var same = hover && hover.kind === h.kind && sameRef(hover.ref, h.ref);
     hover = { kind: h.kind, ref: h.ref };
@@ -2790,6 +2929,20 @@ function showTip(h, mx, my) {
     if (b.kind === 'comet') html += '<div class="tnote">Brightness from the comet\u2019s own magnitude law, which is a rough guide only.</div>';
     var bimg = pics[b.wiki] && pics[b.wiki].state === 'ok' ? pics[b.wiki].img : null;
     if (bimg && opt.pics && b.kind !== 'sun' && b.kind !== 'moon') html += '<img src="' + bimg.src + '" alt="">';
+  } else if (h.kind === 'cardinal') {
+    var cd = h.ref;
+    html = '<div class="tn">' + esc(cd.name) + '</div><div class="tc">' + esc('Compass point \u00b7 azimuth ' + cd.az + '\u00b0') + '</div>' +
+      '<div class="tnote">On the horizon, ' + esc(compassWords(cd.name)) + '. Azimuth is measured from north, through east.</div>';
+  } else if (h.kind === 'line') {
+    var info = LINE_INFO[h.ref];
+    if (!info) { hideTip(); return; }
+    html = '<div class="tn">' + esc(info.name) + '</div><div class="tc">Line on the sky</div>' +
+      '<div class="tnote">' + esc(info.what) + '</div>';
+    var ll2 = projection.invert([mx, my]);
+    if (ll2 && !isNaN(ll2[0])) {
+      var v2 = unitv(ll2[0], ll2[1]);
+      html += '<div class="tgrid">' + coordRows(v2, c) + '</div>';
+    }
   } else if (h.kind === 'shower') {
     var sh = h.ref, sst = sh.state || showerState(sh, c);
     var when = fmt(obs.tz, { day: 'numeric', month: 'long' }, 'ms').format(jdToDate(sst.peakJd));
@@ -2834,6 +2987,10 @@ function showTip(h, mx, my) {
   if (go) go.addEventListener('click', function (ev) { ev.stopPropagation(); flyToHit(h); });
 }
 var coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+function compassWords(n) {
+  return { N: 'due north', NE: 'north-east', E: 'due east', SE: 'south-east',
+           S: 'due south', SW: 'south-west', W: 'due west', NW: 'north-west' }[n] || n;
+}
 function fmtLight(au) {
   var s = au * 499.004784;
   if (s < 90) return s.toFixed(1) + ' s';
@@ -2867,6 +3024,7 @@ function flyToZenith(z) {
 function resetView() { flyToZenith(1); }
 function flyToHit(h) {
   var v, z = zoom;
+  if (h.kind === 'line' || h.kind === 'cardinal') return;      /* nothing to fly to: they are everywhere */
   if (h.kind === 'star') { v = [SX[h.ref], SY[h.ref], SZ[h.ref]]; z = Math.max(zoom, 2.5); }
   else if (h.kind === 'shower') { v = showerState(h.ref, ensureSky()).v; z = Math.max(zoom, 1.6); }
   else if (h.kind === 'shadow') { v = h.ref.parent.v; z = Math.max(zoom, 40); }
@@ -2954,7 +3112,34 @@ function resetDefaults() {
   setStatus('Layers and options back to how the page opens');
 }
 document.getElementById('resetdefaults').addEventListener('click', resetDefaults);
+
+/* A planisphere is the old brass-and-card instrument: the whole sky drawn stereographically about
+   the celestial pole, with the horizon as an oval that sweeps round as the night runs. Every piece
+   of that is already here, so this is a preset rather than a new kind of view: look from inside,
+   stereographic, centre on the pole that is up from here, and let the sky stand still while the
+   horizon turns, which is the opposite of the usual setting. */
+function planisphere() {
+  if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; }
+  projKind = 'stereographic'; projEl.value = projKind;
+  opt.hold = false; document.getElementById('L-hold').checked = false;
+  opt.below = true; document.getElementById('L-below').checked = true;
+  opt.horizon = true; document.getElementById('L-horizon').checked = true;
+  opt.cgrid = true; document.getElementById('L-cgrid').checked = true;
+  opt.spin = false; document.getElementById('L-spin').checked = false;
+  facing = obs.lat < 0 ? 'N' : 'S'; facingEl.value = facing;
+  document.getElementById('facerow').hidden = false;
+  document.getElementById('projrow').hidden = false;
+  holdLst = null; skyDirty = true;
+  var pole = obs.lat < 0 ? -90 : 90;             /* the pole that stands above this observer */
+  flyTo(0, pole, 1);
+  setStatus('Planisphere: the sky about the ' + (pole > 0 ? 'north' : 'south') + ' pole, with the horizon sweeping over it. Run the clock to watch it turn.');
+}
+document.getElementById('planisphere').addEventListener('click', planisphere);
 document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
+document.getElementById('nowfloat').addEventListener('click', function (e) {
+  e.stopPropagation();
+  resetBtn.click(); todayBtn.click();
+});
 document.getElementById('tozenith').addEventListener('click', function () { flyToZenith(Math.max(1, zoom)); });
 
 var projEl = document.getElementById('projection');
@@ -3255,6 +3440,8 @@ function updateScrubLabel() {
   [scrublab, dscrublab, clocksEl].forEach(function (el) { el.classList.toggle('future', cls === 'future'); el.classList.toggle('past', cls === 'past'); });
   resetBtn.classList.toggle('on', timeShift);
   todayBtn.classList.toggle('on', dateShift);
+  var nf = document.getElementById('nowfloat');
+  if (nf) nf.classList.toggle('on', timeShift || dateShift);
 }
 /* Now puts the time of day back to the present and keeps the date; Today puts the date back and keeps the time */
 resetBtn.addEventListener('click', function () { var st = shownState(); offsetMin -= st.mins - st.nowMins; stopPlaying(); refreshTime(); });
@@ -3467,7 +3654,22 @@ function lineKey(parent, colour, dash, label) {
   lineKey(lnK, 'rgba(200,214,238,.6)', [5, 4], 'Path through the stars');
   lineKey(lnK, PAL.fov, [4, 4], 'Eyepiece field');
 })();
-function updateLegendLimit() { document.getElementById('lg-maglim').textContent = 'to mag ' + starLimit().toFixed(1); }
+var magSlider = hSlider(document.getElementById('hmag'), {
+  min: -1, max: 8, step: 0.1, wheel: 0.5, value: 6, ticks: [{ v: 0, major: true }, { v: 2 }, { v: 4, major: true }, { v: 6 }, { v: 8, major: true }],
+  onInput: function (v) { magLimit = v; magAutoBtn.classList.remove('on'); draw(); }
+});
+var magAutoBtn = document.getElementById('magauto');
+magAutoBtn.addEventListener('click', function () {
+  magLimit = null; magAutoBtn.classList.add('on');
+  setStatus('The faintest stars shown follow the zoom again');
+  draw();
+});
+magAutoBtn.classList.add('on');
+function updateLegendLimit() {
+  var lim = starLimit();
+  document.getElementById('lg-maglim').textContent = 'to mag ' + lim.toFixed(1) + (magLimit === null ? '' : ' \u00b7 held');
+  magSlider.set(clamp(magLimit === null ? autoStarLimit() : magLimit, -1, 8), autoStarLimit());
+}
 
 /* ------------------------------------------- panels fold away into corners */
 /* On a phone (narrow, short, or touch-first) the panels start folded into the corners, only one
@@ -3845,6 +4047,7 @@ window.CG = {
   proj: proj, projection: projection, lonlat: lonlat, unitv: unitv, toHor: toHor, fromHor: fromHor,
   hits: function () { return hits; },
   projKind: function (k) { if (k) { projKind = k; projEl.value = k; draw(); } return projKind; },
+  lineAt: lineAt, planisphere: planisphere, magLimit: function (m) { if (m !== undefined) { magLimit = m; draw(); } return magLimit; },
   resetDefaults: resetDefaults, settings: function () {
     return { opt: JSON.parse(JSON.stringify(opt)), astMinKm: astMinKm, satGroup: satGroupSel, fovDeg: fovDeg,
              projKind: projKind, facing: facing, night: nightEl.checked,
