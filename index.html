@@ -157,6 +157,8 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 .sval.future{color:var(--accent)}
 .sval.past{color:var(--past)}
 .srow .sbar{display:flex;align-items:center;gap:5px;margin-top:5px}
+.srow .unit{margin-top:6px}
+.srow .unit select{font-size:10.5px;padding:3px 24px 3px 8px}
 .btn.ico{padding:3px 0;width:24px;text-align:center;line-height:1.35;font-size:11px}
 .btn.sm{padding:3px 9px;font-size:10.5px}
 .btn.sm.on{background:rgba(142,208,255,.20);border-color:rgba(142,208,255,.45);color:var(--accent)}
@@ -318,6 +320,11 @@ body.night #stage{filter:grayscale(1)}
           </div>
           <button class="btn ico" id="dfwd" title="Forward one day (hold to repeat)">&#9656;</button>
         </div>
+        <div class="row unit"><label for="daystep">Step by</label>
+          <select class="sel" id="daystep">
+            <option value="solar">Solar day · 24 h, Sun returns</option>
+            <option value="sidereal">Sidereal day · 23 h 56 m 04 s, stars return</option>
+          </select></div>
       </div>
     </div>
     <div id="obs-line">&nbsp;</div>
@@ -2324,6 +2331,9 @@ var resetBtn = document.getElementById('reset'), todayBtn = document.getElementB
 var playBtn = document.getElementById('play'), playDateBtn = document.getElementById('playdate');
 var clocksEl = document.querySelector('.clocks');
 var MAX_DAYS = 183, MAX_OFFSET = MAX_DAYS * 1440 + 1439;
+var SIDEREAL_MIN = 86164.0905 / 60;         /* a sidereal day in minutes */
+var dayStepEl = document.getElementById('daystep');
+function dayUnit() { return dayStepEl.value === 'sidereal' ? SIDEREAL_MIN : 1440; }
 var timeTicks = [], dateTicks = [];
 for (var th = 0; th <= 24; th += 3) timeTicks.push({ v: th * 60, major: th % 12 === 0 });
 for (var dd = -180; dd <= 180; dd += 30) dateTicks.push({ v: dd, major: dd === 0 });
@@ -2369,7 +2379,7 @@ todayBtn.addEventListener('click', function () { var st = shownState(); offsetMi
 /* step buttons, repeating while held */
 function stepper(id, delta) {
   var el = document.getElementById(id), timer = null, rep = null;
-  function go() { offsetMin += delta; clampOffset(); stopPlaying(); refreshTime(); }
+  function go() { offsetMin += typeof delta === 'function' ? delta() : delta; clampOffset(); stopPlaying(); refreshTime(); }
   el.addEventListener('pointerdown', function (e) {
     e.preventDefault(); go();
     timer = setTimeout(function () { rep = setInterval(go, 140); }, 420);
@@ -2377,7 +2387,13 @@ function stepper(id, delta) {
   function end() { clearTimeout(timer); clearInterval(rep); timer = rep = null; }
   el.addEventListener('pointerup', end); el.addEventListener('pointerleave', end); el.addEventListener('pointercancel', end);
 }
-stepper('tback', -10); stepper('tfwd', 10); stepper('dback', -1440); stepper('dfwd', 1440);
+stepper('tback', -10); stepper('tfwd', 10); stepper('dback', function () { return -dayUnit(); }); stepper('dfwd', dayUnit);
+dayStepEl.addEventListener('change', function () {
+  var unit = dayStepEl.value === 'sidereal' ? 'sidereal day' : 'day';
+  document.getElementById('dback').title = 'Back one ' + unit + ' (hold to repeat)';
+  document.getElementById('dfwd').title = 'Forward one ' + unit + ' (hold to repeat)';
+  document.getElementById('playdate').title = 'Step forward a ' + unit + ' at a time';
+});
 
 /* running: the clock runs continuously and rolls into the next day at midnight; the calendar steps a whole day at a time */
 var playRaf = null, playLast = 0, playMode = null, dayAccum = 0;
@@ -2398,7 +2414,7 @@ function setPlaying(mode) {
     var dt = Math.min(120, t - playLast); playLast = t;
     var changed = false;
     if (playMode === 'clock') { offsetMin += dt * 0.0006 * 60; changed = true; }          /* about 36 minutes of sky a second */
-    else { dayAccum += dt; if (dayAccum >= 450) { dayAccum -= 450; offsetMin += 1440; changed = true; } }   /* one solar day per step */
+    else { dayAccum += dt; if (dayAccum >= 450) { dayAccum -= 450; offsetMin += dayUnit(); changed = true; } }   /* one solar or sidereal day per step */
     if (changed) { wrapOffset(); skyDirty = true; updateScrubLabel(); tickClocks(); draw(); }
     playRaf = requestAnimationFrame(tick);
   })(performance.now());

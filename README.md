@@ -56,8 +56,10 @@ all placed for a chosen observer and moment, with the horizon drawn on the spher
 - **Time and date scrubbers** under the clocks. The time track runs from midnight to midnight in the
   observer's zone and the date track half a year either side of today, each with a tick at the
   present; arrows step ten minutes or one day (hold to repeat), play runs the clock at about 36
-  minutes a second and rolls into the next day at midnight, and the date's play steps a solar day at
-  a time. The clocks turn blue when the moment shown is in the future and amber when it is in the
+  minutes a second and rolls into the next day at midnight, and the date's play steps a day at a
+  time. The day can be a solar day (24 hours, so the Sun and the clock come back to the same place
+  and the stars slip a degree westward) or a sidereal day (23 h 56 m 4 s, so the stars come back to
+  the same place and the Sun, Moon and planets drift through them). The clocks turn blue when the moment shown is in the future and amber when it is in the
   past; *Now* returns the time of day to the present and *Today* returns the date.
 - **Night vision**: a red-on-black rendering of the whole page, for use at the telescope. The `n`
   key toggles it.
