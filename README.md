@@ -66,6 +66,18 @@ drawn on the sphere.
   graduated in hours of hour angle. Change the observer and the tympan is recut, which on a real one
   meant swapping a plate.
 
+  **Planet hands** join them, one for each of the seven, drawn thinner so the Sun and the Moon still
+  read as the two a clock is told by, and each carrying its own symbol at the rim. Their colours are
+  not the ones the markers use: those are what a body looks like through a telescope, and three of
+  them are much the same pale straw. A hand is a line two pixels wide that has to be told from eight
+  others at a glance, so each is its planet's colour pushed until it is its own — Mars orange-red,
+  Jupiter a banded tan, Saturn pale straw, Uranus cyan, Neptune deep blue, Venus a bright cream,
+  Mercury grey. Pluto has no hand, on the grounds that it has no business being there.
+
+  The symbols are drawn with a variation selector to ask for the text form, and checked against a
+  private-use codepoint before use: without that, half of them arrive from a colour emoji font and
+  sit on the brass like stickers, which is what happened to the zodiac the first time round.
+
   The **astronomical clock** is the astrolabe with hands, as at Prague. A gilt **sun hand** and a
   **moon hand** run from the pole at the centre out to the rim, each with a bead on it where the body
   actually is, and between them lies the **dragon**: one bar along the line where the Moon's path

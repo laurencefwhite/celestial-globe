@@ -548,6 +548,7 @@ body.night #stage{filter:grayscale(1)}
       </div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
       <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands <small>on a card</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands <small>on a card</small></span></label>
       <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
       <div class="row instr">
         <button class="btn sm" id="planisphere" title="The whole of the ever-visible sky on one card about the pole, with the horizon as an aperture over it">Planisphere</button>
@@ -1443,7 +1444,8 @@ var opt = {
   paths: false, fov: false, daylight: true, refraction: true,
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
-  linecards: true, linelabels: false, meridian: false, hands: false, preview: false, brass: false,
+  linecards: true, linelabels: false, meridian: false, hands: false, phands: false,
+  preview: false, brass: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
@@ -1968,7 +1970,7 @@ function draw() {
   if (opt.linelabels) drawLineLabels();
   ctx.restore();
   if (disc) drawCard(c);
-  if (disc && opt.hands) drawHands(c);
+  if (disc && (opt.hands || opt.phands)) drawHands(c);
   if (opt.preview) drawFieldSoon();
   if (opt.horizon) drawCardinals(c);
   placeLabels();
@@ -3012,11 +3014,41 @@ function drawLimb(c, rp) {
    the Sun and the Moon are both near that line, so when a hand lies along the dragon, something is
    about to be covered up. On the clock at Prague the bar is drawn as the beast itself, swallowing
    whichever body it catches. */
+/* A glyph is only worth using if the fonts on this machine actually have it. Two things can go
+   wrong: it may be missing altogether, which shows as an empty box, or it may fall through to a
+   colour emoji font, which on a brass ring looks like a sticker. The variation selector asks for the
+   text form, and the width against a private-use codepoint - which no font has - says whether
+   anything real came back. */
+var GLYPH_TEXT = '\ufe0e', glyphSeen = {};
+function glyphOk(ch) {
+  if (ch in glyphSeen) return glyphSeen[ch];
+  ctx.save();
+  ctx.font = '20px ' + SERIF;
+  var w = ctx.measureText(ch).width, tofu = ctx.measureText('\ue0ff').width;
+  ctx.restore();
+  return (glyphSeen[ch] = w > 1 && Math.abs(w - tofu) > 0.4 && w < 26);
+}
+/* The hands, and the colours they take. Not the colours the markers use: those are what the body
+   looks like through a telescope, and three of them are much the same pale straw. A hand is a line
+   a few pixels wide that has to be told apart from eight others at a glance, so these are the
+   planet's own colour pushed until it is its own. */
 var HANDS = {
-  sun: { colour: 'rgba(255,206,105,.95)', onBrass: 'rgba(255,247,220,.98)', glow: 'rgba(255,190,70,.30)', width: 2.4, glyph: '\u2609' },
-  moon: { colour: 'rgba(222,231,246,.95)', glow: 'rgba(200,215,245,.22)', width: 2, glyph: '\u263d' },
+  sun: { colour: 'rgba(255,206,105,.95)', onBrass: 'rgba(255,247,220,.98)',
+         glow: 'rgba(255,190,70,.30)', width: 2.4, glyph: '\u2609', abbr: 'Su' },
+  moon: { colour: 'rgba(222,231,246,.95)', glow: 'rgba(200,215,245,.22)', width: 2,
+          glyph: '\u263d', abbr: 'Mo' },
   dragon: { colour: 'rgba(168,196,140,.92)', glow: 'rgba(140,180,110,.20)', width: 2.2 }
 };
+var PLANET_HANDS = [
+  { key: 'nep', colour: '#6f8fe6', glow: 'rgba(111,143,230,.22)', glyph: '\u2646', abbr: 'Ne' },
+  { key: 'ura', colour: '#8fe3ee', glow: 'rgba(143,227,238,.22)', glyph: '\u2645', abbr: 'Ur' },
+  { key: 'sat', colour: '#e8d38a', glow: 'rgba(232,211,138,.22)', glyph: '\u2644', abbr: 'Sa' },
+  { key: 'jup', colour: '#d9a05b', glow: 'rgba(217,160,91,.22)',  glyph: '\u2643', abbr: 'Ju' },
+  { key: 'mar', colour: '#ff7043', glow: 'rgba(255,112,67,.22)',  glyph: '\u2642', abbr: 'Ma' },
+  { key: 'ven', colour: '#ffe9a8', glow: 'rgba(255,233,168,.22)', glyph: '\u2640', abbr: 'Ve' },
+  { key: 'mer', colour: '#c9c2b4', glow: 'rgba(201,194,180,.22)', glyph: '\u263f', abbr: 'Me' }
+];
+PLANET_HANDS.forEach(function (h) { h.width = 1.5; h.onBrass = h.colour; });
 function handDir(v) {
   var q = proj(v);
   if (!q) return null;
@@ -3055,19 +3087,30 @@ function handShaft(h, rp, style, from) {
   ctx.lineWidth = style.width; ctx.stroke();
   ctx.lineCap = 'butt';
 }
-function handGlyph(h, rp, style, glyph) {
+var handMarks = [];
+function handGlyph(h, rp, style, glyph, small) {
+  if (!glyph) return;
+  var text = glyphOk(glyph + GLYPH_TEXT) ? glyph + GLYPH_TEXT : (style.abbr || '');
+  if (!text) return;
+  var x = CX + h.dx * (rp + (small ? 11 : 13)), y = CY + h.dy * (rp + (small ? 11 : 13));
+  for (var i = 0; i < handMarks.length; i++)
+    if (Math.hypot(x - handMarks[i][0], y - handMarks[i][1]) < 13) return;
+  handMarks.push([x, y]);
   ctx.save();
-  ctx.translate(CX + h.dx * (rp + 13), CY + h.dy * (rp + 13));
-  ctx.font = '600 13px ' + SERIF; ctx.fillStyle = style.colour;
+  ctx.translate(x, y);
+  ctx.font = (small ? '600 10.5px ' : '600 13px ') + SERIF;
+  ctx.fillStyle = style.colour;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(glyph, 0, 0);
+  ctx.fillText(text, 0, 0);
   ctx.restore();
 }
 function drawHands(c) {
   var rp = discRadiusPx(), sun = bodyByKey.sol, moon = bodyByKey.lun;
-  /* the dragon first, so the two bright hands lie over it */
+  handMarks = [];
+  /* the dragon first, so the bright hands lie over it */
   var om = moonNode(c.jd);
-  var asc = handDir(eclPoint(om, c)), desc = handDir(eclPoint(om + 180, c));
+  var asc = opt.hands ? handDir(eclPoint(om, c)) : null;
+  var desc = opt.hands ? handDir(eclPoint(om + 180, c)) : null;
   if (asc && desc) {
     var onB = disc && opt.brass && disc.kind !== 'planisphere';
     handShaft(asc, rp - 8, HANDS.dragon);
@@ -3079,23 +3122,26 @@ function drawHands(c) {
     addHit(CX + asc.dx * rp * 0.7, CY + asc.dy * rp * 0.7, 8, 'hand',
            { which: 'dragon', node: om, c: c });
   }
-  [[sun, HANDS.sun], [moon, HANDS.moon]].forEach(function (pair) {
-    var b = pair[0], style = pair[1];
-    if (!b) return;
-    var h = handDir(b.v);
-    if (!h) return;
-    handShaft(h, rp - Math.max(5, style.width * 2.4), style);
-    handHead(h, rp, style, disc && opt.brass && disc.kind !== 'planisphere');
-    /* a bead on the hand where the body actually is, since it may be off the card */
-    var at = Math.min(h.d, rp);
-    ctx.beginPath(); ctx.arc(CX + h.dx * at, CY + h.dy * at, style.width + 2.6, 0, 2 * Math.PI);
-    ctx.fillStyle = style.colour; ctx.fill();
-    if (disc && opt.brass && disc.kind !== 'planisphere') {
-      ctx.strokeStyle = 'rgba(34,20,2,.85)'; ctx.lineWidth = 1.1; ctx.stroke();
-    }
-    handGlyph(h, rp, style, style.glyph);
-    addHit(CX + h.dx * at, CY + h.dy * at, 10, 'hand', { which: b.key, body: b, off: h.d > rp });
-  });
+  /* the planets, outermost first so the quick inner ones lie over the slow outer ones, and the Sun
+     and the Moon over the lot: the two a clock is really read by */
+  if (opt.phands)
+    PLANET_HANDS.forEach(function (st) { oneHand(bodyByKey[st.key], st, rp, true); });
+  if (opt.hands) { oneHand(sun, HANDS.sun, rp, false); oneHand(moon, HANDS.moon, rp, false); }
+}
+function oneHand(b, style, rp, small) {
+  if (!b) return;
+  var h = handDir(b.v);
+  if (!h) return;
+  var onBrass = disc && opt.brass && disc.kind !== 'planisphere';
+  handShaft(h, rp - Math.max(5, style.width * 2.4), style);
+  handHead(h, rp, style, onBrass);
+  /* a bead on the hand where the body actually is, since it may be off the card */
+  var at = Math.min(h.d, rp);
+  ctx.beginPath(); ctx.arc(CX + h.dx * at, CY + h.dy * at, style.width + 2.6, 0, 2 * Math.PI);
+  ctx.fillStyle = style.colour; ctx.fill();
+  if (onBrass) { ctx.strokeStyle = 'rgba(34,20,2,.85)'; ctx.lineWidth = 1.1; ctx.stroke(); }
+  handGlyph(h, rp, style, style.glyph, small);
+  addHit(CX + h.dx * at, CY + h.dy * at, 10, 'hand', { which: b.key, body: b, off: h.d > rp });
 }
 
 
@@ -4237,7 +4283,8 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
    base here, and an instrument says only where it differs from it. */
 var INSTRUMENT_BASE = {
   below: true, horizon: true, hgrid: false, cgrid: false, tropics: false, ecliptic: false,
-  connames: true, conlines: true, hold: true, spin: false, hands: false, starnames: true
+  connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false,
+  starnames: true
 };
 var INSTRUMENT_KEYS = Object.keys(INSTRUMENT_BASE).concat(['inside']);
 var INSTRUMENTS = {
@@ -4257,7 +4304,7 @@ var INSTRUMENTS = {
     reach: function () { return 90 + 23.44; },
     margin: 40,
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, conlines: false,
-            hands: true, starnames: false },
+            hands: true, phands: true, starnames: false },
     note: function () {
       return 'Astronomical clock: an astrolabe with hands. The Sun and the Moon ride round the tympan, ' +
              'and the dragon lies along the line of the Moon\u2019s nodes \u2014 an eclipse can only happen ' +
@@ -5551,7 +5598,8 @@ window.CG = {
   astrolabe: function () { setInstrument('astrolabe'); },
   setInstrument: setInstrument, clearDisc: clearDisc, orientDisc: orientDisc,
   offset: function () { return offsetMin; },
-  moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin,
+  moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin, glyphOk: glyphOk,
+  handColours: function () { var o = {}; PLANET_HANDS.forEach(function (h) { o[h.key] = h.colour; }); return o; },
   eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
   reteDrawn: function () { return reteDrawn.map(function (d) { return { i: d.i, foot: d.foot.slice(), tip: d.tip.slice(), side: d.side, run: d.run }; }); },
