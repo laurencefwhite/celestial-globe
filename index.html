@@ -94,8 +94,8 @@ body{
 #obs-line .sunline{color:var(--ink-faint)}
 
 /* ---------- controls ---------- */
-#controls{top:18px;right:18px;width:392px;padding:14px 16px 15px;max-height:calc(100vh - 36px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
-.togs{column-count:2;column-gap:16px}
+#controls{top:18px;right:18px;width:286px;padding:14px 15px 15px;max-height:calc(100vh - 36px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
+.togs{column-count:1}
 .togs .sub-t{column-span:all}
 .togs .tog,.togs .row{break-inside:avoid}
 .togs .sec{break-inside:avoid-column}
@@ -135,11 +135,14 @@ body{
 .sub-t.fold,.grp-t.fold{cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;
   border-radius:6px;padding:3px 4px;margin-left:-4px;margin-right:-4px}
 .sub-t.fold:hover,.grp-t.fold:hover{background:rgba(255,255,255,.05);color:var(--ink)}
-.sub-t.fold::before,.grp-t.fold::before{content:'';width:0;height:0;flex:none;
-  border-left:4px solid currentColor;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent;
-  transform:rotate(90deg);transition:transform .13s ease;opacity:.75}
-.sub-t.fold.shut::before,.grp-t.fold.shut::before{transform:rotate(0deg)}
-.sub-t.fold .cnt{margin-left:auto;font-size:8.5px;opacity:.5;letter-spacing:.06em}
+.sub-t.fold .cnt{margin-left:auto;font-size:8.5px;opacity:.45;letter-spacing:.06em;
+  font-variant-numeric:tabular-nums}
+.sub-t.fold.shut .cnt{opacity:.7}
+.grp-t.lay{display:flex;align-items:center;gap:8px}
+.grp-t.lay .allfold{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:none;
+  padding:2px 7px;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);
+  color:var(--ink-dim);cursor:pointer}
+.grp-t.lay .allfold:hover{background:rgba(255,255,255,.10);color:var(--ink)}
 [hidden]{display:none !important}
 .sec{display:contents}
 .sec.shut{display:none}
@@ -160,6 +163,8 @@ body{
 .tog input:checked+.sw::after{transform:translateX(13px);background:var(--accent)}
 .tog span.tl{font-size:12px;color:var(--ink)}
 .tog input:not(:checked)~span.tl{color:var(--ink-dim)}
+.tog.off{opacity:.4;cursor:default}
+.tog.off .sw{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10)}
 .tog .tl small{color:var(--ink-faint);font-size:10px;margin-left:4px}
 .row{display:flex;gap:6px;align-items:center;margin-top:6px}
 .row label{font-size:10.5px;color:var(--ink-faint);white-space:nowrap}
@@ -171,7 +176,7 @@ select.sel{flex:1;appearance:none;-webkit-appearance:none;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,var(--ink-faint) 50%),linear-gradient(135deg,var(--ink-faint) 50%,transparent 50%);
   background-position:calc(100% - 13px) 55%,calc(100% - 9px) 55%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;padding-right:24px}
 select.sel option{background:#0c111c;color:var(--ink)}
-input.num{width:74px;font-variant-numeric:tabular-nums}
+input.num{width:70px;font-variant-numeric:tabular-nums;min-width:0}
 input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-color:rgba(255,255,255,.09)}
 
 .search{position:relative}
@@ -441,7 +446,7 @@ body.night #stage{filter:grayscale(1)}
     </div>
     <div class="grp" id="utilgrp">
       <div class="row">
-        <button class="btn" id="resetview" title="Recentre on the sky overhead and fit the globe">Reset view</button>
+        <button class="btn" id="resetview" title="Recentre on the sky overhead and fit the globe, or set an instrument square again">Reset view</button>
         <button class="btn" id="resetdefaults" title="Put every layer and option back the way the page opens. The place you are observing from, the view and the clock are left alone.">Reset defaults</button>
       </div>
       <div class="row">
@@ -451,7 +456,7 @@ body.night #stage{filter:grayscale(1)}
       </div>
     </div>
     <div class="grp">
-      <div class="grp-t">Layers</div>
+      <div class="grp-t lay">Layers<button type="button" class="allfold" id="allfold">Expand all</button></div>
       <div class="togs">
       <div class="sub-t">Sky</div>
       <label class="tog"><input type="checkbox" id="L-stars" checked><span class="sw"></span><span class="tl">Stars</span></label>
@@ -1916,6 +1921,7 @@ function requestDraw() { if (!drawRaf) drawRaf = requestAnimationFrame(function 
 function draw() {
   applyProjection();
   var c = ensureSky();
+  dayBri = opt.daylight ? skyBrightness(c) : 0;
   if (opt.hold && holdLst !== null) {
     var dl = c.lst - holdLst;
     if (Math.abs(dl) > 1e-9 && (!dragStart || disc)) { rotation[0] -= dl; applyProjection(); }
@@ -1937,13 +1943,6 @@ function draw() {
   if (opt.mw) drawMilkyWay();
   if (opt.dso) drawDSOs(c, 'pics');
   lineHits = [];
-  if (opt.cgrid) drawCelestialGrid();
-  if (opt.tropics) drawTropics();
-  if (opt.ecliptic) {
-    var rete = disc && disc.kind !== 'planisphere';
-    lineTrace('ecliptic', ECLIPTIC, rete ? PAL.rete : PAL.ecliptic, rete ? 1.8 : 1, rete ? null : [6, 5]);
-  }
-  if (opt.galactic) lineTrace('galactic', GALACTIC, PAL.galactic, 1, [2, 4]);
   if (opt.conbounds) drawLine(conBoundsAll, PAL.conbound, 1, null);
   if (opt.conlines) drawLine(conLinesAll, PAL.conline, zoom > 3 ? 1.4 : 1.1, null);
   if (opt.dso) drawDSOs(c, 'icons');
@@ -1955,6 +1954,13 @@ function draw() {
   if (opt.planets && opt.moons) drawMoonShadows(c);
   if (opt.sats) drawSats(c);
   if (opt.below) shadeBelow(c);
+  if (opt.cgrid) drawCelestialGrid();
+  if (opt.tropics) drawTropics();
+  if (opt.ecliptic) {
+    var rete = disc && disc.kind !== 'planisphere';
+    lineTrace('ecliptic', ECLIPTIC, rete ? PAL.rete : inkFor(PAL.ecliptic), rete ? 1.8 : 1, rete ? null : [6, 5]);
+  }
+  if (opt.galactic) lineTrace('galactic', inkFor(PAL.galactic), 1, [2, 4]);
   if (opt.hgrid) drawHorizonGrid(c);
   if (opt.horizon) drawHorizon(c);
   if (opt.connames && zoom < 60) drawConNames();
@@ -1980,6 +1986,18 @@ function draw() {
 }
 var holdLst = null;
 
+var dayBri = 0;                      /* how bright the sky is, set once a frame */
+function inkFor(rgba) {
+  if (dayBri < 0.04) return rgba;
+  var m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/.exec(rgba);
+  if (!m) return rgba;
+  var t = clamp(dayBri, 0, 1);
+  var r = Math.round(+m[1] * (1 - 0.80 * t) + 20 * 0.80 * t);
+  var g = Math.round(+m[2] * (1 - 0.70 * t) + 44 * 0.70 * t);
+  var b = Math.round(+m[3] * (1 - 0.45 * t) + 92 * 0.45 * t);
+  var a = clamp((m[4] === undefined ? 1 : +m[4]) + 0.5 * t, 0, 1);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(3) + ')';
+}
 function drawLine(geo, colour, width, dash) {
   ctx.beginPath(); path(geo);
   ctx.lineWidth = width; ctx.strokeStyle = colour;
@@ -2033,7 +2051,7 @@ function drawCelestialGrid() {
   } else {
     grat = d3.geoGraticule().step([15, 15]).precision(2.5);
   }
-  drawLine(grat(), PAL.grat, 1, null);
+  drawLine(grat(), inkFor(PAL.grat), 1, null);
   /* the poles */
   [[0, 90], [0, -90]].forEach(function (pll) {
     var p = proj(unitv(pll[0], pll[1]));
@@ -2062,11 +2080,11 @@ function drawCelestialGrid() {
   }
 }
 function drawTropics() {
-  lineTrace('equator', EQUATOR, PAL.equator, 1.2, null);
-  lineTrace('tropicN', TROPIC_N, PAL.tropic, 1, [3, 4]);
-  lineTrace('tropicS', TROPIC_S, PAL.tropic, 1, [3, 4]);
-  lineTrace('polarN', POLAR_N, PAL.tropic, 0.8, [1, 4]);
-  lineTrace('polarS', POLAR_S, PAL.tropic, 0.8, [1, 4]);
+  lineTrace('equator', EQUATOR, inkFor(PAL.equator), 1.2, null);
+  lineTrace('tropicN', TROPIC_N, inkFor(PAL.tropic), 1, [3, 4]);
+  lineTrace('tropicS', TROPIC_S, inkFor(PAL.tropic), 1, [3, 4]);
+  lineTrace('polarN', POLAR_N, inkFor(PAL.tropic), 0.8, [1, 4]);
+  lineTrace('polarS', POLAR_S, inkFor(PAL.tropic), 0.8, [1, 4]);
 }
 
 /* -------------------------------------------------------- constellations */
@@ -3006,6 +3024,25 @@ function handDir(v) {
   if (d < 1e-6) return { dx: 0, dy: -1, d: 0 };
   return { dx: dx / d, dy: dy / d, d: d };
 }
+/* A hand that stops short of the scale it is read against is only half a hand. Each carries a head
+   at the outer end, standing on the inside of the ring of hours so there is no doubt which division
+   it is indicating. */
+function handHead(h, rp, style, onBrass) {
+  var ux = h.dx, uy = h.dy, px = -uy, py = ux;
+  var L = Math.max(7, style.width * 3.6), wd = Math.max(3.4, style.width * 1.9);
+  var tipX = CX + ux * rp, tipY = CY + uy * rp;
+  var bx = CX + ux * (rp - L), by = CY + uy * (rp - L);
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(bx + px * wd, by + py * wd);
+  ctx.lineTo(bx - px * wd, by - py * wd);
+  ctx.closePath();
+  ctx.fillStyle = onBrass && style.onBrass ? style.onBrass : style.colour;
+  ctx.fill();
+  ctx.strokeStyle = onBrass ? 'rgba(34,20,2,.85)' : style.glow;
+  ctx.lineWidth = onBrass ? 1 : 1.6;
+  ctx.stroke();
+}
 function handShaft(h, rp, style, from) {
   var onBrass = disc && opt.brass && disc.kind !== 'planisphere';
   ctx.lineCap = 'round';
@@ -3032,24 +3069,11 @@ function drawHands(c) {
   var om = moonNode(c.jd);
   var asc = handDir(eclPoint(om, c)), desc = handDir(eclPoint(om + 180, c));
   if (asc && desc) {
-    handShaft(asc, rp, HANDS.dragon);
-    handShaft(desc, rp, HANDS.dragon);
-    /* a head at the ascending node, a forked tail at the descending */
-    var hx = CX + asc.dx * (rp - 9), hy = CY + asc.dy * (rp - 9), px = -asc.dy, py = asc.dx;
-    ctx.beginPath();
-    ctx.moveTo(CX + asc.dx * rp, CY + asc.dy * rp);
-    ctx.lineTo(hx + px * 5, hy + py * 5);
-    ctx.lineTo(hx - px * 5, hy - py * 5);
-    ctx.closePath();
-    ctx.fillStyle = HANDS.dragon.colour; ctx.fill();
-    var tx = CX + desc.dx * rp, ty = CY + desc.dy * rp, qx = -desc.dy, qy = desc.dx;
-    ctx.beginPath();
-    ctx.moveTo(CX + desc.dx * (rp - 11), CY + desc.dy * (rp - 11));
-    ctx.lineTo(tx + qx * 5, ty + qy * 5);
-    ctx.moveTo(CX + desc.dx * (rp - 11), CY + desc.dy * (rp - 11));
-    ctx.lineTo(tx - qx * 5, ty - qy * 5);
-    ctx.strokeStyle = HANDS.dragon.colour; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.lineCap = 'butt';
+    var onB = disc && opt.brass && disc.kind !== 'planisphere';
+    handShaft(asc, rp - 8, HANDS.dragon);
+    handShaft(desc, rp - 8, HANDS.dragon);
+    handHead(asc, rp, HANDS.dragon, onB);
+    handHead(desc, rp, HANDS.dragon, onB);
     handGlyph(asc, rp, HANDS.dragon, '\u260a');            /* caput draconis */
     handGlyph(desc, rp, HANDS.dragon, '\u260b');           /* cauda draconis */
     addHit(CX + asc.dx * rp * 0.7, CY + asc.dy * rp * 0.7, 8, 'hand',
@@ -3060,7 +3084,8 @@ function drawHands(c) {
     if (!b) return;
     var h = handDir(b.v);
     if (!h) return;
-    handShaft(h, rp, style);
+    handShaft(h, rp - Math.max(5, style.width * 2.4), style);
+    handHead(h, rp, style, disc && opt.brass && disc.kind !== 'planisphere');
     /* a bead on the hand where the body actually is, since it may be off the card */
     var at = Math.min(h.d, rp);
     ctx.beginPath(); ctx.arc(CX + h.dx * at, CY + h.dy * at, style.width + 2.6, 0, 2 * Math.PI);
@@ -3419,9 +3444,11 @@ function reteFoot(q, hoops, bars) {
   }
   return best;
 }
+var reteDrawn = [];                  /* what the last frame cut, so it can be checked for rigidity */
 function drawRete(c, rp) {
   var ring = eclipticRing(c);
   if (!ring) return;
+  reteDrawn = [];
   var P = curProj(), scale = R0 * zoom;
   var w = clamp(rp * 0.055, 8, 22);                 /* the ecliptic band */
   var bw = clamp(rp * 0.042, 6, 17);                /* the outer ring */
@@ -3434,9 +3461,8 @@ function drawRete(c, rp) {
 
   var bar = Math.max(3.2, w * 0.40);
   var bars = [];
-  [0, 90].forEach(function (ha) {
-    var a = haBearing(ha, c);
-    if (a === null) return;
+  var axis = Math.atan2(ring.y - CY, ring.x - CX);  /* the solstitial colure, and the ring's own axis */
+  [axis, axis + Math.PI / 2].forEach(function (a) {
     bars.push({ ux: Math.cos(a), uy: Math.sin(a), px: -Math.sin(a), py: Math.cos(a),
                 hw: bar / 2, len: rp, bias: 1.05 });
   });
@@ -3508,6 +3534,7 @@ function drawRete(c, rp) {
     var run = Math.hypot(q[0] - f.x, q[1] - f.y);
     if (run < 12 || run > reach) continue;
     flamePointer(f.x, f.y, f.nx, f.ny, q[0], q[1], clamp(w * 0.24, 2.1, 4.4));
+    reteDrawn.push({ i: i, foot: [f.x, f.y], tip: [q[0], q[1]] });
     spikes.push(q);
     n++;
   }
@@ -3683,11 +3710,34 @@ cv.addEventListener('wheel', function (e) {
   else zoomAbout(clamp(zoom * f, ZMIN, ZMAX), e.clientX, e.clientY);
   markInteract(); draw(); fadeHint();
 }, { passive: false });
+/* The field circle is the one mark on the chart that says where the instrument is aimed, so while it
+   is showing, a double click is an instruction to aim there as well as to go and look. On an object
+   it takes the object's own position rather than the pixel under the cursor, which matters at low
+   magnification where a pixel is half a degree of sky. */
 cv.addEventListener('dblclick', function (e) {
+  if (opt.fov || opt.preview) pointFieldAt(e.clientX, e.clientY);
   if (disc) { zoom = clamp(zoom * 2.2, ZMIN, ZMAX); draw(); return; }
   var ll = projection.invert([e.clientX, e.clientY]);
   if (ll) flyTo(ll[0], ll[1], Math.min(ZMAX, zoom * 2.2));
+  else draw();
 });
+function pointFieldAt(mx, my) {
+  var c = ensureSky();
+  var h = hitAt(mx, my), r = hitVector(h), v = r && r.v;
+  if (!v) {
+    var ll = projection.invert([mx, my]);
+    if (!ll || isNaN(ll[0])) return false;
+    v = unitv(ll[0], ll[1]);
+    h = null;
+  }
+  setFieldTo(v, c);
+  /* if it was following something, it follows this instead */
+  if (trackMode === 'lock') lockKey = (h && h.kind === 'body' && h.ref.key) ? h.ref.key : null;
+  drawField();
+  var nm = hitName(h);
+  setStatus(nm ? 'Field on ' + nm : 'Field moved to that point');
+  return true;
+}
 /* zoom so that the point under the cursor stays put, when it lies on the sphere */
 function zoomAbout(newZoom, mx, my) {
   var ll = projection.invert([mx, my]);
@@ -3955,13 +4005,26 @@ function flyToZenith(z) {
   flyTo(ll[0], ll[1], z === undefined ? 1 : z);
 }
 function resetView() {
-  if (clearDisc()) { setStatus('Instrument put down'); }
+  if (disc) {
+    tuneDisc();
+    discPan = [0, 0]; applyDiscPan();
+    stopMomentum();
+    if (flying) { cancelAnimationFrame(flying); flying = null; }
+    rotation = [rotation[0], disc.lat < 0 ? 90 : -90, rotation[2]];
+    orientDisc();
+    holdLst = null; skyDirty = true;
+    hideTip(); draw();
+    setStatus(INSTRUMENTS[disc.kind].name + ' set square again \u00b7 press its own button to put it down');
+    return;
+  }
   flyToZenith(1);
 }
-function flyToHit(h) {
-  var v, z = zoom;
-  if (h.kind === 'line' || h.kind === 'cardinal') return;      /* nothing to fly to: they are everywhere */
-  if (h.kind === 'hand') { if (h.ref.body) { v = h.ref.body.v; z = Math.max(zoom, 2); } else return; }
+/* where a thing that has been pointed at actually is, and how close you would want to be to it */
+function hitVector(h) {
+  if (!h) return null;
+  var v = null, z = zoom;
+  if (h.kind === 'line' || h.kind === 'cardinal') return null;  /* they are everywhere: no one place */
+  if (h.kind === 'hand') { if (h.ref.body) { v = h.ref.body.v; z = Math.max(zoom, 2); } else return null; }
   if (h.kind === 'star') { v = [SX[h.ref], SY[h.ref], SZ[h.ref]]; z = Math.max(zoom, 2.5); }
   else if (h.kind === 'shower') { v = showerState(h.ref, ensureSky()).v; z = Math.max(zoom, 1.6); }
   else if (h.kind === 'shadow') { v = h.ref.parent.v; z = Math.max(zoom, 40); }
@@ -3969,10 +4032,22 @@ function flyToHit(h) {
   else if (h.kind === 'body') {
     var b = h.ref; v = b.v;
     if (b.kind === 'pmoon') z = clamp(70 / (b.sep * R0), zoom, ZMAX);
-    else if (b.kind === 'planet' || b.kind === 'sun' || b.kind === 'moon') z = Math.max(zoom, 3);
     else z = Math.max(zoom, 3);
   } else if (h.kind === 'sat') { v = h.ref.v; z = Math.max(zoom, 1.6); }
-  if (!v) return;
+  return v ? { v: v, z: z } : null;
+}
+function hitName(h) {
+  if (!h) return null;
+  if (h.kind === 'star') return starName[h.ref] && starName[h.ref].name;
+  if (h.kind === 'dso') return dsoList[h.ref] && (dsoList[h.ref].name || dsoList[h.ref].id);
+  if (h.kind === 'body' || h.kind === 'sat' || h.kind === 'shower') return h.ref && h.ref.name;
+  if (h.kind === 'hand') return h.ref.body && h.ref.body.name;
+  return null;
+}
+function flyToHit(h) {
+  var r = hitVector(h);
+  if (!r) return;
+  var v = r.v, z = r.z;
   var ll = lonlat(v);
   flyTo(ll[0], ll[1], z);
   var kind = h.kind, ref = h.ref;
@@ -4321,6 +4396,19 @@ function markInstrument(kind) {
     var b = document.getElementById(id);
     if (b) b.classList.toggle('on', (kind === 'clock' ? 'astroclock' : kind) === id);
   });
+  syncBrassSwitch(kind);
+}
+/* there is no brass to put on a planisphere, and none at all without an instrument out */
+function syncBrassSwitch(kind) {
+  var el = document.getElementById('L-brass');
+  if (!el) return;
+  var live = kind === 'astrolabe' || kind === 'clock';
+  el.disabled = !live;
+  var lab = el.closest('.tog');
+  if (lab) {
+    lab.classList.toggle('off', !live);
+    lab.title = live ? '' : 'Only an astrolabe or an astronomical clock is made of brass';
+  }
 }
 function setInstrument(kind) {
   var I = INSTRUMENTS[kind], alat = Math.abs(obs.lat), south = obs.lat < 0;
@@ -5013,16 +5101,35 @@ function foldPanels(except) {
     if (firstRun) open[key] = !shut;
   }
   /* the sections of switches */
-  var OPEN_AT_FIRST = { 'Sky': true };
+  var OPEN_AT_FIRST = { 'Sky': true }, all = [];
   panel.querySelectorAll('.togs .sub-t').forEach(function (h) {
     var name = h.textContent.trim();
     var r = wrap(h, function (n) { return n.classList.contains('sub-t'); });
     make(h, r, name, !OPEN_AT_FIRST[name]);
+    all.push({ head: h, sec: r.sec, name: name });
   });
+  var allBtn = document.getElementById('allfold');
+  function paintAll() {
+    var anyShut = all.some(function (x) { return x.head.classList.contains('shut'); });
+    allBtn.textContent = anyShut ? 'Expand all' : 'Collapse all';
+    return anyShut;
+  }
+  allBtn.addEventListener('click', function () {
+    var openThem = paintAll();
+    all.forEach(function (x) {
+      x.head.classList.toggle('shut', !openThem);
+      x.sec.classList.toggle('shut', !openThem);
+      open[x.name] = openThem;
+    });
+    try { localStorage.setItem('cg.sections', JSON.stringify(open)); } catch (e) {}
+    paintAll(); resize();
+  });
+  all.forEach(function (x) { x.head.addEventListener('click', function () { setTimeout(paintAll, 0); }); });
+  paintAll();
   /* and the boxes above them, which are their own groups already */
   panel.querySelectorAll('.grp > .grp-t').forEach(function (h) {
+    if (h.classList.contains('lay')) return;      /* the Layers heading carries the button, not a section */
     var name = h.textContent.trim();
-    if (name === 'Layers') return;
     var r = wrap(h, function () { return false; });
     make(h, r, name, name !== 'Find an object' && name !== 'Observer');
   });
@@ -5429,6 +5536,7 @@ function homeField() {
   fldCtx.scale(dpr, dpr);
   document.getElementById('field').hidden = !opt.preview;
   syncOptics();
+  syncBrassSwitch(null);
 })();
 
 window.CG = {
@@ -5445,6 +5553,13 @@ window.CG = {
   moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin,
   eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
+  reteDrawn: function () { return reteDrawn.map(function (d) { return { i: d.i, foot: d.foot.slice(), tip: d.tip.slice() }; }); },
+  reteBars: function () {
+    var ring = eclipticRing(ensureSky());
+    if (!ring) return [];
+    var axis = Math.atan2(ring.y - CY, ring.x - CX);
+    return [axis, axis + Math.PI / 2];
+  },
   haForClockTime: function (h, eq) { return haForClockTime(h, ensureSky(), eq); },
   clockHours: function () { return clockHours(ensureSky()); },
   discPan: function () { return discPan.slice(); },
@@ -5455,6 +5570,7 @@ window.CG = {
   fieldCentre: function () { return fieldCentre(ensureSky()).slice(); },
   setFieldTo: function (v) { setFieldTo(v, ensureSky()); drawField(); draw(); },
   lock: function (k) { lockKey = k; trackMode = 'lock'; document.getElementById('fld-track').value = 'lock'; drawField(); draw(); return lockKey; },
+  pointFieldAt: pointFieldAt, hitVector: hitVector, hitAt: hitAt, hitName: hitName,
   slew: slew, track: function (m) { if (m) { document.getElementById('fld-track').value = m; document.getElementById('fld-track').dispatchEvent(new Event('change')); } return trackMode; },
   drawField: drawField,
   disc: function () { return disc ? { kind: disc.kind, deg: disc.deg, clip: disc.clip, rpx: discRadiusPx() } : null; },

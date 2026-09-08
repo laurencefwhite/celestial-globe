@@ -152,6 +152,10 @@ drawn on the sphere.
   tangent plane, which is what an eyepiece shows, with only the stars the aperture can actually
   reach, and it says where it is pointed in both right ascension and altitude.
 
+  While the field circle is showing, a double click aims the instrument there as well as flying the
+  view to it. On an object it takes the object's own position rather than the pixel under the cursor,
+  which matters at low magnification where one pixel is a third of a degree of sky.
+
   Where it points is its own thing, not the middle of the chart: you can look at the whole sky and
   still have the telescope on one object. A four-way pad slews it, by a whole field, half a field or
   a set number of arcminutes, and the middle button sends it to whatever is selected. What holds it
@@ -162,8 +166,13 @@ drawn on the sphere.
   all: over three hours the Moon leaves a sidereal field entirely.
 
 - **The Layers panel folds.** Each heading takes the run of switches under it and puts them away,
-  with a count of what is inside, and what you leave open is remembered. It opens with one section
-  showing rather than nine.
+  with a count of what is inside, and what you leave open is remembered. One button at the top opens
+  or shuts the lot. It opens with one section showing rather than nine.
+
+- **Daylight fades the sky, not the lines drawn on it.** The stars, the Milky Way and the
+  constellation figures wash out at sunrise, because that is what they do. The grids and the great
+  circles are not sky: they are drawn on top of it, like the horizon, and they take their contrast
+  from the background, darkening as the sky comes up so they read on blue as well as on black.
 
 - **The clock and the calendar.** *Now* returns to the present; *Noon* goes to the moment the Sun
   actually crosses the meridian, which is not half past twelve — it drifts by up to a quarter of an
