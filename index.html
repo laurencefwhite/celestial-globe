@@ -98,12 +98,15 @@ body{
 .togs{column-count:2;column-gap:16px}
 .togs .sub-t{column-span:all}
 .togs .tog,.togs .row{break-inside:avoid}
+.togs .sec{break-inside:avoid-column}
 .togs .instr{display:flex;gap:6px}
 #hdate{display:none}
 .srow:last-of-type .sbar{justify-content:flex-start;gap:6px}
 .optline{margin:6px 0 2px;font-size:10.5px;line-height:1.5;color:var(--dim)}
 .optline b{color:var(--ink);font-weight:600}
 #field{right:18px;bottom:40px;width:252px;padding:12px 12px 10px}
+#field .lt{cursor:grab;user-select:none}
+#field.grabbing .lt{cursor:grabbing}
 #field canvas{display:block;width:228px;height:228px;border-radius:50%;background:#02040a;margin:2px auto 0}
 #field .fld-read{margin-top:7px;font-size:10.5px;line-height:1.55;color:var(--dim);text-align:center}
 #field .fld-read b{color:var(--ink);font-weight:600}
@@ -127,6 +130,21 @@ body{
 .grp+.grp{margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08)}
 .grp-t{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:9px}
 .sub-t{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:9px 0 3px;opacity:.85}
+/* Nine sections of switches all open at once is a wall. Each heading folds its own section away,
+   and what is open is remembered, so the panel opens the size you last left it. */
+.sub-t.fold,.grp-t.fold{cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;
+  border-radius:6px;padding:3px 4px;margin-left:-4px;margin-right:-4px}
+.sub-t.fold:hover,.grp-t.fold:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+.sub-t.fold::before,.grp-t.fold::before{content:'';width:0;height:0;flex:none;
+  border-left:4px solid currentColor;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent;
+  transform:rotate(90deg);transition:transform .13s ease;opacity:.75}
+.sub-t.fold.shut::before,.grp-t.fold.shut::before{transform:rotate(0deg)}
+.sub-t.fold .cnt{margin-left:auto;font-size:8.5px;opacity:.5;letter-spacing:.06em}
+[hidden]{display:none !important}
+.sec{display:contents}
+.sec.shut{display:none}
+.togs .sec{display:block}
+.togs .sec.shut{display:none}
 .tog{display:flex;align-items:center;gap:9px;padding:4px 0;cursor:pointer;user-select:none}
 .tog input{position:absolute;opacity:0;pointer-events:none}
 .sw{
@@ -525,6 +543,7 @@ body.night #stage{filter:grayscale(1)}
       </div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
       <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands <small>on a card</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
       <div class="row instr">
         <button class="btn sm" id="planisphere" title="The whole of the ever-visible sky on one card about the pole, with the horizon as an aperture over it">Planisphere</button>
         <button class="btn sm" id="astrolabe" title="The projection the old brass astrolabes used: the tympan cut for this latitude, bounded at the far tropic">Astrolabe</button>
@@ -1419,7 +1438,7 @@ var opt = {
   paths: false, fov: false, daylight: true, refraction: true,
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
-  linecards: true, linelabels: false, meridian: false, hands: false, preview: false,
+  linecards: true, linelabels: false, meridian: false, hands: false, preview: false, brass: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
@@ -1551,7 +1570,7 @@ function resize() {
     leg.style.overflowY = 'auto';
   } else { leg.style.maxHeight = ''; leg.style.overflowY = ''; }
   var fld = document.getElementById('field'), ctl = document.getElementById('controls');
-  if (W > 860 && fld && !fld.hidden && !ctl.classList.contains('min')) {
+  if (W > 860 && fld && !fld.hidden && !fieldMoved && !ctl.classList.contains('min')) {
     var fh = fld.classList.contains('min') ? 44 : fld.getBoundingClientRect().height;
     ctl.style.maxHeight = Math.max(140, H - 36 - fh - 14) + 'px';
   } else if (ctl) { ctl.style.maxHeight = ''; }
@@ -2877,7 +2896,7 @@ function cardRing(r0, r1) {
    On a planisphere it is what you read the date against the time with; on an astrolabe it is where
    the Sun should be found on the limb, and is a standing check that the two agree. */
 function cardIndex(c, r0, r1) {
-  var a = haBearing(haForClockTime(clockHours(c), c, disc.kind !== 'planisphere'), c);
+  var a = haBearing(haForClockTime(clockHours(c), c, true), c);
   if (a === null) return;
   ctx.save();
   ctx.lineCap = 'round';
@@ -2911,6 +2930,7 @@ function drawCard(c) {
   ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1.4; ctx.stroke();
   if (rp < 120) return;                                  /* too small to letter */
   if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp);
+  if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
 }
 /* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
    date set at the right ascension the Sun has on it. The outer one is fixed to the observer and
@@ -2933,11 +2953,11 @@ function drawDateAndHour(c, rp) {
   var h, half;
   for (h = 0; h < 24; h++) {
     for (half = 0; half < 2; half++) {
-      a = haBearing(haForClockTime(h + half / 2, c, false), c);
+      a = haBearing(haForClockTime(h + half / 2, c, true), c);
       if (a !== null) cardTick(a, r1, r1 + (half ? 4 : 7), half ? PAL.cardTick : PAL.cardRim, half ? 1 : 1.2);
     }
     if (h % 2) continue;
-    a = haBearing(haForClockTime(h, c, false), c);
+    a = haBearing(haForClockTime(h, c, true), c);
     if (a !== null) cardText(a, r1 + 12, (h < 10 ? '0' : '') + h + ':00', '500 9px ' + FONT, PAL.cardText);
   }
   cardIndex(c, rp, r2);
@@ -2949,19 +2969,22 @@ function drawDateAndHour(c, rp) {
    points at the current time on the ring without either being told about the other. */
 function drawLimb(c, rp) {
   var r1 = rp + 18;
-  cardRing(rp, r1);
+  if (opt.brass) drawBrassLimb(rp, r1); else cardRing(rp, r1);
   var k, a;
   for (k = 0; k < 96; k++) {                        /* a quarter of an hour to the small division */
     a = haBearing(haForClockTime(k / 4, c, true), c);
-    if (a !== null) cardTick(a, rp, rp + (k % 4 === 0 ? 6 : 3.5), k % 4 === 0 ? PAL.cardRim : PAL.cardTick, 1);
+    if (a !== null) cardTick(a, rp, rp + (k % 4 === 0 ? 6 : 3.5),
+      opt.brass ? (k % 4 === 0 ? 'rgba(60,38,4,.85)' : 'rgba(70,46,8,.55)')
+                : (k % 4 === 0 ? PAL.cardRim : PAL.cardTick), 1);
   }
   for (k = 0; k < 24; k++) {
     a = haBearing(haForClockTime(k, c, true), c);
     if (a === null) continue;
-    cardTick(a, rp, rp + 9, PAL.cardRim, 1.3);
-    cardText(a, rp + 12.5, String(k), '600 9.5px ' + FONT, PAL.cardText);
+    cardTick(a, rp, rp + 9, opt.brass ? 'rgba(60,38,4,.85)' : PAL.cardRim, 1.3);
+    cardText(a, rp + 12.5, String(k), '600 9.5px ' + FONT,
+             opt.brass ? 'rgba(52,32,2,.95)' : PAL.cardText);
   }
-  cardIndex(c, rp, r1);
+  if (!opt.brass) cardIndex(c, rp, r1);            /* in brass the rule does that job */
 }
 
 /* ---------------------------------------------------- the hands of an astronomical clock
@@ -3260,6 +3283,203 @@ function fieldReadout(c, C, o, shown, hor) {
   else if (trackMode === 'lock' && lockKey && bodyByKey[lockKey]) lines.push('locked on ' + bodyByKey[lockKey].name);
   document.getElementById('fld-read').innerHTML = lines.join('<br>');
   document.getElementById('fld-title').textContent = o.scope.name + (o.ep ? ' \u00b7 ' + o.ep.name : '');
+}
+
+
+/* ------------------------------------------------------- the brass, and the rete
+   A real astrolabe is a stack: the mater, a dish with a graduated limb round its edge; the plate or
+   tympan dropped into its womb, engraved with the altitude and azimuth circles for one latitude; and
+   over that the rete, a pierced brass web carrying the ecliptic as a broad ring and a crowd of
+   pointers, each ending in a spike on one named star. The rete turns; the plate does not; and the
+   rule sweeps over both to read the limb.
+
+   Drawn here as brass laid over the real sky rather than over an engraved plate, because the sky is
+   the thing worth looking at, and because a pierced rete is exactly a frame you see through. What
+   the projection gives for free is that the ecliptic, tilted to the equator and so not centred on
+   the pole, comes out a true circle: stereographic sends every circle on the sphere to a circle on
+   the plate, which is the whole reason the instrument is built on it. So the ring is fitted through
+   three points on the ecliptic and drawn as an arc, not as a polygon pretending to be one. */
+function brassBand(x0, y0, r0, r1) {
+  var g = ctx.createLinearGradient(x0 - r1, y0 - r1, x0 + r1, y0 + r1);
+  g.addColorStop(0.00, '#7a5613');
+  g.addColorStop(0.22, '#c9973a');
+  g.addColorStop(0.40, '#f4dc9b');
+  g.addColorStop(0.55, '#d0a247');
+  g.addColorStop(0.75, '#8a611a');
+  g.addColorStop(1.00, '#c39a45');
+  return g;
+}
+/* an annulus, filled so the sky shows through the hole */
+function ringPath(x, y, r0, r1) {
+  ctx.beginPath();
+  ctx.moveTo(x + r1, y); ctx.arc(x, y, r1, 0, 2 * Math.PI);
+  ctx.moveTo(x + r0, y); ctx.arc(x, y, r0, 0, 2 * Math.PI);
+}
+function fillRing(x, y, r0, r1) {
+  ringPath(x, y, r0, r1);
+  ctx.fillStyle = brassBand(x, y, r0, r1);
+  ctx.fill('evenodd');
+  [r0, r1].forEach(function (r) {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.strokeStyle = 'rgba(60,38,4,.75)'; ctx.lineWidth = 1; ctx.stroke();
+  });
+}
+/* the circle through three points, which is what the ecliptic projects to */
+function circleThrough(a, b, cc) {
+  var ax = a[0], ay = a[1], bx = b[0], by = b[1], cx2 = cc[0], cy2 = cc[1];
+  var d = 2 * (ax * (by - cy2) + bx * (cy2 - ay) + cx2 * (ay - by));
+  if (Math.abs(d) < 1e-9) return null;
+  var ux = ((ax * ax + ay * ay) * (by - cy2) + (bx * bx + by * by) * (cy2 - ay) + (cx2 * cx2 + cy2 * cy2) * (ay - by)) / d;
+  var uy = ((ax * ax + ay * ay) * (cx2 - bx) + (bx * bx + by * by) * (ax - cx2) + (cx2 * cx2 + cy2 * cy2) * (bx - ax)) / d;
+  return { x: ux, y: uy, r: Math.hypot(ax - ux, ay - uy) };
+}
+function eclipticRing(c) {
+  var p = [];
+  for (var i = 0; i < 3; i++) {
+    var q = proj(eclPoint(i * 120 + 15, c));
+    if (!q) return null;
+    p.push(q);
+  }
+  return circleThrough(p[0], p[1], p[2]);
+}
+var ZODIAC = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+              'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+var ZODIAC_SHORT = ['ARI', 'TAU', 'GEM', 'CNC', 'LEO', 'VIR',
+                    'LIB', 'SCO', 'SGR', 'CAP', 'AQR', 'PSC'];
+/* a pointer: a tongue of brass tapering from the frame to a spike on the star */
+function starPointer(fromX, fromY, toX, toY, wide) {
+  var dx = toX - fromX, dy = toY - fromY, len = Math.hypot(dx, dy) || 1;
+  var ux = dx / len, uy = dy / len, px = -uy, py = ux;
+  var bend = Math.min(22, len * 0.34);
+  /* two edges, curved the same way, meeting at the point */
+  var mx = fromX + ux * len * 0.55 + px * bend * 0.5;
+  var my = fromY + uy * len * 0.55 + py * bend * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(fromX + px * wide, fromY + py * wide);
+  ctx.quadraticCurveTo(mx + px * wide * 0.55, my + py * wide * 0.55, toX, toY);
+  ctx.quadraticCurveTo(mx - px * wide * 0.15, my - py * wide * 0.15, fromX - px * wide, fromY - py * wide);
+  ctx.closePath();
+  ctx.fillStyle = brassBand(fromX, fromY, 0, len);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(60,38,4,.7)'; ctx.lineWidth = 0.9; ctx.stroke();
+  /* the spike itself, so the star it names is unmistakable */
+  ctx.beginPath(); ctx.arc(toX, toY, 2.1, 0, 2 * Math.PI);
+  ctx.fillStyle = '#fff3c8'; ctx.fill();
+  ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 0.7; ctx.stroke();
+}
+function drawRete(c, rp) {
+  var ring = eclipticRing(c);
+  if (!ring) return;
+  var w = clamp(rp * 0.052, 7, 20);                 /* the width of the ecliptic band */
+  ctx.save();
+  ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI); ctx.clip();
+
+  /* the frame: a band just inside the limb, and the equator as a second hoop */
+  fillRing(CX, CY, rp - w * 0.8, rp - 1);
+  var eqR = curProj().rad(90 * DEG) * R0 * zoom;    /* the celestial equator, a circle about the pole */
+  if (eqR > 20 && eqR < rp) fillRing(CX, CY, eqR - w * 0.30, eqR + w * 0.30);
+
+  /* the two straight members that carry the whole thing, on the meridian and across it */
+  var bar = Math.max(3, w * 0.42);
+  [0, 90].forEach(function (ha) {
+    var a = haBearing(ha, c);
+    if (a === null) return;
+    ctx.save();
+    ctx.translate(CX, CY); ctx.rotate(a);
+    ctx.beginPath(); ctx.rect(-rp, -bar / 2, 2 * rp, bar);
+    ctx.fillStyle = brassBand(0, 0, 0, rp); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,38,4,.65)'; ctx.lineWidth = 0.9; ctx.stroke();
+    ctx.restore();
+  });
+
+  /* the ecliptic ring itself, and the twelve signs on it */
+  fillRing(ring.x, ring.y, Math.max(2, ring.r - w / 2), ring.r + w / 2);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (var k = 0; k < 12; k++) {
+    var lon = k * 30;
+    var q0 = proj(eclPoint(lon, c));
+    if (q0) {
+      var a0 = Math.atan2(q0[1] - ring.y, q0[0] - ring.x);
+      ctx.beginPath();
+      ctx.moveTo(ring.x + Math.cos(a0) * (ring.r - w / 2), ring.y + Math.sin(a0) * (ring.r - w / 2));
+      ctx.lineTo(ring.x + Math.cos(a0) * (ring.r + w / 2), ring.y + Math.sin(a0) * (ring.r + w / 2));
+      ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 1.2; ctx.stroke();
+    }
+    var qm = proj(eclPoint(lon + 15, c));
+    if (qm && w >= 9) {
+      var am = Math.atan2(qm[1] - ring.y, qm[0] - ring.x);
+      var turn = am + Math.PI / 2;
+      if (Math.cos(turn) < 0) turn += Math.PI;
+      ctx.save();
+      ctx.translate(ring.x + Math.cos(am) * ring.r, ring.y + Math.sin(am) * ring.r);
+      ctx.rotate(turn);
+      ctx.font = '700 ' + Math.round(clamp(w * 0.52, 6.5, 9.5)) + 'px ' + FONT;
+      ctx.fillStyle = 'rgba(52,32,2,.95)';
+      ctx.fillText(ZODIAC_SHORT[k], 0, 0.5);
+      ctx.restore();
+    }
+  }
+
+  /* the pointers, one to each bright star the rete can reach, springing from whichever member is
+     nearest so the web hangs together the way a cut one has to */
+  var anchors = [{ x: CX, y: CY, r: rp - w * 1.15 }, { x: ring.x, y: ring.y, r: ring.r }];
+  if (eqR > 20 && eqR < rp) anchors.push({ x: CX, y: CY, r: eqR });
+  var lim = 2.35, n = 0, spikes = [], gap = Math.max(16, rp * 0.075), reach = rp * 0.42;
+  for (var i = 0; i < NS && n < 22; i++) {
+    if (SMAG[i] > lim) break;
+    if (!starName[i] || !starName[i].name) continue;
+    var q = proj([SX[i], SY[i], SZ[i]]);
+    if (!q) continue;
+    if (Math.hypot(q[0] - CX, q[1] - CY) > rp - 8) continue;
+    var crowded = false;
+    for (var t = 0; t < spikes.length; t++)
+      if (Math.hypot(q[0] - spikes[t][0], q[1] - spikes[t][1]) < gap) { crowded = true; break; }
+    if (crowded) continue;
+    /* the nearest place on a member to spring from, the outer frame given the benefit of the doubt */
+    var best = null, bd = 1e9;
+    for (var m = 0; m < anchors.length; m++) {
+      var A = anchors[m];
+      var ax = q[0] - A.x, ay = q[1] - A.y, d = Math.hypot(ax, ay) || 1;
+      var fx = A.x + ax / d * A.r, fy = A.y + ay / d * A.r;
+      var dd = Math.hypot(q[0] - fx, q[1] - fy) * (m === 0 ? 0.72 : 1);
+      if (dd < bd) { bd = dd; best = [fx, fy]; }
+    }
+    if (!best) continue;
+    var run = Math.hypot(q[0] - best[0], q[1] - best[1]);
+    if (run < 4 || run > reach) continue;          /* too short to see, or right across the face */
+    starPointer(best[0], best[1], q[0], q[1], clamp(w * 0.34, 2.6, 6));
+    spikes.push(q);
+    n++;
+  }
+  ctx.restore();
+
+  /* the rule, which is what you lay across the face to read the limb */
+  var ar = haBearing(haForClockTime(clockHours(c), c, true), c);
+  if (ar !== null) {
+    ctx.save();
+    ctx.translate(CX, CY); ctx.rotate(ar);
+    var rw = Math.max(2.6, w * 0.34);
+    ctx.beginPath(); ctx.rect(-rp * 0.24, -rw / 2, rp * 1.24, rw);
+    ctx.fillStyle = brassBand(0, 0, 0, rp); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-rp * 0.24, 0); ctx.lineTo(rp, 0);
+    ctx.strokeStyle = 'rgba(255,244,205,.85)'; ctx.lineWidth = 0.7; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, rw * 1.5, 0, 2 * Math.PI);
+    ctx.fillStyle = '#f0d48a'; ctx.fill();
+    ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
+  }
+}
+/* the mater's limb, in brass, with the rivets that hold a real one together */
+function drawBrassLimb(rp, r1) {
+  fillRing(CX, CY, rp, r1);
+  for (var k = 0; k < 8; k++) {
+    var a = k * Math.PI / 4 + Math.PI / 8, rr = (rp + r1) / 2;
+    var x = CX + Math.cos(a) * rr, y = CY + Math.sin(a) * rr;
+    ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 2 * Math.PI);
+    ctx.fillStyle = '#e8ca82'; ctx.fill();
+    ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 0.8; ctx.stroke();
+  }
 }
 
 /* ------------------------------------------------------------- zoom badge */
@@ -3722,8 +3942,17 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
     if (key === 'preview') {
-      document.getElementById('field').hidden = !opt.preview;
-      if (opt.preview) { if (!fieldTarget) setFieldTo(viewV, ensureSky()); syncOptics(); }
+      var fp = document.getElementById('field');
+      fp.hidden = !opt.preview;
+      if (opt.preview) {
+        /* it may have been folded into a pill last time: give it back open */
+        if (fp.classList.contains('min')) {
+          fp.classList.remove('min');
+          var fb = fp.querySelector('.pmin'); if (fb) fb.title = 'Minimise';
+        }
+        if (!fieldTarget) setFieldTo(viewV, ensureSky());
+        syncOptics();
+      }
       resize();
     }
     if (key === 'inside') {
@@ -3842,6 +4071,7 @@ function resetDefaults() {
   if (opt.awake) requestWake(); else releaseWake();
   astMinKm = DEFAULT_ASTEROID_KM; document.getElementById('astmin').value = String(DEFAULT_ASTEROID_KM);
   satGroupSel = DEFAULT_SAT_GROUP; document.getElementById('satgrp').value = DEFAULT_SAT_GROUP;
+  homeField();
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
   trackMode = 'sidereal'; document.getElementById('fld-track').value = 'sidereal';
   lockKey = null; fieldTarget = null; fieldAltAz = null;
@@ -3868,13 +4098,21 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
    because the projection, the clip and the roll all changed under the flight, the horizon swelled,
    was cut about by the clip circle and turned itself inside out twice on the way. There is nothing
    to fly through here: an instrument is picked up, not travelled to. */
+/* Every instrument settles the same list of switches. One that names a switch and another that does
+   not is how the clock's hands were still turning over the planisphere: pressing Clock and then
+   Planisphere left whatever the clock had set and the planisphere never mentioned. So there is a
+   base here, and an instrument says only where it differs from it. */
+var INSTRUMENT_BASE = {
+  below: true, horizon: true, hgrid: false, cgrid: false, tropics: false, ecliptic: false,
+  connames: true, conlines: true, hold: true, spin: false, hands: false, starnames: true
+};
+var INSTRUMENT_KEYS = Object.keys(INSTRUMENT_BASE).concat(['inside']);
 var INSTRUMENTS = {
   planisphere: {
     name: 'Planisphere', proj: 'equidistant',
     reach: function (alat) { return 180 - alat; },       /* to the farthest the horizon ever reaches */
     margin: 48,
-    opts: { below: true, horizon: true, hgrid: false, cgrid: false, tropics: false,
-            ecliptic: false, connames: true, conlines: true, hold: true, spin: false },
+    opts: {},                                          /* the base is already a planisphere */
     note: function (alat) {
       return 'Planisphere for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': every star that ever rises here, on one card. Run the clock and the sky turns under the horizon. ' +
@@ -3885,8 +4123,7 @@ var INSTRUMENTS = {
     name: 'Astronomical clock', proj: 'stereographic',
     reach: function () { return 90 + 23.44; },
     margin: 40,
-    opts: { below: true, horizon: true, hgrid: true, cgrid: false, tropics: true,
-            ecliptic: true, connames: false, conlines: false, hold: true, spin: false,
+    opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, conlines: false,
             hands: true, starnames: false },
     note: function () {
       return 'Astronomical clock: an astrolabe with hands. The Sun and the Moon ride round the tympan, ' +
@@ -3898,9 +4135,7 @@ var INSTRUMENTS = {
     name: 'Astrolabe', proj: 'stereographic',
     reach: function () { return 90 + 23.44; },           /* the far tropic, where brass has to stop */
     margin: 40,
-    opts: { below: true, horizon: true, hgrid: true, cgrid: false, tropics: true,
-            ecliptic: true, connames: false, conlines: true, hold: true, spin: false,
-            hands: false },
+    opts: { hgrid: true, tropics: true, ecliptic: true, connames: false },
     note: function (alat) {
       return 'Astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': the tympan\u2019s altitude and azimuth circles cut for here, the rete\u2019s ecliptic over them, ' +
@@ -4034,13 +4269,16 @@ function setInstrument(kind) {
   var I = INSTRUMENTS[kind], alat = Math.abs(obs.lat), south = obs.lat < 0;
   var saved = disc ? disc.saved
                    : { opts: {}, proj: projKind, northTop: northTop, eastRight: eastRight };
-  Object.keys(I.opts).concat(['inside']).forEach(function (k) {
+  INSTRUMENT_KEYS.forEach(function (k) {
     if (!(k in saved.opts)) saved.opts[k] = opt[k];       /* the first snapshot is the one that counts */
   });
   if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; }
   projKind = I.proj; projEl.value = projKind;
-  Object.keys(I.opts).forEach(function (k) {
-    opt[k] = I.opts[k];
+  var want = {};
+  Object.keys(INSTRUMENT_BASE).forEach(function (k) { want[k] = INSTRUMENT_BASE[k]; });
+  Object.keys(I.opts).forEach(function (k) { want[k] = I.opts[k]; });
+  Object.keys(want).forEach(function (k) {
+    opt[k] = want[k];
     var el = document.getElementById('L-' + k);
     if (el) el.checked = opt[k];
   });
@@ -4674,6 +4912,66 @@ function foldPanels(except) {
   });
   if (changed) resize();
 }
+/* Each heading takes the run of things after it, up to the next heading, and folds them away.
+   Done here rather than in the markup so the sections stay easy to read and reorder above. */
+(function foldSections() {
+  var panel = document.getElementById('controls');
+  var open = {};
+  try { open = JSON.parse(localStorage.getItem('cg.sections') || 'null') || null; } catch (e) { open = null; }
+  var firstRun = !open;
+  if (firstRun) open = {};
+  function wrap(head, stopIf) {
+    var sec = document.createElement('div');
+    sec.className = 'sec';
+    var n = head.nextSibling, count = 0;
+    while (n) {
+      var next = n.nextSibling;
+      if (n.nodeType === 1 && stopIf(n)) break;
+      sec.appendChild(n);
+      if (n.nodeType === 1 && n.classList.contains('tog')) count++;
+      n = next;
+    }
+    head.parentNode.insertBefore(sec, head.nextSibling);
+    return { sec: sec, count: count };
+  }
+  function make(head, r, name, shutByDefault) {
+    head.classList.add('fold');
+    if (r.count) {
+      var c = document.createElement('span');
+      c.className = 'cnt'; c.textContent = r.count;
+      head.appendChild(c);
+    }
+    var key = name;
+    var shut = (key in open) ? !open[key] : shutByDefault;
+    head.classList.toggle('shut', shut);
+    r.sec.classList.toggle('shut', shut);
+    head.addEventListener('click', function () {
+      var nowShut = !head.classList.contains('shut');
+      head.classList.toggle('shut', nowShut);
+      r.sec.classList.toggle('shut', nowShut);
+      open[key] = !nowShut;
+      try { localStorage.setItem('cg.sections', JSON.stringify(open)); } catch (e) {}
+      resize();
+    });
+    if (firstRun) open[key] = !shut;
+  }
+  /* the sections of switches */
+  var OPEN_AT_FIRST = { 'Sky': true };
+  panel.querySelectorAll('.togs .sub-t').forEach(function (h) {
+    var name = h.textContent.trim();
+    var r = wrap(h, function (n) { return n.classList.contains('sub-t'); });
+    make(h, r, name, !OPEN_AT_FIRST[name]);
+  });
+  /* and the boxes above them, which are their own groups already */
+  panel.querySelectorAll('.grp > .grp-t').forEach(function (h) {
+    var name = h.textContent.trim();
+    if (name === 'Layers') return;
+    var r = wrap(h, function () { return false; });
+    make(h, r, name, name !== 'Find an object' && name !== 'Observer');
+  });
+  try { localStorage.setItem('cg.sections', JSON.stringify(open)); } catch (e) {}
+})();
+
 (function panels() {
   var small = smallScreen();
   var list = document.querySelectorAll('.panel');
@@ -4944,7 +5242,7 @@ function pointPressed() {
 }
 (function pointSetup() {
   if (typeof DeviceOrientationEvent === 'undefined') return;
-  if (!coarsePointer && !('ondeviceorientationabsolute' in window)) return;
+  if (!coarsePointer) return;                     /* a laptop cannot be pointed at anything */
   pointAvailable = true;
   document.getElementById('pointrow').hidden = false;
   document.getElementById('pointsky').addEventListener('click', pointPressed);
@@ -5033,6 +5331,39 @@ fetchSatellites(function () {
 });
 
 /* a hook for checking positions against an ephemeris */
+/* The preview is the one panel you want beside whatever you are looking at, so it can be picked up
+   by its title and put down anywhere. Once moved it keeps its place rather than snapping back to the
+   corner, and Reset defaults returns it. */
+(function dragField() {
+  var panel = document.getElementById('field'), grip = panel.querySelector('.lt'), from = null;
+  grip.addEventListener('pointerdown', function (e) {
+    if (panel.classList.contains('min')) return;
+    var r = panel.getBoundingClientRect();
+    from = { x: e.clientX, y: e.clientY, left: r.left, top: r.top, w: r.width, h: r.height };
+    grip.setPointerCapture(e.pointerId);
+    panel.classList.add('grabbing');
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', function (e) {
+    if (!from) return;
+    var l = clamp(from.left + e.clientX - from.x, 6, window.innerWidth - from.w - 6);
+    var t = clamp(from.top + e.clientY - from.y, 6, window.innerHeight - from.h - 6);
+    panel.style.left = Math.round(l) + 'px';
+    panel.style.top = Math.round(t) + 'px';
+    panel.style.right = 'auto'; panel.style.bottom = 'auto';
+    fieldMoved = true;
+  });
+  function done(e) { if (from) { from = null; panel.classList.remove('grabbing'); resize(); } }
+  grip.addEventListener('pointerup', done);
+  grip.addEventListener('pointercancel', done);
+})();
+var fieldMoved = false;
+function homeField() {
+  var panel = document.getElementById('field');
+  panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = '';
+  fieldMoved = false;
+}
+
 (function initField() {
   fldCv = document.getElementById('fld-cv');
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -5055,6 +5386,7 @@ window.CG = {
   setInstrument: setInstrument, clearDisc: clearDisc, orientDisc: orientDisc,
   offset: function () { return offsetMin; },
   moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin,
+  eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
   haForClockTime: function (h, eq) { return haForClockTime(h, ensureSky(), eq); },
   clockHours: function () { return clockHours(ensureSky()); },
   discPan: function () { return discPan.slice(); },

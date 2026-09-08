@@ -99,6 +99,22 @@ drawn on the sphere.
   Press the lit button again, or Reset view, and it is put down, with every switch it touched — the
   tympan, the rete, the hands, the projection, the way up — put back as it found them.
 
+- **Brass**, on the astrolabe. Switch on *Brass rete* and the instrument is drawn as the thing it
+  is: a graduated limb round the edge with its rivets, a pierced web of brass over the sky, and the
+  rule laid across the face to read the hour. The rete carries the ecliptic as a broad ring divided
+  into its twelve signs, two straight members across the face, a hoop on the celestial equator, and
+  a spread of tapering pointers, each ending in a spike on one named star.
+
+  The ecliptic ring is drawn as a true circular arc rather than as a polygon pretending to be one,
+  because under stereographic projection it really is a circle: the theorem that every circle on the
+  sphere maps to a circle on the plate is the reason the instrument is built on this projection at
+  all, and it is why the ecliptic — tilted to the equator, and so not centred on the pole — comes out
+  round but off-centre. The ring here is fitted through three points and checked against seventy-two:
+  they land on it to within a ten-thousandth of a pixel, and the Sun, which is on the ecliptic by
+  definition, sits on the ring to a thousandth. Under equal spacing the same test is out by ten
+  pixels, which is why the brass is offered on the astrolabe and the clock and not on the
+  planisphere.
+
 - **Which way up, and which hand.** Two menus settle the orientation of any chart seen from inside:
   *North at top or bottom*, and *East at right or left*. They are not independent in the way they
   look. A whole-sky chart centred on the pole has only one handedness: going round the horizon N, E,
@@ -130,6 +146,10 @@ drawn on the sphere.
   a second times the cosine of the declination — the first thing anyone meets at the eyepiece.
   **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
   all: over three hours the Moon leaves a sidereal field entirely.
+
+- **The Layers panel folds.** Each heading takes the run of switches under it and puts them away,
+  with a count of what is inside, and what you leave open is remembered. It opens with one section
+  showing rather than nine.
 
 - **The clock and the calendar.** *Now* returns to the present; *Noon* goes to the moment the Sun
   actually crosses the meridian, which is not half past twelve — it drifts by up to a quarter of an
