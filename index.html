@@ -3352,108 +3352,162 @@ var ZODIAC = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
               'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 var ZODIAC_SHORT = ['ARI', 'TAU', 'GEM', 'CNC', 'LEO', 'VIR',
                     'LIB', 'SCO', 'SGR', 'CAP', 'AQR', 'PSC'];
-/* a pointer: a tongue of brass tapering from the frame to a spike on the star */
-function starPointer(fromX, fromY, toX, toY, wide) {
-  var dx = toX - fromX, dy = toY - fromY, len = Math.hypot(dx, dy) || 1;
-  var ux = dx / len, uy = dy / len, px = -uy, py = ux;
-  var bend = Math.min(22, len * 0.34);
-  /* two edges, curved the same way, meeting at the point */
-  var mx = fromX + ux * len * 0.55 + px * bend * 0.5;
-  var my = fromY + uy * len * 0.55 + py * bend * 0.5;
+/* A pointer on a real rete is not a spoke from the middle. It is cut as part of the sheet: a tongue
+   with its foot standing on the edge of whichever member runs nearest, sweeping round in an ogee and
+   narrowing to a spike on the star. That is why the crowd of them along the inside of the outer ring
+   all lean the same way, and why none of them floats free. Two cubics do it: one edge out from one
+   side of the foot to the tip, the other back from the tip to the far side, bowed the same way, so
+   the shape is broad at the root and keen at the point.
+
+   The members it can stand on are the three hoops and the two bars. Their edges are what matter, not
+   their centre lines, so the foot is put on the edge that faces the star and the tongue leaves it
+   square before turning, which is what makes it look welded rather than dropped on. */
+function flamePointer(fx, fy, nx, ny, tx, ty, foot) {
+  var dx = tx - fx, dy = ty - fy, L = Math.hypot(dx, dy);
+  if (L < 3) return;
+  var ux = dx / L, uy = dy / L, px = -uy, py = ux;
+  var side = (nx * px + ny * py) >= 0 ? 1 : -1;     /* bow away from the member it stands on */
+  var bow = Math.min(L * 0.42, foot * 5.2) * side;
+  var ax = fx + px * foot, ay = fy + py * foot;     /* the two corners of the foot */
+  var bx = fx - px * foot, by = fy - py * foot;
+  /* the fillet first, so the tongue is cut out of it rather than stuck on it */
   ctx.beginPath();
-  ctx.moveTo(fromX + px * wide, fromY + py * wide);
-  ctx.quadraticCurveTo(mx + px * wide * 0.55, my + py * wide * 0.55, toX, toY);
-  ctx.quadraticCurveTo(mx - px * wide * 0.15, my - py * wide * 0.15, fromX - px * wide, fromY - py * wide);
+  ctx.ellipse(fx + nx * foot * 0.3, fy + ny * foot * 0.3, foot * 1.5, foot * 0.75,
+              Math.atan2(py, px), 0, 2 * Math.PI);
+  ctx.fillStyle = brassBand(fx, fy, 0, foot * 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(58,36,4,.5)'; ctx.lineWidth = 0.7; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(ax, ay);
+  /* out square from the member, then round, then keen to the point */
+  ctx.bezierCurveTo(ax + nx * L * 0.34 + px * bow * 0.30, ay + ny * L * 0.34 + py * bow * 0.30,
+                    tx - ux * L * 0.42 + px * bow * 0.62, ty - uy * L * 0.42 + py * bow * 0.62,
+                    tx, ty);
+  ctx.bezierCurveTo(tx - ux * L * 0.13 + px * bow * 0.06, ty - uy * L * 0.13 + py * bow * 0.06,
+                    bx + nx * L * 0.40 - px * bow * 0.14, by + ny * L * 0.40 - py * bow * 0.14,
+                    bx, by);
   ctx.closePath();
-  ctx.fillStyle = brassBand(fromX, fromY, 0, len);
+  ctx.fillStyle = brassBand(fx, fy, 0, L);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(60,38,4,.7)'; ctx.lineWidth = 0.9; ctx.stroke();
-  /* the spike itself, so the star it names is unmistakable */
-  ctx.beginPath(); ctx.arc(toX, toY, 2.1, 0, 2 * Math.PI);
-  ctx.fillStyle = '#fff3c8'; ctx.fill();
-  ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 0.7; ctx.stroke();
+  ctx.strokeStyle = 'rgba(58,36,4,.75)'; ctx.lineWidth = 0.9; ctx.stroke();
+  ctx.beginPath(); ctx.arc(tx, ty, 1.9, 0, 2 * Math.PI);
+  ctx.fillStyle = '#fff6d6'; ctx.fill();
+  ctx.strokeStyle = 'rgba(58,36,4,.85)'; ctx.lineWidth = 0.7; ctx.stroke();
+}
+/* the nearest edge of any member, and the way it faces */
+function reteFoot(q, hoops, bars) {
+  var best = null, bd = 1e9, i;
+  for (i = 0; i < hoops.length; i++) {
+    var H = hoops[i];
+    var dx = q[0] - H.cx, dy = q[1] - H.cy, d = Math.hypot(dx, dy) || 1;
+    if (d > H.r0 && d < H.r1) continue;             /* the star is under this member already */
+    var edge = d >= H.r1 ? H.r1 : H.r0;
+    var s = d >= H.r1 ? 1 : -1;                     /* which way the edge faces the star */
+    var fx = H.cx + dx / d * edge, fy = H.cy + dy / d * edge;
+    var dd = Math.hypot(q[0] - fx, q[1] - fy) * (H.bias || 1);
+    if (dd < bd) { bd = dd; best = { x: fx, y: fy, nx: dx / d * s, ny: dy / d * s, d: dd }; }
+  }
+  for (i = 0; i < bars.length; i++) {
+    var B = bars[i];
+    var t = (q[0] - CX) * B.ux + (q[1] - CY) * B.uy;
+    if (Math.abs(t) > B.len) continue;
+    var off = (q[0] - CX) * B.px + (q[1] - CY) * B.py;
+    if (Math.abs(off) < B.hw) continue;             /* the star is on the bar */
+    var sgn = off > 0 ? 1 : -1;
+    var fx2 = CX + B.ux * t + B.px * B.hw * sgn, fy2 = CY + B.uy * t + B.py * B.hw * sgn;
+    var dd2 = Math.hypot(q[0] - fx2, q[1] - fy2) * (B.bias || 1);
+    if (dd2 < bd) { bd = dd2; best = { x: fx2, y: fy2, nx: B.px * sgn, ny: B.py * sgn, d: dd2 }; }
+  }
+  return best;
 }
 function drawRete(c, rp) {
   var ring = eclipticRing(c);
   if (!ring) return;
-  var w = clamp(rp * 0.052, 7, 20);                 /* the width of the ecliptic band */
+  var P = curProj(), scale = R0 * zoom;
+  var w = clamp(rp * 0.055, 8, 22);                 /* the ecliptic band */
+  var bw = clamp(rp * 0.042, 6, 17);                /* the outer ring */
+  var hw = clamp(rp * 0.030, 4, 12);                /* the hoop on the near tropic */
+  /* The near tropic. The ecliptic ring touches it at one solstice and the rim at the other, which is
+     what holds a real rete together and is worth having exactly right rather than nearly. */
+  var rTropic = P.rad(Math.PI / 2 - c.eps) * scale;
   ctx.save();
   ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI); ctx.clip();
 
-  /* the frame: a band just inside the limb, and the equator as a second hoop */
-  fillRing(CX, CY, rp - w * 0.8, rp - 1);
-  var eqR = curProj().rad(90 * DEG) * R0 * zoom;    /* the celestial equator, a circle about the pole */
-  if (eqR > 20 && eqR < rp) fillRing(CX, CY, eqR - w * 0.30, eqR + w * 0.30);
-
-  /* the two straight members that carry the whole thing, on the meridian and across it */
-  var bar = Math.max(3, w * 0.42);
+  var bar = Math.max(3.2, w * 0.40);
+  var bars = [];
   [0, 90].forEach(function (ha) {
     var a = haBearing(ha, c);
     if (a === null) return;
-    ctx.save();
-    ctx.translate(CX, CY); ctx.rotate(a);
-    ctx.beginPath(); ctx.rect(-rp, -bar / 2, 2 * rp, bar);
-    ctx.fillStyle = brassBand(0, 0, 0, rp); ctx.fill();
-    ctx.strokeStyle = 'rgba(60,38,4,.65)'; ctx.lineWidth = 0.9; ctx.stroke();
-    ctx.restore();
+    bars.push({ ux: Math.cos(a), uy: Math.sin(a), px: -Math.sin(a), py: Math.cos(a),
+                hw: bar / 2, len: rp, bias: 1.05 });
   });
 
-  /* the ecliptic ring itself, and the twelve signs on it */
+  /* the frame, laid down before the ecliptic so the ring reads as the piece on top */
+  fillRing(CX, CY, rp - bw, rp - 0.5);
+  if (rTropic > 14 && rTropic < rp - bw) fillRing(CX, CY, rTropic - hw / 2, rTropic + hw / 2);
+  bars.forEach(function (B) {
+    ctx.save();
+    ctx.translate(CX, CY); ctx.rotate(Math.atan2(B.uy, B.ux));
+    ctx.beginPath(); ctx.rect(-rp, -bar / 2, 2 * rp, bar);
+    ctx.fillStyle = brassBand(0, 0, 0, rp); ctx.fill();
+    ctx.strokeStyle = 'rgba(58,36,4,.7)'; ctx.lineWidth = 0.9; ctx.stroke();
+    ctx.restore();
+  });
+  /* the boss at the middle, which the pin goes through */
+  ctx.beginPath(); ctx.arc(CX, CY, Math.max(6, w * 0.62), 0, 2 * Math.PI);
+  ctx.fillStyle = brassBand(CX, CY, 0, w); ctx.fill();
+  ctx.strokeStyle = 'rgba(58,36,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX, CY, Math.max(2.2, w * 0.22), 0, 2 * Math.PI);
+  ctx.fillStyle = 'rgba(12,8,2,.85)'; ctx.fill();
+
+  /* the ecliptic ring, and the twelve signs on it */
   fillRing(ring.x, ring.y, Math.max(2, ring.r - w / 2), ring.r + w / 2);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (var k = 0; k < 12; k++) {
-    var lon = k * 30;
-    var q0 = proj(eclPoint(lon, c));
+    var q0 = proj(eclPoint(k * 30, c));
     if (q0) {
       var a0 = Math.atan2(q0[1] - ring.y, q0[0] - ring.x);
       ctx.beginPath();
       ctx.moveTo(ring.x + Math.cos(a0) * (ring.r - w / 2), ring.y + Math.sin(a0) * (ring.r - w / 2));
       ctx.lineTo(ring.x + Math.cos(a0) * (ring.r + w / 2), ring.y + Math.sin(a0) * (ring.r + w / 2));
-      ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.strokeStyle = 'rgba(58,36,4,.8)'; ctx.lineWidth = 1.2; ctx.stroke();
     }
-    var qm = proj(eclPoint(lon + 15, c));
-    if (qm && w >= 9) {
+    var qm = proj(eclPoint(k * 30 + 15, c));
+    if (qm && w >= 10) {
       var am = Math.atan2(qm[1] - ring.y, qm[0] - ring.x);
       var turn = am + Math.PI / 2;
       if (Math.cos(turn) < 0) turn += Math.PI;
       ctx.save();
       ctx.translate(ring.x + Math.cos(am) * ring.r, ring.y + Math.sin(am) * ring.r);
       ctx.rotate(turn);
-      ctx.font = '700 ' + Math.round(clamp(w * 0.52, 6.5, 9.5)) + 'px ' + FONT;
+      ctx.font = '700 ' + Math.round(clamp(w * 0.48, 6.5, 9.5)) + 'px ' + FONT;
       ctx.fillStyle = 'rgba(52,32,2,.95)';
       ctx.fillText(ZODIAC_SHORT[k], 0, 0.5);
       ctx.restore();
     }
   }
 
-  /* the pointers, one to each bright star the rete can reach, springing from whichever member is
-     nearest so the web hangs together the way a cut one has to */
-  var anchors = [{ x: CX, y: CY, r: rp - w * 1.15 }, { x: ring.x, y: ring.y, r: ring.r }];
-  if (eqR > 20 && eqR < rp) anchors.push({ x: CX, y: CY, r: eqR });
-  var lim = 2.35, n = 0, spikes = [], gap = Math.max(16, rp * 0.075), reach = rp * 0.42;
-  for (var i = 0; i < NS && n < 22; i++) {
+  /* and the pointers, each standing on the member that runs nearest to its star */
+  var hoops = [
+    { cx: CX, cy: CY, r0: rp - bw, r1: rp - 0.5, bias: 0.80 },        /* the outer ring, favoured */
+    { cx: ring.x, cy: ring.y, r0: ring.r - w / 2, r1: ring.r + w / 2, bias: 0.92 },
+    { cx: CX, cy: CY, r0: rTropic - hw / 2, r1: rTropic + hw / 2, bias: 1.0 }
+  ];
+  var lim = 2.4, n = 0, spikes = [], gap = Math.max(15, rp * 0.068), reach = rp * 0.40;
+  for (var i = 0; i < NS && n < 24; i++) {
     if (SMAG[i] > lim) break;
     if (!starName[i] || !starName[i].name) continue;
     var q = proj([SX[i], SY[i], SZ[i]]);
     if (!q) continue;
-    if (Math.hypot(q[0] - CX, q[1] - CY) > rp - 8) continue;
+    if (Math.hypot(q[0] - CX, q[1] - CY) > rp - 4) continue;
     var crowded = false;
-    for (var t = 0; t < spikes.length; t++)
-      if (Math.hypot(q[0] - spikes[t][0], q[1] - spikes[t][1]) < gap) { crowded = true; break; }
+    for (var t2 = 0; t2 < spikes.length; t2++)
+      if (Math.hypot(q[0] - spikes[t2][0], q[1] - spikes[t2][1]) < gap) { crowded = true; break; }
     if (crowded) continue;
-    /* the nearest place on a member to spring from, the outer frame given the benefit of the doubt */
-    var best = null, bd = 1e9;
-    for (var m = 0; m < anchors.length; m++) {
-      var A = anchors[m];
-      var ax = q[0] - A.x, ay = q[1] - A.y, d = Math.hypot(ax, ay) || 1;
-      var fx = A.x + ax / d * A.r, fy = A.y + ay / d * A.r;
-      var dd = Math.hypot(q[0] - fx, q[1] - fy) * (m === 0 ? 0.72 : 1);
-      if (dd < bd) { bd = dd; best = [fx, fy]; }
-    }
-    if (!best) continue;
-    var run = Math.hypot(q[0] - best[0], q[1] - best[1]);
-    if (run < 4 || run > reach) continue;          /* too short to see, or right across the face */
-    starPointer(best[0], best[1], q[0], q[1], clamp(w * 0.34, 2.6, 6));
+    var f = reteFoot(q, hoops, bars);
+    if (!f) continue;
+    var run = Math.hypot(q[0] - f.x, q[1] - f.y);
+    if (run < 12 || run > reach) continue;
+    flamePointer(f.x, f.y, f.nx, f.ny, q[0], q[1], clamp(w * 0.24, 2.1, 4.4));
     spikes.push(q);
     n++;
   }
@@ -3464,15 +3518,12 @@ function drawRete(c, rp) {
   if (ar !== null) {
     ctx.save();
     ctx.translate(CX, CY); ctx.rotate(ar);
-    var rw = Math.max(2.6, w * 0.34);
-    ctx.beginPath(); ctx.rect(-rp * 0.24, -rw / 2, rp * 1.24, rw);
+    var rw = Math.max(2.6, w * 0.30);
+    ctx.beginPath(); ctx.rect(-rp * 0.22, -rw / 2, rp * 1.22, rw);
     ctx.fillStyle = brassBand(0, 0, 0, rp); ctx.fill();
-    ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-rp * 0.24, 0); ctx.lineTo(rp, 0);
+    ctx.strokeStyle = 'rgba(58,36,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-rp * 0.22, 0); ctx.lineTo(rp, 0);
     ctx.strokeStyle = 'rgba(255,244,205,.85)'; ctx.lineWidth = 0.7; ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, rw * 1.5, 0, 2 * Math.PI);
-    ctx.fillStyle = '#f0d48a'; ctx.fill();
-    ctx.strokeStyle = 'rgba(60,38,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
     ctx.restore();
   }
 }
@@ -5393,6 +5444,7 @@ window.CG = {
   offset: function () { return offsetMin; },
   moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin,
   eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
+  projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
   haForClockTime: function (h, eq) { return haForClockTime(h, ensureSky(), eq); },
   clockHours: function () { return clockHours(ensureSky()); },
   discPan: function () { return discPan.slice(); },

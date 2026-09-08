@@ -105,6 +105,20 @@ drawn on the sphere.
   into its twelve signs, two straight members across the face, a hoop on the celestial equator, and
   a spread of tapering pointers, each ending in a spike on one named star.
 
+  The frame is the real one. The rete's outer ring is the far tropic, and inside it runs a hoop on
+  the near tropic; the ecliptic ring is tangent to both, touching the inner hoop at one solstice and
+  the rim at the other, which is what makes a cut rete hold together. That tangency is exact here to
+  four decimal places of a pixel, because the hoop is cut for the obliquity of the day rather than
+  for a rounded 23.44°. A pointer is not a spoke from the middle either: it stands with its foot on
+  the edge of whichever member runs nearest its star, sweeps round in an ogee and narrows to a spike,
+  which is why on a real instrument the crowd of them along the inside of the outer ring all lean the
+  same way.
+
+  A last point of pedantry, since it is a common belief: the rete does not change with latitude. The
+  **plate** does — that is why an astrolabe came with a stack of them, one per latitude, and why ours
+  is recut whenever you move the observer. The rete changes with the epoch, as precession walks the
+  stars, and with whichever stars its maker thought worth naming.
+
   The ecliptic ring is drawn as a true circular arc rather than as a polygon pretending to be one,
   because under stereographic projection it really is a circle: the theorem that every circle on the
   sphere maps to a circle on the plate is the reason the instrument is built on this projection at
