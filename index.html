@@ -3415,6 +3415,85 @@ function circleThrough(a, b, cc) {
   var uy = ((ax * ax + ay * ay) * (cx2 - bx) + (bx * bx + by * by) * (ax - cx2) + (cx2 * cx2 + cy2 * cy2) * (bx - ax)) / d;
   return { x: ux, y: uy, r: Math.hypot(ax - ux, ay - uy) };
 }
+/* The ecliptic ring is a circle only under stereographic. That is not a detail of the drawing: it
+   is the theorem the instrument is built on, and it is why the ring on a brass rete can be cut with
+   a compass. Under equal spacing the same curve comes out as an oval - a circle on the sphere that
+   is not centred on the pole no longer projects to a circle - and the rete really does change shape
+   with it, which is worth being able to see. So the band is traced where it must be and struck as an
+   arc where it may be: exact both ways, and the arc kept for stereographic so nothing is given up
+   there.
+
+   What survives either way is the frame. The ecliptic still touches the near tropic at one solstice
+   and the rim at the other, because tangency is a fact about the sphere and any projection about the
+   pole keeps the tropics as circles and the solstices where they are. */
+function eclipticBand(c) {
+  var circle = curProj().key === 'stereographic' ? eclipticRing(c) : null;
+  var pts = [], lons = [];
+  for (var L = 0; L <= 360; L += 2) {
+    var q = proj(eclPoint(L, c));
+    if (!q) return null;
+    pts.push(q); lons.push(L);
+  }
+  return { circle: circle, pts: pts, lons: lons };
+}
+/* the outward normal of the band where it passes a given ecliptic longitude */
+function bandNormalAt(band, lon, c) {
+  var q = proj(eclPoint(lon, c)), a = proj(eclPoint(lon - 1.5, c)), b = proj(eclPoint(lon + 1.5, c));
+  if (!q || !a || !b) return null;
+  var tx = b[0] - a[0], ty = b[1] - a[1], t = Math.hypot(tx, ty) || 1;
+  var nx = -ty / t, ny = tx / t;
+  /* point it away from the middle of the card, so the two edges are told apart the same way round */
+  if (nx * (q[0] - CX) + ny * (q[1] - CY) < 0) { nx = -nx; ny = -ny; }
+  return { q: q, nx: nx, ny: ny };
+}
+/* the nearest place on the band's mid-line, and which way it faces there */
+function bandNearest(band, x, y) {
+  var pts = band.pts, best = null, bd = 1e9;
+  for (var i = 0; i + 1 < pts.length; i++) {
+    var ax = pts[i][0], ay = pts[i][1], bx = pts[i + 1][0], by = pts[i + 1][1];
+    var dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+    var t = L2 > 1e-9 ? clamp(((x - ax) * dx + (y - ay) * dy) / L2, 0, 1) : 0;
+    var px = ax + dx * t, py = ay + dy * t;
+    var d = Math.hypot(x - px, y - py);
+    if (d < bd) {
+      bd = d;
+      var tl = Math.hypot(dx, dy) || 1;
+      var nx = -dy / tl, ny = dx / tl;
+      if (nx * (x - px) + ny * (y - py) < 0) { nx = -nx; ny = -ny; }
+      best = { x: px, y: py, nx: nx, ny: ny, d: d };
+    }
+  }
+  return best;
+}
+/* fill it: an arc where the projection allows one, an offset pair of curves where it does not */
+function fillBand(band, w) {
+  if (band.circle) { fillRing(band.circle.x, band.circle.y, Math.max(2, band.circle.r - w / 2), band.circle.r + w / 2); return; }
+  var pts = band.pts, n = pts.length, i, out = [], inn = [];
+  for (i = 0; i < n; i++) {
+    var a = pts[(i - 1 + n - 1) % (n - 1)], b = pts[(i + 1) % (n - 1)];
+    var tx = b[0] - a[0], ty = b[1] - a[1], t = Math.hypot(tx, ty) || 1;
+    var nx = -ty / t, ny = tx / t;
+    if (nx * (pts[i][0] - CX) + ny * (pts[i][1] - CY) < 0) { nx = -nx; ny = -ny; }
+    out.push([pts[i][0] + nx * w / 2, pts[i][1] + ny * w / 2]);
+    inn.push([pts[i][0] - nx * w / 2, pts[i][1] - ny * w / 2]);
+  }
+  ctx.beginPath();
+  ctx.moveTo(out[0][0], out[0][1]);
+  for (i = 1; i < out.length; i++) ctx.lineTo(out[i][0], out[i][1]);
+  ctx.closePath();
+  ctx.moveTo(inn[0][0], inn[0][1]);
+  for (i = 1; i < inn.length; i++) ctx.lineTo(inn[i][0], inn[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = brassBand(CX, CY, 0, Math.hypot(pts[0][0] - CX, pts[0][1] - CY));
+  ctx.fill('evenodd');
+  ctx.strokeStyle = 'rgba(60,38,4,.75)'; ctx.lineWidth = 1;
+  [out, inn].forEach(function (edge) {
+    ctx.beginPath();
+    ctx.moveTo(edge[0][0], edge[0][1]);
+    for (var j = 1; j < edge.length; j++) ctx.lineTo(edge[j][0], edge[j][1]);
+    ctx.closePath(); ctx.stroke();
+  });
+}
 function eclipticRing(c) {
   var p = [];
   for (var i = 0; i < 3; i++) {
@@ -3469,8 +3548,15 @@ function flamePointer(fx, fy, nx, ny, tx, ty, foot, side) {
   ctx.strokeStyle = 'rgba(58,36,4,.85)'; ctx.lineWidth = 0.7; ctx.stroke();
 }
 /* the nearest edge of any member, and the way it faces */
-function reteFoot(q, hoops, bars) {
+function reteFoot(q, hoops, bars, curves) {
   var best = null, bd = 1e9, i;
+  for (i = 0; curves && i < curves.length; i++) {
+    var Cv = curves[i], nr = bandNearest(Cv.band, q[0], q[1]);
+    if (!nr || nr.d < Cv.hw) continue;              /* the star is under the band already */
+    var fx3 = nr.x + nr.nx * Cv.hw, fy3 = nr.y + nr.ny * Cv.hw;
+    var dd3 = Math.hypot(q[0] - fx3, q[1] - fy3) * (Cv.bias || 1);
+    if (dd3 < bd) { bd = dd3; best = { x: fx3, y: fy3, nx: nr.nx, ny: nr.ny, d: dd3 }; }
+  }
   for (i = 0; i < hoops.length; i++) {
     var H = hoops[i];
     var dx = q[0] - H.cx, dy = q[1] - H.cy, d = Math.hypot(dx, dy) || 1;
@@ -3496,8 +3582,8 @@ function reteFoot(q, hoops, bars) {
 }
 var reteDrawn = [];                  /* what the last frame cut, so it can be checked for rigidity */
 function drawRete(c, rp) {
-  var ring = eclipticRing(c);
-  if (!ring) return;
+  var band = eclipticBand(c);
+  if (!band) return;
   reteDrawn = [];
   var P = curProj(), scale = R0 * zoom;
   var w = clamp(rp * 0.055, 8, 22);                 /* the ecliptic band */
@@ -3511,7 +3597,14 @@ function drawRete(c, rp) {
 
   var bar = Math.max(3.2, w * 0.40);
   var bars = [];
-  var axis = Math.atan2(ring.y - CY, ring.x - CX);  /* the solstitial colure, and the ring's own axis */
+  var axis;
+  if (band.circle) axis = Math.atan2(band.circle.y - CY, band.circle.x - CX);
+  else {
+    var s1 = proj(eclPoint(270, c)), s2 = proj(eclPoint(90, c));
+    if (!s1 || !s2) { ctx.restore(); return; }
+    var a1 = Math.atan2(s1[1] - CY, s1[0] - CX), a2 = Math.atan2(s2[1] - CY, s2[0] - CX) + Math.PI;
+    axis = a1 + (((a2 - a1 + Math.PI * 3) % (Math.PI * 2)) - Math.PI) / 2;   /* the two agree to a whisker */
+  }
   [axis, axis + Math.PI / 2].forEach(function (a) {
     bars.push({ ux: Math.cos(a), uy: Math.sin(a), px: -Math.sin(a), py: Math.cos(a),
                 hw: bar / 2, len: rp, bias: 1.05 });
@@ -3535,25 +3628,23 @@ function drawRete(c, rp) {
   ctx.beginPath(); ctx.arc(CX, CY, Math.max(2.2, w * 0.22), 0, 2 * Math.PI);
   ctx.fillStyle = 'rgba(12,8,2,.85)'; ctx.fill();
 
-  /* the ecliptic ring, and the twelve signs on it */
-  fillRing(ring.x, ring.y, Math.max(2, ring.r - w / 2), ring.r + w / 2);
+  /* the ecliptic band, and the twelve signs on it: divisions across it, names between them */
+  fillBand(band, w);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (var k = 0; k < 12; k++) {
-    var q0 = proj(eclPoint(k * 30, c));
-    if (q0) {
-      var a0 = Math.atan2(q0[1] - ring.y, q0[0] - ring.x);
+    var d0 = bandNormalAt(band, k * 30, c);
+    if (d0) {
       ctx.beginPath();
-      ctx.moveTo(ring.x + Math.cos(a0) * (ring.r - w / 2), ring.y + Math.sin(a0) * (ring.r - w / 2));
-      ctx.lineTo(ring.x + Math.cos(a0) * (ring.r + w / 2), ring.y + Math.sin(a0) * (ring.r + w / 2));
+      ctx.moveTo(d0.q[0] - d0.nx * w / 2, d0.q[1] - d0.ny * w / 2);
+      ctx.lineTo(d0.q[0] + d0.nx * w / 2, d0.q[1] + d0.ny * w / 2);
       ctx.strokeStyle = 'rgba(58,36,4,.8)'; ctx.lineWidth = 1.2; ctx.stroke();
     }
-    var qm = proj(eclPoint(k * 30 + 15, c));
-    if (qm && w >= 10) {
-      var am = Math.atan2(qm[1] - ring.y, qm[0] - ring.x);
-      var turn = am + Math.PI / 2;
+    var dm = bandNormalAt(band, k * 30 + 15, c);
+    if (dm && w >= 10) {
+      var turn = Math.atan2(dm.ny, dm.nx) + Math.PI / 2;
       if (Math.cos(turn) < 0) turn += Math.PI;
       ctx.save();
-      ctx.translate(ring.x + Math.cos(am) * ring.r, ring.y + Math.sin(am) * ring.r);
+      ctx.translate(dm.q[0], dm.q[1]);
       ctx.rotate(turn);
       ctx.font = '700 ' + Math.round(clamp(w * 0.48, 6.5, 9.5)) + 'px ' + FONT;
       ctx.fillStyle = 'rgba(52,32,2,.95)';
@@ -3565,9 +3656,9 @@ function drawRete(c, rp) {
   /* and the pointers, each standing on the member that runs nearest to its star */
   var hoops = [
     { cx: CX, cy: CY, r0: rp - bw, r1: rp - 0.5, bias: 0.80 },        /* the outer ring, favoured */
-    { cx: ring.x, cy: ring.y, r0: ring.r - w / 2, r1: ring.r + w / 2, bias: 0.92 },
     { cx: CX, cy: CY, r0: rTropic - hw / 2, r1: rTropic + hw / 2, bias: 1.0 }
   ];
+  var curves = [{ band: band, hw: w / 2, bias: 0.92 }];
   var lim = 2.4, n = 0, spikes = [], gap = Math.max(15, rp * 0.068), reach = rp * 0.40;
   for (var i = 0; i < NS && n < 24; i++) {
     if (SMAG[i] > lim) break;
@@ -3579,7 +3670,7 @@ function drawRete(c, rp) {
     for (var t2 = 0; t2 < spikes.length; t2++)
       if (Math.hypot(q[0] - spikes[t2][0], q[1] - spikes[t2][1]) < gap) { crowded = true; break; }
     if (crowded) continue;
-    var f = reteFoot(q, hoops, bars);
+    var f = reteFoot(q, hoops, bars, curves);
     if (!f) continue;
     var run = Math.hypot(q[0] - f.x, q[1] - f.y);
     if (run < 12 || run > reach) continue;
@@ -4545,8 +4636,8 @@ var VIEWS = {
   inside:      { name: 'Sky from inside', proj: ['stereographic', 'equidistant'], orient: true },
   globe:       { name: 'Globe from outside', proj: ['orthographic'], orient: false },
   planisphere: { name: 'Planisphere', proj: ['equidistant', 'stereographic'], orient: true, disc: true },
-  astrolabe:   { name: 'Astrolabe', proj: ['stereographic'], orient: true, disc: true },
-  clock:       { name: 'Astronomical clock', proj: ['stereographic'], orient: true, disc: true }
+  astrolabe:   { name: 'Astrolabe', proj: ['stereographic', 'equidistant'], orient: true, disc: true },
+  clock:       { name: 'Astronomical clock', proj: ['stereographic', 'equidistant'], orient: true, disc: true }
 };
 var VIEW_ORDER = ['inside', 'globe', 'planisphere', 'astrolabe', 'clock'];
 var insideProj = 'stereographic';                /* the layout the inside view was last left in */
@@ -5744,6 +5835,8 @@ window.CG = {
   setRotation: function (a, b) { rotation = [a, b, rotation[2]]; draw(); },
   handColours: function () { var o = {}; PLANET_HANDS.forEach(function (h) { o[h.key] = h.colour; }); return o; },
   eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
+  eclipticBand: function () { return eclipticBand(ensureSky()); },
+  bandNearest: bandNearest,
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
   reteDrawn: function () { return reteDrawn.map(function (d) { return { i: d.i, foot: d.foot.slice(), tip: d.tip.slice(), side: d.side, run: d.run }; }); },
   reteBars: function () {
