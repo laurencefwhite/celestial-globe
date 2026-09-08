@@ -83,7 +83,18 @@ drawn on the sphere.
   only take it to pieces. What a drag does instead is what your thumb does to a real planisphere: it
   turns the star disc, and turning the disc is turning time, so the card holds still and the sky runs
   under it. A quarter turn is a quarter of a sidereal day. The arrow keys step the clock the same
-  way. Everything else still works as usual — point at an object for its card, tap to select, scroll
+  way. Magnified, a card is bigger than the window, so ctrl and drag slides it about — hold still for
+  a moment first on a touch screen, since one finger already means turn and two already mean magnify.
+  Magnifying a card works on its own pivot rather than on the point under the cursor, which would
+  walk it off its pole.
+
+  One bright index line marks the moment shown. On a planisphere it runs across the calendar ring and
+  the clock ring together, which is how you read the date against the time. On an astrolabe it runs
+  across the limb, which is graduated in the hours on your clock — mean time on this meridian, with
+  the equation of time taken out, or the Sun would read up to a quarter of an hour off its own dial
+  through the year. The marks are placed by the same bearing function as the Sun hand, so the Sun
+  points at the current time on the ring without either being told about the other: checked at three
+  latitudes across a year, it lands within a fifth of a minute. Everything else still works as usual — point at an object for its card, tap to select, scroll
   to magnify. None of them flies into place either: an instrument is picked up, not travelled to.
   Press the lit button again, or Reset view, and it is put down, with every switch it touched — the
   tympan, the rete, the hands, the projection, the way up — put back as it found them.
@@ -119,6 +130,13 @@ drawn on the sphere.
   a second times the cosine of the declination — the first thing anyone meets at the eyepiece.
   **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
   all: over three hours the Moon leaves a sidereal field entirely.
+
+- **The clock and the calendar.** *Now* returns to the present; *Noon* goes to the moment the Sun
+  actually crosses the meridian, which is not half past twelve — it drifts by up to a quarter of an
+  hour over the year with the equation of time, and by four minutes for every degree you sit from the
+  middle of your time zone. In Melbourne in September it falls at about 12:18. The time arrows step
+  ten minutes, or one with ctrl held; the date arrows step a day, and the date is not bounded by a
+  track any more, only by where the approximations stop being worth anything.
 
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. *Set* sits under both boxes and does whatever was last typed into
