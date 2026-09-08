@@ -3387,11 +3387,10 @@ var ZODIAC_SHORT = ['ARI', 'TAU', 'GEM', 'CNC', 'LEO', 'VIR',
    The members it can stand on are the three hoops and the two bars. Their edges are what matter, not
    their centre lines, so the foot is put on the edge that faces the star and the tongue leaves it
    square before turning, which is what makes it look welded rather than dropped on. */
-function flamePointer(fx, fy, nx, ny, tx, ty, foot) {
+function flamePointer(fx, fy, nx, ny, tx, ty, foot, side) {
   var dx = tx - fx, dy = ty - fy, L = Math.hypot(dx, dy);
   if (L < 3) return;
   var ux = dx / L, uy = dy / L, px = -uy, py = ux;
-  var side = (nx * px + ny * py) >= 0 ? 1 : -1;     /* bow away from the member it stands on */
   var bow = Math.min(L * 0.42, foot * 5.2) * side;
   var ax = fx + px * foot, ay = fy + py * foot;     /* the two corners of the foot */
   var bx = fx - px * foot, by = fy - py * foot;
@@ -3533,8 +3532,10 @@ function drawRete(c, rp) {
     if (!f) continue;
     var run = Math.hypot(q[0] - f.x, q[1] - f.y);
     if (run < 12 || run > reach) continue;
-    flamePointer(f.x, f.y, f.nx, f.ny, q[0], q[1], clamp(w * 0.24, 2.1, 4.4));
-    reteDrawn.push({ i: i, foot: [f.x, f.y], tip: [q[0], q[1]] });
+    /* the side of the rete's own axis the foot stands on: turns with the rete, so it never changes */
+    var side = Math.sin(Math.atan2(f.y - CY, f.x - CX) - axis) >= 0 ? 1 : -1;
+    flamePointer(f.x, f.y, f.nx, f.ny, q[0], q[1], clamp(w * 0.24, 2.1, 4.4), side);
+    reteDrawn.push({ i: i, foot: [f.x, f.y], tip: [q[0], q[1]], side: side, run: run });
     spikes.push(q);
     n++;
   }
@@ -5553,7 +5554,7 @@ window.CG = {
   moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin,
   eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
-  reteDrawn: function () { return reteDrawn.map(function (d) { return { i: d.i, foot: d.foot.slice(), tip: d.tip.slice() }; }); },
+  reteDrawn: function () { return reteDrawn.map(function (d) { return { i: d.i, foot: d.foot.slice(), tip: d.tip.slice(), side: d.side, run: d.run }; }); },
   reteBars: function () {
     var ring = eclipticRing(ensureSky());
     if (!ring) return [];
