@@ -100,8 +100,7 @@ body{
 .togs .tog,.togs .row{break-inside:avoid}
 .togs .sec{break-inside:avoid-column}
 .togs .instr{display:flex;gap:6px}
-#hdate{display:none}
-.srow:last-of-type .sbar{justify-content:flex-start;gap:6px}
+.sval .caution{color:var(--past);opacity:.9;font-size:10.5px;margin-left:5px}
 .optline{margin:6px 0 2px;font-size:10.5px;line-height:1.5;color:var(--dim)}
 .optline b{color:var(--ink);font-weight:600}
 #field{right:18px;bottom:40px;width:252px;padding:12px 12px 10px}
@@ -203,6 +202,7 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 .srow+.srow{margin-top:8px}
 .srow .stop{display:flex;align-items:center;gap:8px}
 .slab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);flex:1}
+.srow .stop .btn.sm{padding:3px 7px;font-size:10px}
 .sval{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
 .sval.future{color:var(--accent)}
 .sval.past{color:var(--past)}
@@ -384,7 +384,7 @@ body.night #stage{filter:grayscale(1)}
     </div>
     <div class="scrub">
       <div class="srow">
-        <div class="stop"><div class="slab">Time</div><button class="btn sm" id="reset" title="Back to the present time of day">Now</button><button class="btn sm" id="noon" title="To the moment the Sun crosses the meridian on the date shown">Noon</button><div class="sval" id="scrublab">--:--</div></div>
+        <div class="stop"><div class="slab">Time</div><button class="btn sm" id="reset" title="Back to the present time of day">Now</button><button class="btn sm" id="noon" title="To twelve o'clock by the clock, on the date shown">Noon</button><button class="btn sm" id="solarnoon" title="To the moment the Sun actually crosses the meridian, which is not the same thing">Solar</button><div class="sval" id="scrublab">--:--</div></div>
         <div class="sbar">
           <button class="btn ico" id="play" title="Run the clock (space)">&#9654;</button>
           <button class="btn ico" id="tback" title="Back ten minutes (hold to repeat)">&#9666;</button>
@@ -4210,10 +4210,27 @@ document.getElementById('fld-track').addEventListener('change', function (e) {
   drawField(); draw();
 });
 
-/* Noon is not half past twelve. It is the moment the Sun crosses the meridian, which drifts by up to
-   a quarter of an hour over the year with the equation of time and by four minutes for every degree
-   you sit from the middle of your time zone. Pressing the button shows you both at once. */
+/* Two noons, because they are two different things and the gap between them is the point. Twelve
+   o'clock is an administrative convenience: the middle of a time zone that may be fifteen degrees
+   wide, kept by everyone in it. Solar noon is the moment the Sun actually crosses the meridian, which
+   moves by four minutes for every degree you sit from the middle of your zone, and by up to a quarter
+   of an hour over the year with the equation of time. In Melbourne in September the two are eighteen
+   minutes apart. Pressing one and then the other shows you exactly that. */
+function solarNoonJd(c) {
+  var sun = bodyByKey.sol;
+  if (!sun) return null;
+  var rs = riseSet(sun, c);
+  return rs && rs.transit ? rs.transit : null;
+}
 document.getElementById('noon').addEventListener('click', function () {
+  var st = shownState();
+  offsetMin += 12 * 60 - st.mins;                 /* twelve on the clock, the date left alone */
+  clampOffset(); stopPlaying(); refreshTime();
+  var c = ensureSky(), t = solarNoonJd(c);
+  setStatus('Twelve o\u2019clock by the clock' +
+    (t ? ' \u00b7 the Sun crosses the meridian at ' + localHM(t) : ''));
+});
+document.getElementById('solarnoon').addEventListener('click', function () {
   var c = ensureSky(), sun = bodyByKey.sol;
   if (!sun) return;
   var rs = riseSet(sun, c);
@@ -4229,8 +4246,11 @@ document.getElementById('noon').addEventListener('click', function () {
   }
   clampOffset(); refreshTime();
   var c2 = ensureSky();
+  var mins = clockHours(c2) * 60, off = mins - 12 * 60;
   setStatus('Solar noon \u00b7 the Sun is due ' + (obs.lat < 0 ? 'north' : 'south') + ' at its highest, ' +
-            fmtAlt(dispAlt(toHor(bodyByKey.sol.v, c2)[0])));
+            fmtAlt(dispAlt(toHor(bodyByKey.sol.v, c2)[0])) + ' \u00b7 ' +
+            (Math.abs(off) < 0.5 ? 'which is twelve o\u2019clock today'
+             : Math.abs(Math.round(off)) + ' min ' + (off > 0 ? 'after' : 'before') + ' twelve on the clock'));
 });
 document.getElementById('satgrp').addEventListener('change', function (e) { satGroupSel = e.target.value; buildSatList(); skyDirty = true; trackCache = {}; buildSearchIndex(); draw(); });
 document.getElementById('resetview').addEventListener('click', resetView);
@@ -4282,7 +4302,7 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
    Planisphere left whatever the clock had set and the planisphere never mentioned. So there is a
    base here, and an instrument says only where it differs from it. */
 var INSTRUMENT_BASE = {
-  below: true, horizon: true, hgrid: false, cgrid: false, tropics: false, ecliptic: false,
+  below: true, horizon: true, hgrid: false, tropics: false, ecliptic: false,
   connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false,
   starnames: true
 };
@@ -4804,7 +4824,43 @@ var dayStepEl = document.getElementById('daystep');
 function dayUnit() { return dayStepEl.value === 'sidereal' ? SIDEREAL_MIN : 1440; }
 var timeTicks = [], dateTicks = [];
 for (var th = 0; th <= 24; th += 3) timeTicks.push({ v: th * 60, major: th % 12 === 0 });
-for (var dd = -180; dd <= 180; dd += 30) dateTicks.push({ v: dd, major: dd === 0 });
+
+/* A date track that reaches a century each way cannot be evenly divided: a pixel would be four
+   months, and tomorrow would be unpickable. Nor can it be plainly logarithmic, because today is
+   exactly zero and the logarithm of zero is nowhere. So it is log-of-one-plus, which is straight
+   through the middle and bends away at both ends: tomorrow lands ten pixels from the centre, next
+   year eighty, and the far end of the track is a hundred years off. Sensitivity grows with distance,
+   which is what you want, since nobody scrubbing to the year 2126 cares which Tuesday.
+
+   The track is driven in its own units rather than in days, and the two are converted at the edges,
+   so the slider itself stays the even thing it was written to be. */
+var DATE_SPAN = MAX_DAYS;                        /* how far the track reaches, in days each way */
+var DATE_KNEE = 1;                               /* the day either side of which it starts to bend */
+var DATE_K = Math.log(1 + DATE_SPAN / DATE_KNEE);
+var DATE_UNITS = 1000;
+function daysToPos(d) {
+  var sg = d < 0 ? -1 : 1;
+  return sg * Math.log(1 + Math.abs(d) / DATE_KNEE) / DATE_K * DATE_UNITS;
+}
+function posToDays(u) {
+  var sg = u < 0 ? -1 : 1;
+  return sg * Math.round(DATE_KNEE * (Math.exp(Math.abs(u) / DATE_UNITS * DATE_K) - 1));
+}
+[1, 7, 30, 365, 3652, DATE_SPAN].forEach(function (d, i) {
+  var major = d === 365 || d === DATE_SPAN;
+  dateTicks.push({ v: daysToPos(d), major: major });
+  dateTicks.push({ v: daysToPos(-d), major: major });
+});
+dateTicks.push({ v: 0, major: true });
+
+/* The planets come from the JPL approximate elements, which are fitted to 1800-2050. Outside that
+   they are an extrapolation, and the further out the worse: worth saying so rather than showing a
+   confident-looking Jupiter three centuries adrift. The stars, with precession, stay honest much
+   longer, and so does the Sun. */
+function outsideElements(d) {
+  var y = d.getUTCFullYear();
+  return y < 1800 || y > 2050;
+}
 
 /* how far the observer's clock is from UTC at that moment, in minutes */
 function tzOffsetMinutes(date) {
@@ -4831,17 +4887,28 @@ function wrapOffset() {              /* running past either end of the date trac
 
 var timeSlider = hSlider(document.getElementById('htime'), { min: 0, max: 1439, step: 1, wheel: 10, value: 0, ticks: timeTicks,
   onInput: function (v) { var st = shownState(); offsetMin += v - st.mins; clampOffset(); stopPlaying(); refreshTime(); } });
-var dateSlider = hSlider(document.getElementById('hdate'), { min: -MAX_DAYS, max: MAX_DAYS, step: 1, value: 0, ticks: dateTicks,
-  onInput: function (v) { var st = shownState(); offsetMin += (v - st.days) * 1440; clampOffset(); stopPlaying(); refreshTime(); } });
+var dateSlider = hSlider(document.getElementById('hdate'), {
+  min: -DATE_UNITS, max: DATE_UNITS, step: 1, wheel: 8, value: 0, ticks: dateTicks,
+  onInput: function (v) {
+    var st = shownState(), want = posToDays(v);
+    offsetMin += (want - st.days) * 1440; clampOffset(); stopPlaying(); refreshTime();
+  } });
 
 function refreshTime() { skyDirty = true; updateScrubLabel(); tickClocks(); draw(); }
 function updateScrubLabel() {
   var st = shownState(), d = now();
   momentPast = offsetMin < -0.5;
   timeSlider.set(st.mins, st.nowMins);
-  dateSlider.set(clamp(st.days, -MAX_DAYS, MAX_DAYS), 0);
+  dateSlider.set(daysToPos(clamp(st.days, -MAX_DAYS, MAX_DAYS)), 0);
   scrublab.textContent = fmt(obs.tz, { hour: '2-digit', minute: '2-digit', hour12: false }, 't').format(d);
   dscrublab.textContent = fmt(obs.tz, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }, 'dl').format(d);
+  if (outsideElements(d)) {
+    var cau = document.createElement('span');
+    cau.className = 'caution';
+    cau.title = 'The planetary elements are fitted to 1800-2050. Beyond that the planets are extrapolated and drift; the stars, the Sun and the Moon hold up far longer.';
+    cau.textContent = '\u26a0 planets';
+    dscrublab.appendChild(cau);
+  }
   var timeShift = st.mins !== st.nowMins, dateShift = st.days !== 0;
   var cls = offsetMin > 0.5 ? 'future' : offsetMin < -0.5 ? 'past' : '';
   [scrublab, dscrublab, clocksEl].forEach(function (el) { el.classList.toggle('future', cls === 'future'); el.classList.toggle('past', cls === 'past'); });
@@ -5599,6 +5666,7 @@ window.CG = {
   setInstrument: setInstrument, clearDisc: clearDisc, orientDisc: orientDisc,
   offset: function () { return offsetMin; },
   moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin, glyphOk: glyphOk,
+  daysToPos: daysToPos, posToDays: posToDays,
   handColours: function () { var o = {}; PLANET_HANDS.forEach(function (h) { o[h.key] = h.colour; }); return o; },
   eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
