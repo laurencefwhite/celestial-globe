@@ -2995,7 +2995,7 @@ function drawLimb(c, rp) {
    about to be covered up. On the clock at Prague the bar is drawn as the beast itself, swallowing
    whichever body it catches. */
 var HANDS = {
-  sun: { colour: 'rgba(255,206,105,.95)', glow: 'rgba(255,190,70,.30)', width: 2.4, glyph: '\u2609' },
+  sun: { colour: 'rgba(255,206,105,.95)', onBrass: 'rgba(255,247,220,.98)', glow: 'rgba(255,190,70,.30)', width: 2.4, glyph: '\u2609' },
   moon: { colour: 'rgba(222,231,246,.95)', glow: 'rgba(200,215,245,.22)', width: 2, glyph: '\u263d' },
   dragon: { colour: 'rgba(168,196,140,.92)', glow: 'rgba(140,180,110,.20)', width: 2.2 }
 };
@@ -3007,12 +3007,15 @@ function handDir(v) {
   return { dx: dx / d, dy: dy / d, d: d };
 }
 function handShaft(h, rp, style, from) {
+  var onBrass = disc && opt.brass && disc.kind !== 'planisphere';
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(CX + h.dx * (from || 0), CY + h.dy * (from || 0));
   ctx.lineTo(CX + h.dx * rp, CY + h.dy * rp);
-  ctx.strokeStyle = style.glow; ctx.lineWidth = style.width + 3.5; ctx.stroke();
-  ctx.strokeStyle = style.colour; ctx.lineWidth = style.width; ctx.stroke();
+  ctx.strokeStyle = onBrass ? 'rgba(34,20,2,.85)' : style.glow;
+  ctx.lineWidth = style.width + (onBrass ? 2.6 : 3.5); ctx.stroke();
+  ctx.strokeStyle = onBrass && style.onBrass ? style.onBrass : style.colour;
+  ctx.lineWidth = style.width; ctx.stroke();
   ctx.lineCap = 'butt';
 }
 function handGlyph(h, rp, style, glyph) {
@@ -3062,6 +3065,9 @@ function drawHands(c) {
     var at = Math.min(h.d, rp);
     ctx.beginPath(); ctx.arc(CX + h.dx * at, CY + h.dy * at, style.width + 2.6, 0, 2 * Math.PI);
     ctx.fillStyle = style.colour; ctx.fill();
+    if (disc && opt.brass && disc.kind !== 'planisphere') {
+      ctx.strokeStyle = 'rgba(34,20,2,.85)'; ctx.lineWidth = 1.1; ctx.stroke();
+    }
     handGlyph(h, rp, style, style.glyph);
     addHit(CX + h.dx * at, CY + h.dy * at, 10, 'hand', { which: b.key, body: b, off: h.d > rp });
   });
