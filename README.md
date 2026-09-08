@@ -135,9 +135,17 @@ drawn on the sphere.
   Press the lit button again, or Reset view, and it is put down, with every switch it touched — the
   tympan, the rete, the hands, the projection, the way up — put back as it found them.
 
-- **Brass**, on the astrolabe. Switch on *Brass rete* and the instrument is drawn as the thing it
-  is: a graduated limb round the edge with its rivets, a pierced web of brass over the sky, and the
-  rule laid across the face to read the hour. The rete carries the ecliptic as a broad ring divided
+- **Brass**, on the astrolabe, and on by default there. The instrument is drawn as the thing it is:
+  a graduated limb round the edge with its rivets, the **plate** in the mater's womb with the
+  altitude and azimuth circles cut into it, a pierced web of brass turning over that, and the rule
+  laid across the face to read the hour. That is the real stack, and it is drawn in that order, the
+  plate a shade duller and darker than the rete so the piece on top reads as the piece on top.
+
+  The plate is a little short of opaque, so the brighter stars still come through and the thing stays
+  a chart as well as an instrument. Its circles are incised rather than drawn on — a dark line with a
+  light one along its upper edge, which is what a cut groove does to the light — and the ground below
+  the horizon is darker, as on brass it is the part with nothing on it. Rete and plate have a switch
+  each. The rete carries the ecliptic as a broad ring divided
   into its twelve signs, two straight members across the face, a hoop on the celestial equator, and
   a spread of tapering pointers, each ending in a spike on one named star.
 
@@ -164,6 +172,13 @@ drawn on the sphere.
   definition, sits on the ring to a thousandth. Under equal spacing the same test is out by ten
   pixels, which is why the brass is offered on the astrolabe and the clock and not on the
   planisphere.
+
+- **A degree ring**, optional, on any of the three cards, and in brass where the card is brass. It
+  runs in compass order, north through east, and where zero sits is a choice with no single right
+  answer, so it is a menu. A modern bearing starts at north. The limb of a brass astrolabe is
+  commonly divided instead into four quadrants of ninety from the horizontal diameter, which puts
+  zero at the east and west points. Both are offered; the two differ only in where the counting
+  starts. Turning it on shrinks the card to make room for it.
 
 - **Which way up, and which hand.** Two menus settle the orientation of any chart seen from inside:
   *North at top or bottom*, and *East at right or left*. They are not independent in the way they

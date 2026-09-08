@@ -562,6 +562,13 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands <small>on a card</small></span></label>
       <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands <small>on a card</small></span></label>
       <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-plate"><span class="sw"></span><span class="tl">Brass plate <small>the tympan</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring <small>on a card</small></span></label>
+      <div class="row" id="degrow"><label for="degzero">Zero at</label>
+        <select class="sel" id="degzero">
+          <option value="north">North · as a bearing</option>
+          <option value="east">East · as a brass limb</option>
+        </select></div>
       <label class="tog"><input type="checkbox" id="L-spin"><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
       <label class="tog"><input type="checkbox" id="L-awake"><span class="sw"></span><span class="tl">Keep the screen awake</span></label>
@@ -1450,7 +1457,7 @@ var opt = {
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
   linecards: true, linelabels: false, meridian: false, hands: false, phands: false,
-  preview: false, brass: false,
+  preview: false, brass: false, plate: false, degring: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
@@ -1614,8 +1621,17 @@ function resize() {
    that turns one into the other. North at the bottom with east at the right is the sky as you see
    it, and so is north at the top with east at the left; the other two pairings are the mirror, which
    is what a celestial globe shows because you are outside it looking in. */
-var northTop = obs.lat < 0;                      /* the raised pole low, its opposite high */
-var eastRight = !northTop;                       /* the pairing that is not mirrored */
+/* North at the top and east at the right, everywhere, which is how a map reads and what was asked
+   for. There is one exception and it earns its keep. Which way the hours run round a dial depends on
+   the pairing and on the hemisphere together: in the north, north-up-east-right runs clockwise
+   already, so the clock wants nothing special. In the south the same pairing runs backwards, and a
+   clock that runs backwards is a poor clock, so the southern clock alone puts east on the left. It
+   keeps north at the top and it keeps its hours going round the way a clock's hours go. */
+function defaultOrient(kind) {
+  if (kind === 'clock' && obs.lat < 0) return { northTop: true, eastRight: false };
+  return { northTop: true, eastRight: true };
+}
+var northTop = true, eastRight = true;
 var facing = obs.lat < 0 ? 'N' : 'S';            /* kept for the roll and for old links */
 function mirrorNow() { return eastRight === northTop; }
 function reflectNow() { return !mirrorNow(); }
@@ -2829,9 +2845,11 @@ function drawCardinals(c) {
     if (!behind) addHit(lx, ly, rad + 2, 'cardinal', { name: name, az: az });
   }
 }
-function drawHorizonGrid(c) {
-  var altStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30, azStep = zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30;
-  if (disc && disc.kind !== 'planisphere') { altStep = 10; azStep = 15; }   /* the tympan, cut for this latitude */
+/* the almucantars and the azimuths, as geometry, so the plate can engrave the same lines the sky
+   view draws */
+function horizonGridStep() { return (disc && disc.kind !== 'planisphere') ? 10 : (zoom >= 3 ? 10 : zoom >= 1.6 ? 15 : 30); }
+function horizonGridGeo(c) {
+  var altStep = horizonGridStep(), azStep = (disc && disc.kind !== 'planisphere') ? 15 : altStep;
   var lines = { type: 'MultiLineString', coordinates: [] };
   var plate = disc && disc.kind !== 'planisphere';
   for (var alt = -90 + altStep; alt < 90; alt += altStep) {
@@ -2844,6 +2862,13 @@ function drawHorizonGrid(c) {
     for (var a = plate ? 0 : -88; a <= 88; a += 4) { var ll = lonlat(fromHor(a, az, c)); seg.push([ll[0] > 180 ? ll[0] - 360 : ll[0], ll[1]]); }
     lines.coordinates.push(seg);
   }
+  return lines;
+}
+function drawHorizonGrid(c) {
+  var altStep = horizonGridStep();
+  var plate = disc && disc.kind !== 'planisphere';
+  if (plate && opt.plate) return;                 /* the brass plate engraves them itself */
+  var lines = horizonGridGeo(c);
   drawLine(lines, plate ? PAL.tympan : PAL.hgrid, 1, null);
   if (zoom >= 1.6 || plate) {
     ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = 'rgba(255,196,120,.6)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2917,6 +2942,87 @@ function cardRing(r0, r1) {
     ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1; ctx.stroke();
   });
 }
+/* The tympan, as the brass it is. A real plate is a solid disc dropped into the mater's womb with
+   the altitude and azimuth circles cut into it, and the rete turning over the top; the stars are not
+   visible through it because there is nothing to see through. Drawn a little short of opaque here,
+   so the brighter stars still come through and the thing stays a chart as well as an instrument, and
+   the circles are incised rather than drawn on: a dark line with a light one along its upper edge,
+   which is what a cut groove does to the light.
+
+   Below the horizon a real plate is often left plain or hatched, since none of it can be seen. Here
+   it is simply darker, which says the same thing and keeps the sky underneath legible. */
+function engrave(geo, dark, light, width) {
+  ctx.save();
+  ctx.translate(0.6, 0.7);
+  drawLine(geo, dark, width + 0.4, null);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(-0.4, -0.5);
+  drawLine(geo, light, width, null);
+  ctx.restore();
+}
+function drawBrassPlate(c, rp) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI); ctx.clip();
+  var g = ctx.createLinearGradient(CX - rp, CY - rp, CX + rp, CY + rp);
+  g.addColorStop(0.00, 'rgba(76,54,14,.92)');
+  g.addColorStop(0.30, 'rgba(140,105,42,.92)');
+  g.addColorStop(0.48, 'rgba(178,152,92,.92)');
+  g.addColorStop(0.66, 'rgba(132,99,38,.92)');
+  g.addColorStop(1.00, 'rgba(94,68,18,.92)');
+  ctx.fillStyle = g;
+  ctx.fillRect(CX - rp, CY - rp, rp * 2, rp * 2);
+  /* the ground, which on brass is the part with nothing on it */
+  ctx.beginPath();
+  ctx.moveTo(CX + rp, CY); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
+  path(horizonCircle(c, 0));
+  ctx.fillStyle = 'rgba(58,40,10,.42)'; ctx.fill('evenodd');
+  /* the almucantars and azimuths, cut in */
+  engrave(horizonGridGeo(c), 'rgba(52,34,6,.80)', 'rgba(255,238,190,.55)', 1);
+  /* and the horizon itself, deeper than the rest */
+  engrave(horizonCircle(c, 0), 'rgba(40,24,2,.95)', 'rgba(255,244,205,.75)', 1.9);
+  /* the altitudes, numbered as they are on a plate */
+  ctx.font = '600 9px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  var step = horizonGridStep();
+  for (var a2 = step; a2 < 90; a2 += step) {
+    var q = proj(fromHor(a2, 180, c));
+    if (q && Math.hypot(q[0] - CX, q[1] - CY) < rp - 6) {
+      ctx.fillStyle = 'rgba(48,30,4,.9)'; ctx.fillText(a2 + '\u00b0', q[0] + 0.6, q[1] + 0.7);
+      ctx.fillStyle = 'rgba(255,240,195,.6)'; ctx.fillText(a2 + '\u00b0', q[0] - 0.4, q[1] - 0.5);
+    }
+  }
+  ctx.restore();
+}
+
+/* A ring of degrees round the whole card, which a real limb carries alongside its hours. Where zero
+   sits is a convention with no single right answer, so it is a choice. A modern bearing starts at
+   north and runs the way a compass runs. The limb of a brass astrolabe is commonly divided instead
+   into four quadrants of ninety from the horizontal diameter, which puts zero at the east and west
+   points. Both are offered and they differ only in where the counting starts: the scale runs in
+   compass order either way, north through east, so it agrees with itself whichever way round the
+   card the chart happens to be. */
+var degZero = 'north';
+function degZeroBearing(c) { return horBearing(degZero === 'east' ? 90 : 0, c); }
+function drawDegreeRing(c, r0, r1, brassy) {
+  var zero = degZeroBearing(c);
+  var quarter = horBearing(degZero === 'east' ? 180 : 90, c);
+  if (zero === null || quarter === null) return;
+  var step = (((quarter - zero) * RAD + 540) % 360 - 180) > 0 ? 1 : -1;
+  if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
+  var major = brassy ? 'rgba(58,36,4,.85)' : PAL.cardRim;
+  var minor = brassy ? 'rgba(70,46,8,.5)' : PAL.cardTick;
+  var ink = brassy ? 'rgba(52,32,2,.95)' : PAL.cardText;
+  var d, a;
+  for (d = 0; d < 360; d += 2) {
+    a = zero + step * d * DEG;
+    var big = d % 10 === 0;
+    cardTick(a, r0, r0 + (d % 30 === 0 ? 7 : big ? 5 : 3), d % 30 === 0 ? major : big ? major : minor, 1);
+  }
+  for (d = 0; d < 360; d += 30) {
+    a = zero + step * d * DEG;
+    cardText(a, r0 + (r1 - r0) * 0.66, String(d), '600 8.5px ' + FONT, ink);
+  }
+}
 /* The index: one bright line at the moment shown, drawn out across whatever rings the card carries.
    On a planisphere it is what you read the date against the time with; on an astrolabe it is where
    the Sun should be found on the limb, and is a standing check that the two agree. */
@@ -2954,7 +3060,12 @@ function drawCard(c) {
   ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
   ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1.4; ctx.stroke();
   if (rp < 120) return;                                  /* too small to letter */
+  if (opt.plate && disc.kind !== 'planisphere') drawBrassPlate(c, rp);
   if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp);
+  if (opt.degring) {
+    var inner = rp + (disc.kind === 'planisphere' ? 32 : 18);
+    drawDegreeRing(c, inner, inner + 17, opt.brass && disc.kind !== 'planisphere');
+  }
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
 }
 /* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
@@ -4216,6 +4327,7 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'sats' && opt.sats && !sats.length) buildSatList();
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
+    if (key === 'degring') { tuneDisc(); }
     if (key === 'preview') {
       var fp = document.getElementById('field');
       fp.hidden = !opt.preview;
@@ -4366,13 +4478,15 @@ function resetDefaults() {
   astMinKm = DEFAULT_ASTEROID_KM; document.getElementById('astmin').value = String(DEFAULT_ASTEROID_KM);
   satGroupSel = DEFAULT_SAT_GROUP; document.getElementById('satgrp').value = DEFAULT_SAT_GROUP;
   homeField();
+  degZero = 'north'; degZeroEl.value = 'north';
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
   trackMode = 'sidereal'; document.getElementById('fld-track').value = 'sidereal';
   lockKey = null; fieldTarget = null; fieldAltAz = null;
   syncOptics();
   projKind = DEFAULT_PROJECTION; projEl.value = DEFAULT_PROJECTION;
   document.getElementById('daystep').value = DEFAULT_DAY_STEP;
-  northTop = obs.lat < 0; eastRight = !northTop; syncOrientUI();
+  var od0 = defaultOrient(null);
+  northTop = od0.northTop; eastRight = od0.eastRight; syncOrientUI();
   if (nightEl.checked) { nightEl.checked = false; document.body.classList.remove('night'); }
   syncViewUI();
   spinPaused = false;
@@ -4398,7 +4512,7 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
 var INSTRUMENT_BASE = {
   below: true, horizon: true, hgrid: false, tropics: false, ecliptic: false,
   connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false,
-  starnames: true
+  starnames: true, brass: false, plate: false
 };
 var INSTRUMENT_KEYS = Object.keys(INSTRUMENT_BASE).concat(['inside']);
 var INSTRUMENTS = {
@@ -4429,7 +4543,7 @@ var INSTRUMENTS = {
     name: 'Astrolabe', proj: 'stereographic',
     reach: function () { return 90 + 23.44; },           /* the far tropic, where brass has to stop */
     margin: 40,
-    opts: { hgrid: true, tropics: true, ecliptic: true, connames: false },
+    opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, brass: true, plate: true },
     note: function (alat) {
       return 'Astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': the tympan\u2019s altitude and azimuth circles cut for here, the rete\u2019s ecliptic over them, ' +
@@ -4445,6 +4559,7 @@ function fitDisc() {
 function tuneDisc() {
   if (!disc) return;
   var P = curProj(), alat = Math.abs(disc.lat);
+  disc.margin = INSTRUMENTS[disc.kind].margin + (opt.degring ? 19 : 0);   /* room for the degrees */
   /* far enough out that the whole horizon is projected before the rim cuts it, or the ground would
      be shaded on the wrong side of the line */
   disc.deg = Math.min(INSTRUMENTS[disc.kind].reach(alat), P.maxClip - 6);
@@ -4557,15 +4672,17 @@ function clearDisc(note) {
 function markInstrument(kind) { syncBrassSwitch(kind); }
 /* there is no brass to put on a planisphere, and none at all without an instrument out */
 function syncBrassSwitch(kind) {
-  var el = document.getElementById('L-brass');
-  if (!el) return;
   var live = kind === 'astrolabe' || kind === 'clock';
-  el.disabled = !live;
-  var lab = el.closest('.tog');
-  if (lab) {
-    lab.classList.toggle('off', !live);
-    lab.title = live ? '' : 'Only an astrolabe or an astronomical clock is made of brass';
-  }
+  ['L-brass', 'L-plate'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !live;
+    var lab = el.closest('.tog');
+    if (lab) {
+      lab.classList.toggle('off', !live);
+      lab.title = live ? '' : 'Only an astrolabe or an astronomical clock is made of brass';
+    }
+  });
 }
 function setInstrument(kind) {
   var I = INSTRUMENTS[kind], alat = Math.abs(obs.lat), south = obs.lat < 0;
@@ -4585,7 +4702,8 @@ function setInstrument(kind) {
     if (el) el.checked = opt[k];
   });
   if (pointing) stopPointing();
-  northTop = south; eastRight = south; syncOrientUI();   /* north up in the south, and east to the right */
+  var od = defaultOrient(kind);
+  northTop = od.northTop; eastRight = od.eastRight; syncOrientUI();
   discPan = [0, 0]; applyDiscPan();
   disc = { kind: kind, lat: obs.lat, deg: I.reach(alat), margin: I.margin, clip: 90,
            prevZoom: (disc && disc.prevZoom) || clamp(zoom, ZMIN_VIEW, 3), saved: saved };
@@ -4616,6 +4734,8 @@ projEl.addEventListener('change', function () {
   tuneDisc();                                     /* an instrument keeps its rim through a change of projection */
   describeView(); hideTip(); draw();
 });
+var degZeroEl = document.getElementById('degzero');
+degZeroEl.addEventListener('change', function () { degZero = degZeroEl.value; draw(); });
 var northEl = document.getElementById('northat'), eastEl = document.getElementById('eastat');
 /* -------------------------------------------------------------- the five views
    There are five ways of looking at this and no more, and every other setting is a variant of one of
@@ -4654,7 +4774,8 @@ function setView(kind) {
   } else {
     opt.inside = true;
     projKind = insideProj === 'orthographic' ? 'stereographic' : insideProj;
-    northTop = obs.lat < 0; eastRight = !northTop;   /* the sky as you would look up at it */
+    var oi = defaultOrient('inside');
+    northTop = oi.northTop; eastRight = oi.eastRight;
   }
   document.getElementById('L-inside').checked = opt.inside;
   syncOrientUI();
@@ -4688,6 +4809,12 @@ function syncViewUI() {
   projEl.value = projKind;
   projEl.disabled = opts.length < 2;
   document.getElementById('projrow').classList.toggle('fixed', opts.length < 2);
+  var onCard = !!disc;
+  var dr = document.getElementById('L-degring');
+  dr.disabled = !onCard;
+  dr.closest('.tog').classList.toggle('off', !onCard);
+  document.getElementById('degrow').classList.toggle('fixed', !onCard || !opt.degring);
+  degZeroEl.disabled = !onCard || !opt.degring;
   var face = document.getElementById('facerow');
   face.classList.toggle('fixed', !V.orient);
   northEl.disabled = eastEl.disabled = !V.orient;
@@ -4742,7 +4869,8 @@ function setObserver(lat, lon, name, country, tz, keepView) {
   document.getElementById('lon').value = lon.toFixed(4);
   document.getElementById('subtitle').textContent = 'The sky over ' + obs.name;
   lsSet('cg-obs', obs);
-  northTop = lat < 0; eastRight = !northTop; syncOrientUI();
+  var od1 = defaultOrient(disc && disc.kind);
+  northTop = od1.northTop; eastRight = od1.eastRight; syncOrientUI();
   skyDirty = true; trackCache = {}; holdLst = null;
   tickClocks(); updateScrubLabel();
   if (!keepView) flyToZenith(Math.max(1, zoom)); else draw();
@@ -5472,7 +5600,7 @@ function applyHash(h) {
     if (!isNaN(la) && !isNaN(lo)) {
       obs = { lat: la, lon: lo, name: decodeURIComponent(o[2] || ''), country: decodeURIComponent(o[4] || ''), tz: decodeURIComponent(o[3] || 'UTC') };
       if (!obs.name) obs.name = la.toFixed(2) + ', ' + lo.toFixed(2);
-      northTop = la < 0; eastRight = !northTop; syncOrientUI();
+      northTop = true; eastRight = true; syncOrientUI();
       any = true;
     }
   }
@@ -5721,7 +5849,7 @@ keysEl.addEventListener('click', function (e) { if (e.target === keysEl) showKey
 
 /* ------------------------------------------------------------------ boot */
 var savedObs = lsGet('cg-obs');
-if (savedObs && typeof savedObs.lat === 'number') { obs = savedObs; northTop = obs.lat < 0; eastRight = !northTop; facing = orientFacing(); }
+if (savedObs && typeof savedObs.lat === 'number') { obs = savedObs; facing = orientFacing(); }
 applyHash(location.hash);
 syncOrientUI();
 document.getElementById('lat').value = obs.lat.toFixed(4);
@@ -5831,6 +5959,8 @@ window.CG = {
   offset: function () { return offsetMin; },
   moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin, glyphOk: glyphOk,
   daysToPos: daysToPos, posToDays: posToDays,
+  degZero: function (z) { if (z) { degZero = z; degZeroEl.value = z; draw(); } return degZero; },
+  degZeroBearing: function (c) { return degZeroBearing(c || ensureSky()); },
   starVec: function (i) { return [SX[i], SY[i], SZ[i]]; },
   setRotation: function (a, b) { rotation = [a, b, rotation[2]]; draw(); },
   handColours: function () { var o = {}; PLANET_HANDS.forEach(function (h) { o[h.key] = h.colour; }); return o; },
