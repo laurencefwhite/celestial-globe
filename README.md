@@ -18,11 +18,19 @@ drawn on the sphere.
   variant of one of them, so they are five buttons: **Sky from inside**, **Globe from outside**,
   **Planisphere**, **Astrolabe**, **Astronomical clock**. What each fixes and what it leaves to you
   is not arbitrary. A globe from outside is orthographic and mirrored by its nature — that is what a
-  sphere seen from without does to the sky — so it has no variants and both menus grey out. An
-  astrolabe is stereographic by definition, that being the projection the instrument is built on, so
-  its layout menu greys but it can be turned any way up. The sky from inside and the planisphere each
-  have a real choice of layout, and all four of the non-globe views can be turned whichever way up
-  you like. Two menus, three of the five constrained, one free.
+  sphere seen from without does to the sky — so it has no variants and both menus grey out. The
+  other four all have a real choice of layout and can be turned whichever way up you like.
+
+  An astrolabe is stereographic by definition, that being the projection the instrument is built on,
+  but equal spacing is worth having on it anyway, because the difference is instructive rather than
+  decorative. The ecliptic ring is a circle *only* under stereographic — that is the theorem the
+  instrument rests on, and why the ring on a brass rete can be struck with a compass. Under equal
+  spacing the same curve comes out an oval, missing a fitted circle by thirteen pixels, and the near
+  tropic moves from 159 pixels out to 217: the whole rete changes shape. So the band is struck as an
+  arc where it may be and traced where it must be, and the pointers find their feet on it either way.
+  What survives the change is the frame: the ecliptic still touches the near tropic at one solstice
+  and the rim at the other, to within a thousandth of a pixel under both, because tangency is a fact
+  about the sphere and any projection about the pole keeps the tropics as circles.
 
   Naming them made an old combination vanish, which was worth losing. Looking from inside with the
   globe layout, in the mirrored pairing, *was* the outside view exactly — the same projection, the
