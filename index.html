@@ -100,6 +100,11 @@ body{
 .togs .tog,.togs .row{break-inside:avoid}
 .togs .sec{break-inside:avoid-column}
 .togs .instr{display:flex;gap:6px}
+.togs .views{display:flex;flex-direction:column;gap:4px;margin:2px 0 7px}
+.togs .views .btn{width:100%;text-align:left;padding:5px 9px}
+.togs .views .btn.on{background:rgba(142,208,255,.18);border-color:rgba(142,208,255,.45);color:var(--accent)}
+.row.fixed{opacity:.45}
+.row.fixed .sel{pointer-events:none}
 .sval .caution{color:var(--past);opacity:.9;font-size:10.5px;margin-left:5px}
 .optline{margin:6px 0 2px;font-size:10.5px;line-height:1.5;color:var(--dim)}
 .optline b{color:var(--ink);font-weight:600}
@@ -175,7 +180,7 @@ select.sel{flex:1;appearance:none;-webkit-appearance:none;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,var(--ink-faint) 50%),linear-gradient(135deg,var(--ink-faint) 50%,transparent 50%);
   background-position:calc(100% - 13px) 55%,calc(100% - 9px) 55%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;padding-right:24px}
 select.sel option{background:#0c111c;color:var(--ink)}
-input.num{width:70px;font-variant-numeric:tabular-nums;min-width:0}
+input.num{width:78px;font-variant-numeric:tabular-nums;min-width:0}
 input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-color:rgba(255,255,255,.09)}
 
 .search{position:relative}
@@ -529,14 +534,21 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-altaz"><span class="sw"></span><span class="tl">Altitude &amp; azimuth</span></label>
       <label class="tog"><input type="checkbox" id="L-radec"><span class="sw"></span><span class="tl">Right ascension &amp; declination</span></label>
       <div class="sub-t">View</div>
-      <label class="tog"><input type="checkbox" id="L-inside"><span class="sw"></span><span class="tl">From inside <small>as seen from Earth</small></span></label>
-      <div class="row" id="projrow" hidden><label for="projection">Layout</label>
+      <div class="views">
+        <button class="btn sm" id="v-inside" title="The sky as it is overhead, laid flat">Sky from inside</button>
+        <button class="btn sm" id="v-globe" title="The celestial sphere seen from outside, as a globe on a stand">Globe from outside</button>
+        <button class="btn sm" id="v-planisphere" title="Every star that ever rises here, on one card about the pole">Planisphere</button>
+        <button class="btn sm" id="v-astrolabe" title="The tympan cut for this latitude, bounded at the far tropic">Astrolabe</button>
+        <button class="btn sm" id="v-clock" title="An astrolabe with the hands of an astronomical clock">Astronomical clock</button>
+      </div>
+      <label class="tog" id="insiderow" hidden><input type="checkbox" id="L-inside"><span class="sw"></span><span class="tl">From inside</span></label>
+      <div class="row" id="projrow"><label for="projection">Layout</label>
         <select class="sel" id="projection">
           <option value="stereographic">Stereographic · shapes true</option>
           <option value="equidistant">Equal spacing · height true</option>
           <option value="orthographic">Globe · from infinity</option>
         </select></div>
-      <div class="row two" id="facerow" hidden>
+      <div class="row two" id="facerow">
         <select class="sel" id="northat" title="Which way up the chart is">
           <option value="top">North at top</option>
           <option value="bottom">North at bottom</option>
@@ -550,13 +562,6 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands <small>on a card</small></span></label>
       <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands <small>on a card</small></span></label>
       <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
-      <div class="row instr">
-        <button class="btn sm" id="planisphere" title="The whole of the ever-visible sky on one card about the pole, with the horizon as an aperture over it">Planisphere</button>
-        <button class="btn sm" id="astrolabe" title="The projection the old brass astrolabes used: the tympan cut for this latitude, bounded at the far tropic">Astrolabe</button>
-      </div>
-      <div class="row instr">
-        <button class="btn sm" id="astroclock" title="An astrolabe with the hands of an astronomical clock: the Sun, the Moon and the dragon over the tympan">Astronomical clock</button>
-      </div>
       <label class="tog"><input type="checkbox" id="L-spin"><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
       <label class="tog"><input type="checkbox" id="L-awake"><span class="sw"></span><span class="tl">Keep the screen awake</span></label>
@@ -1537,7 +1542,7 @@ function clipFor(P) {
 }
 /* Seen from outside it is a globe, and a globe crowds at its limb because that is what a sphere
    does. Seen from inside there is no sphere to look at, only the sky, so the choice applies there. */
-function curProj() { return opt.inside ? (PROJ_BY[projKind] || PROJ_BY.stereographic) : PROJ_BY.orthographic; }
+function curProj() { return PROJ_BY[projKind] || PROJ_BY.stereographic; }
 var projection = d3.geoOrthographic().clipAngle(90).precision(0.35);
 var path = d3.geoPath(projection, ctx);
 /* degrees of turn per pixel at the middle of the view, which differs between projections */
@@ -1613,11 +1618,11 @@ var northTop = obs.lat < 0;                      /* the raised pole low, its opp
 var eastRight = !northTop;                       /* the pairing that is not mirrored */
 var facing = obs.lat < 0 ? 'N' : 'S';            /* kept for the roll and for old links */
 function mirrorNow() { return eastRight === northTop; }
-function reflectNow() { return opt.inside && !mirrorNow(); }
+function reflectNow() { return !mirrorNow(); }
 function orientFacing() { return northTop ? 'S' : 'N'; }
 var pointing = false, pointRoll = 0, pointFrozen = false;
 var ROLL = { S: 0, N: 180, E: -90, W: 90 };
-function rollFor() { return opt.inside ? ROLL[facing] || 0 : 0; }
+function rollFor() { return ROLL[facing] || 0; }
 /* a screen displacement turned into the unrolled frame the drag maths expects */
 function unroll(dx, dy) {
   var g = rotation[2] * DEG, c = Math.cos(g), sn = Math.sin(g);
@@ -4136,8 +4141,7 @@ Object.keys(opt).forEach(function (key) {
     }
     if (key === 'inside') {
       clearDisc();
-      document.getElementById('facerow').hidden = !opt.inside;
-      document.getElementById('projrow').hidden = !opt.inside;
+      syncViewUI();
       /* from inside you are the observer, so the horizon stays put and the sky turns past it */
       if (opt.inside) { opt.hold = true; document.getElementById('L-hold').checked = true; holdLst = null; }
       describeView();
@@ -4279,8 +4283,7 @@ function resetDefaults() {
   document.getElementById('daystep').value = DEFAULT_DAY_STEP;
   northTop = obs.lat < 0; eastRight = !northTop; syncOrientUI();
   if (nightEl.checked) { nightEl.checked = false; document.body.classList.remove('night'); }
-  document.getElementById('facerow').hidden = !opt.inside;
-  document.getElementById('projrow').hidden = !opt.inside;
+  syncViewUI();
   spinPaused = false;
   if (opt.spin) startSpin();
   buildSatList(); buildSearchIndex();
@@ -4456,16 +4459,11 @@ function clearDisc(note) {
     holdLst = null;
   }
   markInstrument(null);
+  syncViewUI();
   if (note) setStatus(note);
   return true;
 }
-function markInstrument(kind) {
-  ['planisphere', 'astrolabe', 'astroclock'].forEach(function (id) {
-    var b = document.getElementById(id);
-    if (b) b.classList.toggle('on', (kind === 'clock' ? 'astroclock' : kind) === id);
-  });
-  syncBrassSwitch(kind);
-}
+function markInstrument(kind) { syncBrassSwitch(kind); }
 /* there is no brass to put on a planisphere, and none at all without an instrument out */
 function syncBrassSwitch(kind) {
   var el = document.getElementById('L-brass');
@@ -4497,12 +4495,11 @@ function setInstrument(kind) {
   });
   if (pointing) stopPointing();
   northTop = south; eastRight = south; syncOrientUI();   /* north up in the south, and east to the right */
-  document.getElementById('facerow').hidden = false;
-  document.getElementById('projrow').hidden = false;
   discPan = [0, 0]; applyDiscPan();
   disc = { kind: kind, lat: obs.lat, deg: I.reach(alat), margin: I.margin, clip: 90,
            prevZoom: (disc && disc.prevZoom) || clamp(zoom, ZMIN_VIEW, 3), saved: saved };
   markInstrument(kind);
+  syncViewUI();
   tuneDisc();
   stopMomentum();
   if (flying) { cancelAnimationFrame(flying); flying = null; }
@@ -4512,13 +4509,7 @@ function setInstrument(kind) {
   hideTip(); draw();
   setStatus(I.note(alat));
 }
-function toggleInstrument(kind) {
-  if (disc && disc.kind === kind) { clearDisc('Instrument put down'); draw(); return; }
-  setInstrument(kind);
-}
-document.getElementById('planisphere').addEventListener('click', function () { toggleInstrument('planisphere'); });
-document.getElementById('astrolabe').addEventListener('click', function () { toggleInstrument('astrolabe'); });
-document.getElementById('astroclock').addEventListener('click', function () { toggleInstrument('clock'); });
+/* the five view buttons carry this now; see setView */
 document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
 document.getElementById('nowfloat').addEventListener('click', function (e) {
   e.stopPropagation();
@@ -4530,13 +4521,95 @@ var projEl = document.getElementById('projection');
 projEl.value = projKind;
 projEl.addEventListener('change', function () {
   projKind = projEl.value;
+  if (!disc) insideProj = projKind;
   tuneDisc();                                     /* an instrument keeps its rim through a change of projection */
-  if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; }
-  document.getElementById('projrow').hidden = false;
-  document.getElementById('facerow').hidden = false;
   describeView(); hideTip(); draw();
 });
 var northEl = document.getElementById('northat'), eastEl = document.getElementById('eastat');
+/* -------------------------------------------------------------- the five views
+   There are five ways of looking at this and no more, and every other setting is a variant of one of
+   them. Two are plain: the sky as it is over your head, and the celestial sphere from outside as a
+   globe on a stand. Three are instruments. What each view fixes and what it leaves to you is not
+   arbitrary either. A globe from outside is orthographic and mirrored by its nature - that is what a
+   sphere seen from without does to the sky - so it has no variants at all. An astrolabe is
+   stereographic by definition, since that is the projection the instrument is built on. The sky from
+   inside and the planisphere both have a real choice of layout, and all four of the non-globe views
+   can be turned whichever way up you like.
+
+   Naming them made one old combination vanish, which was worth losing: looking from inside with the
+   globe layout, in the mirrored pairing, was the outside view exactly - the same projection, the same
+   roll, the same handedness, star for star in the same pixel. Two names for one picture. The other
+   way round it was a globe seen from infinity with the handedness of standing inside it, which is
+   not a thing. */
+var VIEWS = {
+  inside:      { name: 'Sky from inside', proj: ['stereographic', 'equidistant'], orient: true },
+  globe:       { name: 'Globe from outside', proj: ['orthographic'], orient: false },
+  planisphere: { name: 'Planisphere', proj: ['equidistant', 'stereographic'], orient: true, disc: true },
+  astrolabe:   { name: 'Astrolabe', proj: ['stereographic'], orient: true, disc: true },
+  clock:       { name: 'Astronomical clock', proj: ['stereographic'], orient: true, disc: true }
+};
+var VIEW_ORDER = ['inside', 'globe', 'planisphere', 'astrolabe', 'clock'];
+var insideProj = 'stereographic';                /* the layout the inside view was last left in */
+function currentView() { return disc ? disc.kind : (opt.inside ? 'inside' : 'globe'); }
+function setView(kind) {
+  if (!VIEWS[kind]) return;
+  if (VIEWS[kind].disc) { setInstrument(kind); syncViewUI(); return; }
+  clearDisc();
+  if (kind === 'globe') {
+    if (opt.inside) insideProj = projKind;       /* remember it for when you come back inside */
+    opt.inside = false;
+    projKind = 'orthographic';
+    northTop = true; eastRight = true;           /* a globe from outside is mirrored: that is what it is */
+  } else {
+    opt.inside = true;
+    projKind = insideProj === 'orthographic' ? 'stereographic' : insideProj;
+    northTop = obs.lat < 0; eastRight = !northTop;   /* the sky as you would look up at it */
+  }
+  document.getElementById('L-inside').checked = opt.inside;
+  syncOrientUI();
+  holdLst = null; skyDirty = true;
+  syncViewUI();
+  hideTip(); draw();
+  setStatus(VIEWS[kind].name + ' \u00b7 ' + curProj().name.toLowerCase() +
+    (kind === 'globe' ? ' \u00b7 north up, east right, a mirror image as a globe must be'
+                      : ' \u00b7 ' + (northTop ? 'north at the top' : 'north at the bottom') +
+                        ', east at the ' + (eastRight ? 'right' : 'left')));
+}
+/* the buttons say which view is out, and the menus grey where the view has already decided */
+function syncViewUI() {
+  var kind = currentView(), V = VIEWS[kind] || VIEWS.inside;
+  VIEW_ORDER.forEach(function (k) {
+    var b = document.getElementById('v-' + k);
+    if (b) b.classList.toggle('on', k === kind);
+  });
+  /* the layout menu offers only what this view can be, and is dead when that is one thing */
+  var opts = V.proj;
+  projEl.innerHTML = '';
+  opts.forEach(function (k) {
+    var P = PROJ_BY[k], o = document.createElement('option');
+    o.value = k;
+    o.textContent = k === 'stereographic' ? 'Stereographic \u00b7 shapes true'
+                  : k === 'equidistant' ? 'Equal spacing \u00b7 height true'
+                  : 'Globe \u00b7 from infinity';
+    projEl.appendChild(o);
+  });
+  if (opts.indexOf(projKind) < 0) projKind = opts[0];
+  projEl.value = projKind;
+  projEl.disabled = opts.length < 2;
+  document.getElementById('projrow').classList.toggle('fixed', opts.length < 2);
+  var face = document.getElementById('facerow');
+  face.classList.toggle('fixed', !V.orient);
+  northEl.disabled = eastEl.disabled = !V.orient;
+  syncBrassSwitch(disc ? disc.kind : null);
+}
+VIEW_ORDER.forEach(function (k) {
+  var b = document.getElementById('v-' + k);
+  if (b) b.addEventListener('click', function () {
+    if (VIEWS[k].disc && disc && disc.kind === k) { clearDisc('Instrument put down'); syncViewUI(); draw(); return; }
+    setView(k);
+  });
+});
+
 function syncOrientUI() {
   northEl.value = northTop ? 'top' : 'bottom';
   eastEl.value = eastRight ? 'right' : 'left';
@@ -5498,7 +5571,7 @@ function updatePointUI() {
 function startPointing() {
   function go() {
     pointing = true;
-    if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; document.getElementById('facerow').hidden = false; document.getElementById('projrow').hidden = false; }
+    if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; syncViewUI(); }
     if (!opt.hold) { opt.hold = true; document.getElementById('L-hold').checked = true; }
     pointHandler = applyOrientation;
     if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', pointHandler, true);
@@ -5589,8 +5662,7 @@ updateScrubLabel();
   requestWake();
 })();
 (function intro() {
-  document.getElementById('facerow').hidden = !opt.inside;
-  document.getElementById('projrow').hidden = !opt.inside;
+  syncViewUI();
   if (hashHadView) { draw(); if (opt.spin) startSpin(); return; }
   var c = ensureSky(), z = lonlat(c.Z);
   rotation = [-z[0] - 50, -z[1] - 30, 0];
@@ -5664,9 +5736,12 @@ window.CG = {
   lineAt: lineAt, planisphere: function () { setInstrument('planisphere'); },
   astrolabe: function () { setInstrument('astrolabe'); },
   setInstrument: setInstrument, clearDisc: clearDisc, orientDisc: orientDisc,
+  setView: setView, view: currentView, views: function () { return VIEW_ORDER.slice(); },
   offset: function () { return offsetMin; },
   moonNode: moonNode, eclPoint: eclPoint, eqTimeMin: eqTimeMin, glyphOk: glyphOk,
   daysToPos: daysToPos, posToDays: posToDays,
+  starVec: function (i) { return [SX[i], SY[i], SZ[i]]; },
+  setRotation: function (a, b) { rotation = [a, b, rotation[2]]; draw(); },
   handColours: function () { var o = {}; PLANET_HANDS.forEach(function (h) { o[h.key] = h.colour; }); return o; },
   eclipticRing: function (c) { return eclipticRing(c || ensureSky()); },
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },

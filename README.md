@@ -14,6 +14,22 @@ drawn on the sphere.
   details and click it to fly to it. On a touch screen a tap selects an object and shows its details,
   a second tap (or the card's *Fly to* button) flies there, and a tap on empty sky clears the
   selection; the panels fold into the corners and a tap on the globe folds an open one.
+- **Five views, and no more.** There are five ways of looking at this and everything else is a
+  variant of one of them, so they are five buttons: **Sky from inside**, **Globe from outside**,
+  **Planisphere**, **Astrolabe**, **Astronomical clock**. What each fixes and what it leaves to you
+  is not arbitrary. A globe from outside is orthographic and mirrored by its nature — that is what a
+  sphere seen from without does to the sky — so it has no variants and both menus grey out. An
+  astrolabe is stereographic by definition, that being the projection the instrument is built on, so
+  its layout menu greys but it can be turned any way up. The sky from inside and the planisphere each
+  have a real choice of layout, and all four of the non-globe views can be turned whichever way up
+  you like. Two menus, three of the five constrained, one free.
+
+  Naming them made an old combination vanish, which was worth losing. Looking from inside with the
+  globe layout, in the mirrored pairing, *was* the outside view exactly — the same projection, the
+  same roll, the same handedness, every visible star in the same pixel, measured. Two names for one
+  picture. Turned the other way it was a globe seen from infinity with the handedness of standing
+  inside it, which is not a thing. The globe layout now belongs to the globe.
+
 - **Two ways of looking at it.** By default you look at the celestial sphere from outside, as at a
   classical celestial globe: north is up, east is to the right, and the constellations are the mirror
   image of the sky. The *From inside* switch turns it inside out, as the sky appears from Earth, like
