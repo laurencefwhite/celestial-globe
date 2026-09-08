@@ -4496,7 +4496,7 @@ function setInstrument(kind) {
     if (el) el.checked = opt[k];
   });
   if (pointing) stopPointing();
-  northTop = south; eastRight = !south; syncOrientUI();  /* the raised pole low, its opposite high */
+  northTop = south; eastRight = south; syncOrientUI();   /* north up in the south, and east to the right */
   document.getElementById('facerow').hidden = false;
   document.getElementById('projrow').hidden = false;
   discPan = [0, 0]; applyDiscPan();
