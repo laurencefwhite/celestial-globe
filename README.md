@@ -181,17 +181,33 @@ drawn on the sphere.
   with a count of what is inside, and what you leave open is remembered. One button at the top opens
   or shuts the lot. It opens with one section showing rather than nine.
 
+- **The celestial grid is yours to set.** An instrument used to switch it off behind you, on the
+  reasoning that a tympan carries altitude and azimuth circles rather than a graticule of right
+  ascension. True of brass, but this is also a chart, and a switch that turns itself off is worse
+  than an anachronism. The instruments no longer touch it.
+
 - **Daylight fades the sky, not the lines drawn on it.** The stars, the Milky Way and the
   constellation figures wash out at sunrise, because that is what they do. The grids and the great
   circles are not sky: they are drawn on top of it, like the horizon, and they take their contrast
   from the background, darkening as the sky comes up so they read on blue as well as on black.
 
-- **The clock and the calendar.** *Now* returns to the present; *Noon* goes to the moment the Sun
-  actually crosses the meridian, which is not half past twelve — it drifts by up to a quarter of an
-  hour over the year with the equation of time, and by four minutes for every degree you sit from the
-  middle of your time zone. In Melbourne in September it falls at about 12:18. The time arrows step
-  ten minutes, or one with ctrl held; the date arrows step a day, and the date is not bounded by a
-  track any more, only by where the approximations stop being worth anything.
+- **The clock and the calendar.** *Now* returns to the present. Then two kinds of noon, because they
+  are two different things and the gap between them is the point: *Noon* puts the clock on twelve,
+  which is an administrative convenience kept by a whole time zone, and *Solar* puts the Sun on the
+  meridian, which moves by four minutes for every degree you sit from the middle of that zone and by
+  up to a quarter of an hour over the year with the equation of time. In Melbourne in September they
+  are seventeen minutes apart, and each button says how far it is from the other.
+
+  The time arrows step ten minutes, or one with ctrl held. The date track reaches a century each way,
+  which cannot be evenly divided — a pixel would be four months, and tomorrow would be unpickable —
+  and cannot be plainly logarithmic either, today being exactly zero. So it is log-of-one-plus:
+  straight through the middle, bending away at both ends. Tomorrow lands ten pixels from the centre,
+  next week thirty, next month fifty, next year eighty, a decade a hundred and seventeen, a century a
+  hundred and fifty. A day spans ten pixels near today and four ten-thousandths of one at the far
+  end, which is the right way round, since nobody scrubbing to 2126 cares which Tuesday. Reaching
+  that far ought to be honest as well as usable, so past 1800 or 2050 the date carries a warning: the
+  planets come from elements fitted to that window and are an extrapolation outside it, while the
+  stars, with precession, and the Sun and Moon hold up far longer.
 
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. *Set* sits under both boxes and does whatever was last typed into
