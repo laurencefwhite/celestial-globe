@@ -152,9 +152,18 @@ drawn on the sphere.
   constellations back to front. The status line says which of the two you are in whenever you change
   either menu.
 
-  The defaults are the unmirrored pairing, which is also what printed instruments use: north low and
-  south high in the northern hemisphere, north high in the southern. A *BBC Sky at Night* card for
-  50° N has north at the bottom and east at the right.
+  The ordinary inside view opens unmirrored, which is what printed instruments use: a *BBC Sky at
+  Night* card for 50° N has north at the bottom and east at the right.
+
+  **The three instruments open mirrored**, deliberately: north at the top with east at the right in
+  the southern hemisphere, south at the top with east at the left in the northern. That is a choice
+  about what reads naturally rather than about what a card does — it puts the direction you are
+  facing where a map would put it — and it is made knowing the cost. The cost is exactly one thing:
+  the rings run the other way round, so the hours and the zodiac count anticlockwise on screen rather
+  than clockwise. Nothing is read wrongly by it. Every mark on every ring is placed by the same
+  bearing function as the hands, so the Sun still meets its own hour on the limb whichever way round
+  the dial is numbered — measured at 0.12 minutes or better in both arrangements, at four latitudes.
+  One click on *East at right/left* returns the unmirrored pairing.
 - **A field preview**, which is the view through whatever you are pointing with. Pick a telescope and
   an eyepiece and the rest follows: magnification is the telescope's focal length over the
   eyepiece's, the true field is the eyepiece's apparent field divided by that, the exit pupil is the
