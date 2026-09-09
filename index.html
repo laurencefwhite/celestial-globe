@@ -465,6 +465,12 @@ body.night #stage{filter:grayscale(1)}
     <div class="grp">
       <div class="grp-t lay">Layers<button type="button" class="allfold" id="allfold">Expand all</button></div>
       <div class="togs">
+      <div class="row" id="detailrow"><label for="detail">How much</label>
+        <select class="sel" id="detail">
+          <option value="light">Light &middot; the naked-eye sky</option>
+          <option value="medium" selected>Medium &middot; as it opens</option>
+          <option value="heavy">Heavy &middot; everything on</option>
+        </select></div>
       <div class="sub-t">Sky</div>
       <label class="tog"><input type="checkbox" id="L-stars" checked><span class="sw"></span><span class="tl">Stars</span></label>
       <label class="tog"><input type="checkbox" id="L-starnames" checked><span class="sw"></span><span class="tl">Star names</span></label>
@@ -575,6 +581,7 @@ body.night #stage{filter:grayscale(1)}
         </div></div>
       <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring</span></label>
       <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring</span></label>
+      <label class="tog"><input type="checkbox" id="L-zodring"><span class="sw"></span><span class="tl">Zodiac ring <small>the twelve signs</small></span></label>
       <label class="tog"><input type="checkbox" id="L-diagonal"><span class="sw"></span><span class="tl">Diagonal scale <small>reads to 10&prime;</small></span></label>
       <label class="tog"><input type="checkbox" id="L-suspend"><span class="sw"></span><span class="tl">Suspension ring <small>throne and shackle</small></span></label>
       <div class="row" id="numrow"><label for="numerals">Numerals</label>
@@ -1478,10 +1485,31 @@ var opt = {
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
   linecards: true, linelabels: false, meridian: false, hands: false, phands: false,
   preview: false, brass: false, plate: false, degring: false, raring: false, diagonal: false,
-  suspend: false,
+  suspend: false, zodring: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
+/* Three ways to have the sky, since setting thirty switches one at a time to get a clear chart is
+   nobody's idea of an evening. Medium is exactly how the page opens, so choosing it changes nothing
+   and the other two are a step either side of it: light strips the chart back to what you would
+   actually see and name outdoors, heavy turns on everything the page knows. Only the layers move.
+   The place, the moment, the view and the instrument are left alone, as they are by Reset defaults. */
+var DETAIL = {
+  light: { bayer: false, conbounds: false, connames: false, dso: false, moons: false,
+           asteroids: false, comets: false, showers: false, pics: false, sats: false, tracks: false,
+           paths: false, cgrid: false, hgrid: false, tropics: false, ecliptic: false, galactic: false,
+           linelabels: false, meridian: false, stars: true, starnames: true, conlines: true,
+           mw: true, planets: true, horizon: true, below: true },
+  medium: null,                                   /* filled in from the defaults below */
+  heavy: { bayer: true, conbounds: true, connames: true, conlines: true, dso: true, moons: true,
+           asteroids: true, comets: true, showers: true, pics: true, sats: true, tracks: true,
+           paths: true, cgrid: true, hgrid: true, tropics: true, ecliptic: true, galactic: true,
+           linelabels: true, meridian: true, stars: true, starnames: true, mw: true,
+           planets: true, horizon: true, below: true }
+};
+var DETAIL_KEYS = Object.keys(DETAIL.light);
+var detailLevel = 'medium';
+
 /* how the page opens, kept so that Reset defaults has something to go back to */
 var OPT_DEFAULTS = JSON.parse(JSON.stringify(opt));
 var DEFAULT_ASTEROID_KM = 300, DEFAULT_SAT_GROUP = 'visual', DEFAULT_FOV = 6.4;
@@ -1923,7 +1951,7 @@ function coordLines(v, c) {
 }
 function placeLabels() {
   labelQ.sort(function (a, b) { return b.prio - a.prio; });
-  var subFont = '400 9.5px ' + FONT;
+  var subFont = '400 9.5px ' + ink();
   for (var i = 0; i < labelQ.length; i++) {
     var L = labelQ[i];
     if (outsideDisc(L.x, L.y, 0)) continue;
@@ -2112,7 +2140,7 @@ function drawCelestialGrid() {
   gridNumbers(stepLat);
   if (!ext) return;
   /* grid values along the edges of the view */
-  ctx.font = '400 10px ' + FONT; ctx.fillStyle = PAL.gratLab; ctx.textBaseline = 'middle';
+  ctx.font = '400 10px ' + ink(); ctx.fillStyle = PAL.gratLab; ctx.textBaseline = 'middle';
   var fine = stepLon < 1 / 4;
   var lon;
   for (lon = Math.ceil(ext.lon0 / stepLon) * stepLon; lon <= ext.lon1; lon += stepLon) {
@@ -2137,7 +2165,7 @@ function drawCelestialGrid() {
    so wherever the view is pointed at least one of each falls somewhere on the screen. */
 function gridNumbers(stepLat) {
   var lab = Math.max(30, Math.ceil(stepLat / 10) * 10), lat, lon, q;
-  ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = PAL.gratLab;
+  ctx.font = '400 9.5px ' + ink(); ctx.fillStyle = PAL.gratLab;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (lat = -60; lat <= 60; lat += lab) {
     if (!lat) continue;                             /* the equator is drawn and named elsewhere */
@@ -2292,7 +2320,7 @@ function queueStarLabel(i, px, py, r, mag, lim, c) {
   if (!text) return;
   var big = mag < 1.5;
   queueLabel(px, py, r, text, {
-    font: (big ? '500 ' : '400 ') + (big ? 12 : 11) + 'px ' + FONT,
+    font: (big ? '500 ' : '400 ') + (big ? 12 : 11) + 'px ' + ink(),
     colour: e.name && text === e.name ? 'rgba(235,240,250,.92)' : 'rgba(180,195,220,.85)',
     prio: 6 - Math.min(5, Math.max(0, mag)), sub: coordLines([SX[i], SY[i], SZ[i]], c), kind: 'star', ref: i
   });
@@ -2323,7 +2351,7 @@ function drawDSOs(c, pass) {
       var text = d.name ? (zoom >= 2.5 && d.messier ? d.id + ' · ' + d.name : d.name) : d.id;
       if (d.messier && !d.name) text = d.id;
       if (d.messier && d.name && zoom < 2.5) text = d.id;
-      queueLabel(p[0], p[1], r, text, { font: '400 10.5px ' + FONT, colour: 'rgba(200,214,240,.85)', prio: d.messier ? 4 : 3,
+      queueLabel(p[0], p[1], r, text, { font: '400 10.5px ' + ink(), colour: 'rgba(200,214,240,.85)', prio: d.messier ? 4 : 3,
                                          sub: coordLines(d.v, c), kind: 'dso', ref: i });
     }
   }
@@ -2422,14 +2450,14 @@ function drawBodies(c) {
     drawBody(b, p[0], p[1], r, disc, c);
     addHit(p[0], p[1], Math.max(6, Math.min(r, 13)), 'body', b);
     if (isHover('body', b)) ring(p[0], p[1], r + 4);
-    var label = null, font = '500 12px ' + FONT, colour = 'rgba(245,240,225,.95)', prio = 10;
+    var label = null, font = '500 12px ' + ink(), colour = 'rgba(245,240,225,.95)', prio = 10;
     var wanted = b.kind === 'pmoon' ? opt.lmoons : b.kind === 'asteroid' ? opt.lasteroids
                : b.kind === 'comet' ? opt.lcomets : opt.lplanets;
     if (!wanted && !isHover('body', b)) label = null;
     else if (b.kind === 'sun' || b.kind === 'moon' || b.kind === 'planet') label = b.name;
-    else if (b.kind === 'pmoon') { if (b.sepPx > 9 || isHover('body', b)) { label = b.name; font = '400 10.5px ' + FONT; colour = 'rgba(215,222,235,.9)'; prio = 7; } }
-    else if (b.kind === 'asteroid') { if (b.dwarf || zoom >= 1.4 || isHover('body', b)) { label = b.name; font = '400 10.5px ' + FONT; colour = 'rgba(200,210,225,.85)'; prio = b.dwarf ? 6 : 5; } }
-    else if (b.kind === 'comet') { label = zoom >= 1.4 || b.mag < 9 || isHover('body', b) ? b.shortName : null; font = '400 11px ' + FONT; colour = 'rgba(180,255,220,.9)'; prio = 8; }
+    else if (b.kind === 'pmoon') { if (b.sepPx > 9 || isHover('body', b)) { label = b.name; font = '400 10.5px ' + ink(); colour = 'rgba(215,222,235,.9)'; prio = 7; } }
+    else if (b.kind === 'asteroid') { if (b.dwarf || zoom >= 1.4 || isHover('body', b)) { label = b.name; font = '400 10.5px ' + ink(); colour = 'rgba(200,210,225,.85)'; prio = b.dwarf ? 6 : 5; } }
+    else if (b.kind === 'comet') { label = zoom >= 1.4 || b.mag < 9 || isHover('body', b) ? b.shortName : null; font = '400 11px ' + ink(); colour = 'rgba(180,255,220,.9)'; prio = 8; }
     if (label) queueLabel(p[0], p[1], r, label, { font: font, colour: colour, prio: prio, sub: coordLines(b.v, c), kind: 'body', ref: b, force: b.kind !== 'asteroid' && b.kind !== 'pmoon' });
   }
 }
@@ -2474,7 +2502,7 @@ function drawMoonShadows(c) {
     ctx.fillStyle = 'rgba(8,10,16,.85)';
     ctx.beginPath(); ctx.arc(p[0], p[1], rr, 0, 2 * Math.PI); ctx.fill();
     addHit(p[0], p[1], Math.max(4, rr), 'shadow', b);
-    if (parentR > 22) queueLabel(p[0], p[1], rr, b.name + '\u2019s shadow', { font: '400 9.5px ' + FONT, colour: 'rgba(210,220,235,.8)', prio: 6, kind: 'shadow', ref: b });
+    if (parentR > 22) queueLabel(p[0], p[1], rr, b.name + '\u2019s shadow', { font: '400 9.5px ' + ink(), colour: 'rgba(210,220,235,.8)', prio: 6, kind: 'shadow', ref: b });
   }
 }
 function drawDisc(b, x, y, r, ne) {
@@ -2564,7 +2592,7 @@ function drawSats(c) {
     addHit(p[0], p[1], 7, 'sat', st);
     if (hov) ring(p[0], p[1], 10);
     if ((station || showNames || hov) && (opt.lsats || hov)) {
-      queueLabel(p[0], p[1], img ? 9 : r, st.name, { font: '400 10.5px ' + FONT, colour: st.lit ? 'rgba(255,225,170,.92)' : 'rgba(200,205,215,.8)',
+      queueLabel(p[0], p[1], img ? 9 : r, st.name, { font: '400 10.5px ' + ink(), colour: st.lit ? 'rgba(255,225,170,.92)' : 'rgba(200,205,215,.8)',
                                                     prio: station ? 9 : 4, sub: coordLines(st.v, c), kind: 'sat', ref: st });
     }
   }
@@ -2646,7 +2674,7 @@ function drawShowers(c) {
     if (text && coming) text += ' \u00b7 in ' + Math.max(1, Math.round(-st.fromPeak / 0.9856)) + ' days';
     else if (text && st.known && st.zhr >= 3) text += ' \u00b7 ' + Math.round(st.zhr) + '/h';
     if (text) queueLabel(p[0], p[1], r, text, {
-      font: (frac > 0.5 ? '500 11px ' : '400 10.5px ') + FONT,
+      font: (frac > 0.5 ? '500 11px ' : '400 10.5px ') + ink(),
       colour: coming ? 'rgba(225,185,210,.6)' : 'rgba(255,190,220,' + (0.55 + 0.4 * frac).toFixed(2) + ')',
       prio: coming ? 2 : 2 + Math.round(7 * frac), sub: coordLines(st.v, c), kind: 'shower', ref: sh });
   }
@@ -2719,7 +2747,7 @@ function drawPaths(c) {
     var col = b.colour || '#c8d2e6';
     drawLine(pth.geo, 'rgba(200,214,238,.34)', 1.1, [5, 4]);
     ctx.fillStyle = 'rgba(215,226,245,.8)';
-    ctx.font = '400 9px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '400 9px ' + ink(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (var k = 0; k < pth.ticks.length; k++) {
       var tp = proj(pth.ticks[k].v);
       if (!onScreen(tp, -6)) continue;
@@ -2743,7 +2771,7 @@ function drawFieldCircle() {
   var circ = d3.geoCircle().center(centre).radius(fovDeg / 2).precision(0.4)();
   drawLine(circ, PAL.fov, 1.2, [4, 4]);
   var top = projection([centre[0], Math.min(89.9, centre[1] + fovDeg / 2)]);
-  ctx.font = '400 10px ' + FONT; ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.font = '400 10px ' + ink(); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   var lab = fovDeg >= 1 ? fovDeg.toFixed(fovDeg < 2 ? 1 : 0) + '° field' : Math.round(fovDeg * 60) + '′ field';
   if (top && onScreen(top, -20)) { ctx.fillText(lab, top[0], top[1] - 4); boxes.push([top[0] - 30, top[1] - 18, top[0] + 30, top[1]]); }
 }
@@ -2780,7 +2808,7 @@ function lineTrace(key, geo, colour, width, dash, labelable) {
 }
 function drawLineLabels() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = '400 10px ' + FONT;
+  ctx.font = '400 10px ' + ink();
   for (var i = 0; i < lineHits.length; i++) {
     var lh = lineHits[i], info = LINE_INFO[lh.key];
     if (!info || !lh.labelable || lh.pts.length < 6) continue;
@@ -2856,7 +2884,7 @@ function poleMark(v, name, colour) {
   ctx.moveTo(z[0] - 6, z[1]); ctx.lineTo(z[0] + 6, z[1]);
   ctx.moveTo(z[0], z[1] - 6); ctx.lineTo(z[0], z[1] + 6); ctx.stroke();
   ctx.beginPath(); ctx.arc(z[0], z[1], 3, 0, 2 * Math.PI); ctx.stroke();
-  ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = colour;
+  ctx.font = '400 9.5px ' + ink(); ctx.fillStyle = colour;
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.fillText(name, z[0] + 9, z[1] - 8);
   boxes.push([z[0] - 8, z[1] - 16, z[0] + 11 + ctx.measureText(name).width, z[1] + 8]);
@@ -2953,7 +2981,7 @@ function drawHorizonGrid(c) {
   var lines = horizonGridGeo(c);
   drawLine(lines, plate ? PAL.tympan : PAL.hgrid, 1, null);
   /* altitudes up both halves of the meridian, and azimuths sitting just clear of the horizon */
-  ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = 'rgba(255,196,120,.6)';
+  ctx.font = '400 9.5px ' + ink(); ctx.fillStyle = 'rgba(255,196,120,.6)';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   var a2, az2, p;
   for (a2 = altStep; a2 < 90; a2 += altStep) {
@@ -3044,6 +3072,9 @@ var ARABIC_FONT = "'Noto Naskh Arabic', 'Traditional Arabic', 'Segoe UI', 'Times
    modern card and keeps the sans face it is actually printed in. Arabic and abjad take the Naskh
    face whichever card they are on, since that is the hand they belong to. */
 function cardSerif() { return !!disc && disc.kind !== 'planisphere'; }
+/* and the face every other letter drawn on the instrument takes with it: the altitudes on the
+   tympan, the grid numbers, the names of the lines and of the stars. One hand cut the lot. */
+function ink() { return cardSerif() ? SERIF : FONT; }
 function cardFont(px, weight) {
   return (weight || '600 ') + px + 'px ' + (cardSerif() ? SERIF : FONT);
 }
@@ -3220,6 +3251,9 @@ function cardBands() {
     out.push({ kind: 'deg', r0: r, r1: r + dw }); r += dw + 2;
   }
   if (opt.raring) { out.push({ kind: 'ra', r0: r, r1: r + RING_W }); r += RING_W + 2; }
+  if (opt.zodring) {                                /* the signs go outside the lot */
+    out.push({ kind: 'zodiac', r0: r, r1: r + RING_W + 5 }); r += RING_W + 7;
+  }
   return out;
 }
 function cardExtra() {
@@ -3311,6 +3345,48 @@ function drawRaRing(c, r0, r1, brassy) {
   }
 }
 
+/* Where a given ecliptic longitude falls on the card, as a bearing from the pivot. Taken through
+   the same handDir the hands themselves use, so the ring and the hands cannot disagree by
+   construction rather than by arithmetic that happens to match. */
+function eclBearing(lon, c) {
+  var h = handDir(eclPoint(lon, c));
+  return h ? Math.atan2(h.dy, h.dx) : null;
+}
+var ZODIAC_GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍',
+                    '♎', '♏', '♐', '♑', '♒', '♓'];
+/* A ring of the twelve signs, which is what a planet hand is read against.
+
+   The signs are thirty degrees of ecliptic longitude each, and on the card they are not thirty
+   degrees of anything. The card is centred on the celestial pole, so a bearing from the pivot is
+   set by right ascension alone; and right ascension runs ahead of and behind ecliptic longitude by
+   turns, tan(RA) = cos(eps) tan(lon), which is the reduction to the equator. A sign therefore takes
+   about 27.9 degrees of the ring near the equinoxes and about 32.1 near the solstices, and the four
+   points where the two agree are the equinoxes and the solstices themselves.
+
+   Two things follow, and both are worth saying. The projection makes no difference at all:
+   stereographic and equal spacing set the radius of a point, never its bearing, so the ring is the
+   same ring under either. And the reading is exact for anything on the ecliptic, the Sun by
+   definition; a body off it by an ecliptic latitude beta reads out by the right ascension that
+   latitude costs, which is under half a degree for the planets and about two for the Moon. */
+function drawZodiacRing(c, r0, r1, brassy) {
+  if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
+  var lon, a;
+  for (lon = 0; lon < 360; lon++) {
+    a = eclBearing(lon, c);
+    if (a === null) continue;
+    var len = lon % 30 === 0 ? 9 : lon % 10 === 0 ? 6 : lon % 5 === 0 ? 4.5 : 2.4;
+    cardTickCut(a, r0, r0 + len, lon % 30 === 0 ? 1.4 : 1, brassy);
+  }
+  for (var k = 0; k < 12; k++) {
+    a = eclBearing(k * 30 + 15, c);
+    if (a === null) continue;
+    var g = ZODIAC_GLYPH[k];
+    var use = glyphOk(g + GLYPH_TEXT) ? g + GLYPH_TEXT : ZODIAC_SHORT[k];
+    cardTextCut(a, r0 + (r1 - r0) * 0.7, use,
+                (use.length > 2 ? '600 8.5px ' : '600 12px ') + (brassy ? SERIF : ink()), brassy);
+  }
+}
+
 /* The index: one bright line at the moment shown, drawn out across whatever rings the card carries.
    On a planisphere it is what you read the date against the time with; on an astrolabe it is where
    the Sun should be found on the limb, and is a standing check that the two agree. */
@@ -3353,6 +3429,7 @@ function drawCard(c) {
   var brassy = opt.brass && disc.kind !== 'planisphere';
   cardBands().forEach(function (B) {
     if (B.kind === 'deg') drawDegreeRing(c, rp + B.r0, rp + B.r1, brassy);
+    else if (B.kind === 'zodiac') drawZodiacRing(c, rp + B.r0, rp + B.r1, brassy);
     else drawRaRing(c, rp + B.r0, rp + B.r1, brassy);
   });
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
@@ -3496,11 +3573,16 @@ function handShaft(h, rp, style, from) {
   ctx.lineCap = 'butt';
 }
 var handMarks = [], handReach = 0;
+/* Which planet a hand belongs to is written at its outer end. With rings on the card that mark has
+   to clear them, or it lands among the signs of the zodiac and neither can be read: it goes outside
+   the outermost ring instead, where there is nothing else. */
+var handGlyphR = 0;
 function handGlyph(h, rp, style, glyph, small) {
   if (!glyph) return;
   var text = glyphOk(glyph + GLYPH_TEXT) ? glyph + GLYPH_TEXT : (style.abbr || '');
   if (!text) return;
-  var x = CX + h.dx * (rp + (small ? 11 : 13)), y = CY + h.dy * (rp + (small ? 11 : 13));
+  var out = Math.max(rp, handGlyphR) + (small ? 11 : 13);
+  var x = CX + h.dx * out, y = CY + h.dy * out;
   for (var i = 0; i < handMarks.length; i++)
     if (Math.hypot(x - handMarks[i][0], y - handMarks[i][1]) < 13) return;
   handMarks.push([x, y]);
@@ -3520,6 +3602,7 @@ function drawHands(c) {
   var bands = cardBands();
   var rp = discRadiusPx() + (bands.length ? bands[bands.length - 1].r0 : 0);
   handReach = rp;
+  handGlyphR = discRadiusPx() + (bands.length ? bands[bands.length - 1].r1 : 0);
   var sun = bodyByKey.sol, moon = bodyByKey.lun;
   handMarks = [];
   /* the dragon first, so the bright hands lie over it */
@@ -4003,7 +4086,7 @@ function nameThePointer(i, q, c) {
     if (labelQ[k].kind === 'star' && labelQ[k].ref === i) { labelQ[k].prio = 120; labelQ[k].force = true; return; }
   var big = SMAG[i] < 1.5;
   queueLabel(q[0], q[1], 4.5, e.name, {
-    font: (big ? '500 ' : '400 ') + (big ? 12 : 11) + 'px ' + FONT,
+    font: (big ? '500 ' : '400 ') + (big ? 12 : 11) + 'px ' + ink(),
     colour: 'rgba(235,240,250,.92)',
     prio: 120, sub: coordLines([SX[i], SY[i], SZ[i]], c), kind: 'star', ref: i, force: true
   });
@@ -4648,7 +4731,8 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'sats' && opt.sats && !sats.length) buildSatList();
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
-    if (key === 'degring' || key === 'raring' || key === 'diagonal' || key === 'suspend') {
+    if (key === 'degring' || key === 'raring' || key === 'diagonal' || key === 'suspend' ||
+        key === 'zodring') {
       tuneDisc(); syncViewUI();
     }
     if (key === 'preview') {
@@ -4803,6 +4887,7 @@ function resetDefaults() {
   homeField();
   degZero = 'north'; degZeroEl.value = 'north';
   NUMERALS = 'western'; numeralsEl.value = 'western';
+  detailLevel = 'medium'; detailEl.value = 'medium';
   plateSolid = 0.92; plateSlider.set(0.92, 0.25);
   reteLimit = 2.4; reteSlider.set(2.4, 0.5);
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
@@ -4838,7 +4923,7 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
 var INSTRUMENT_BASE = {
   below: true, horizon: true, hgrid: false, tropics: false, ecliptic: false,
   connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false,
-  starnames: true, brass: false, plate: false
+  starnames: true, brass: false, plate: false, zodring: false
 };
 var INSTRUMENT_KEYS = Object.keys(INSTRUMENT_BASE).concat(['inside']);
 var INSTRUMENTS = {
@@ -4858,7 +4943,7 @@ var INSTRUMENTS = {
     reach: function () { return 90 + 23.44; },
     margin: 40,
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, conlines: false,
-            hands: true, phands: true, starnames: false },
+            hands: true, phands: true, starnames: false, zodring: true },
     note: function () {
       return 'Astronomical clock: an astrolabe with hands. The Sun and the Moon ride round the tympan, ' +
              'and the dragon lies along the line of the Moon\u2019s nodes \u2014 an eclipse can only happen ' +
@@ -5074,6 +5159,8 @@ var reteSlider = hSlider(document.getElementById('hrete'), {
   ticks: [{ v: 1, major: true }, { v: 2 }, { v: 3, major: true }, { v: 4 }, { v: 5, major: true }],
   onInput: function (v) { reteLimit = v; draw(); }
 });
+var detailEl = document.getElementById('detail');
+detailEl.addEventListener('change', function () { applyDetail(detailEl.value); });
 var numeralsEl = document.getElementById('numerals');
 numeralsEl.addEventListener('change', function () { NUMERALS = numeralsEl.value; draw(); });
 var degZeroEl = document.getElementById('degzero');
@@ -5123,7 +5210,8 @@ function setView(kind) {
   syncOrientUI();
   holdLst = null; skyDirty = true;
   syncViewUI();
-  hideTip(); draw();
+  hideTip();
+  resetView();                                    /* a view you have just chosen starts square */
   setStatus(VIEWS[kind].name + ' \u00b7 ' + curProj().name.toLowerCase() +
     (kind === 'globe' ? ' \u00b7 north up, east right, a mirror image as a globe must be'
                       : ' \u00b7 ' + (northTop ? 'north at the top' : 'north at the bottom') +
@@ -5155,7 +5243,8 @@ function syncViewUI() {
   document.getElementById('numrow').classList.toggle('fixed', !onCard);
   numeralsEl.disabled = !onCard;
   var hangs = !!disc && disc.kind === 'astrolabe';   /* only the astrolabe hangs from a ring */
-  ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend', 'L-hands', 'L-phands'].forEach(function (id) {
+  ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend', 'L-hands', 'L-phands',
+   'L-zodring'].forEach(function (id) {
     var e = document.getElementById(id), live = id === 'L-suspend' ? hangs : onCard;
     if (id === 'L-diagonal') live = onCard && opt.degring;
     e.disabled = !live;
@@ -5915,13 +6004,35 @@ function foldPanels(except) {
 /* ------------------------------------------------- a link back to this view */
 /* The address bar keeps the observer, the moment, the view and the layers, so a particular sky
    can be bookmarked or handed to someone else. */
+DETAIL.medium = (function () {
+  var m = {};
+  DETAIL_KEYS.forEach(function (k) { m[k] = OPT_DEFAULTS[k]; });
+  return m;
+})();
+function applyDetail(level) {
+  var set = DETAIL[level];
+  if (!set) return;
+  detailLevel = level;
+  detailEl.value = level;
+  Object.keys(set).forEach(function (k) {
+    opt[k] = set[k];
+    var el = document.getElementById('L-' + k);
+    if (el) el.checked = opt[k];
+  });
+  skyDirty = true; draw();
+  setStatus(level.charAt(0).toUpperCase() + level.slice(1) + ' chart · ' +
+            (level === 'light' ? 'what you would see and name outdoors'
+             : level === 'heavy' ? 'everything the page knows'
+             : 'the way the page opens'));
+}
 var URL_KEYS = ['stars', 'starnames', 'bayer', 'conlines', 'connames', 'conbounds', 'mw', 'dso', 'planets', 'moons',
                 'asteroids', 'comets', 'showers', 'pics', 'sats', 'tracks', 'paths', 'fov', 'daylight', 'refraction',
                 'horizon', 'below', 'hgrid', 'cgrid', 'tropics', 'ecliptic', 'galactic', 'altaz', 'radec', 'inside',
                 'hold', 'spin'];
 function pad(n, w) { return String(n).padStart(w, '0'); }
-function viewHash() {
+function viewHash(auto) {
   var q = [];
+  if (auto) q.push('a=1');                        /* written by the page, not chosen by anyone */
   q.push('o=' + [obs.lat.toFixed(4), obs.lon.toFixed(4), encodeURIComponent(obs.name), encodeURIComponent(obs.tz), encodeURIComponent(obs.country || '')].join(','));
   q.push('v=' + [norm360(rotation[0]).toFixed(1), rotation[1].toFixed(1), zoom.toFixed(3), facing,
                  eastRight ? 'R' : 'L'].join(','));
@@ -5980,13 +6091,22 @@ function applyHash(h) {
     offsetMin = clamp((want - Date.now()) / 60000, -MAX_DAYS * 1440, MAX_OFFSET);
     any = true;
   }
-  if (q.v) {
+  /* The address bar follows the view as you move, so a reload would otherwise put you back wherever
+     you happened to have dragged and magnified to, which is not what reopening a page should do. The
+     page marks the hash it writes itself; a link someone copied and sent carries no such mark and
+     keeps the view it was copied at, which is the whole point of copying it. */
+  if (q.v && !q.a) {
     var v = q.v.split(',');
     var r0 = parseFloat(v[0]), r1 = parseFloat(v[1]), z = parseFloat(v[2]);
     if (!isNaN(r0) && !isNaN(r1)) { rotation = [r0, clamp(r1, -90, 90), 0]; any = true; hashHadView = true; }
     if (!isNaN(z)) zoom = clamp(z, ZMIN, ZMAX);
     if (v[3] && ROLL[v[3]] !== undefined) { facing = v[3]; northTop = facing === 'S'; eastRight = !northTop; }
     if (v[4] === 'R' || v[4] === 'L') eastRight = v[4] === 'R';
+    syncOrientUI();
+  } else if (q.v) {
+    var w = q.v.split(',');
+    if (w[3] && ROLL[w[3]] !== undefined) { facing = w[3]; northTop = facing === 'S'; eastRight = !northTop; }
+    if (w[4] === 'R' || w[4] === 'L') eastRight = w[4] === 'R';
     syncOrientUI();
   }
   return any;
@@ -5995,7 +6115,7 @@ var hashHadView = false, hashTimer = null;
 function refreshHash() {
   clearTimeout(hashTimer);
   hashTimer = setTimeout(function () {
-    try { history.replaceState(null, '', location.pathname + location.search + viewHash()); } catch (e) {}
+    try { history.replaceState(null, '', location.pathname + location.search + viewHash(true)); } catch (e) {}
   }, 700);
 }
 document.getElementById('copylink').addEventListener('click', function () {
@@ -6242,7 +6362,7 @@ updateScrubLabel();
 
 /* the address bar follows the view, so the link is always there to copy */
 var _drawH = draw;
-draw = function () { _drawH(); lastHash = viewHash(); refreshHash(); };
+draw = function () { _drawH(); lastHash = viewHash(true); refreshHash(); };
 
 fetchSatellites(function () {
   buildSatList(); buildSearchIndex(); skyDirty = true; trackCache = {}; draw();
@@ -6310,7 +6430,11 @@ window.CG = {
   daysToPos: daysToPos, posToDays: posToDays,
   degZero: function (z) { if (z) { degZero = z; degZeroEl.value = z; draw(); } return degZero; },
   degZeroBearing: function (c) { return degZeroBearing(c || ensureSky()); },
+  eclBearing: function (lon, c) { return eclBearing(lon, c || ensureSky()); },
+  ink: ink,
   numerals: function (n) { if (n) { NUMERALS = n; numeralsEl.value = n; draw(); } return NUMERALS; },
+  detail: function (l) { if (l) applyDetail(l); return detailLevel; },
+  detailKeys: function () { return DETAIL_KEYS.slice(); },
   numStr: numStr, abjad: abjad, cardBands: cardBands, cardFont: cardFont, cardSerif: cardSerif, numFont: numFont,
   plateSolid: function (v) { if (v !== undefined) { plateSolid = v; plateSlider.set(v, 0.25); draw(); } return plateSolid; },
   reteLimit: function (v) { if (v !== undefined) { reteLimit = v; reteSlider.set(v, 0.5); draw(); } return reteLimit; },

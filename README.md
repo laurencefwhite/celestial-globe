@@ -230,11 +230,37 @@ drawn on the sphere.
   likewise waits for a degree ring to sit in.
 
 - **The hand it is written in.** Brass was cut with a graver by someone trained on letter forms that
-  have serifs, and every surviving astrolabe reads that way, so the astrolabe and the clock carry
-  their numerals, their signs of the zodiac, their altitudes and their compass points in a serif
-  face. The planisphere is a printed modern card and keeps the sans face it is actually printed in.
-  Star names are not engraving and stay as they are in every other view. Arabic and abjad take the
-  Naskh face on any card, that being the hand they belong to.
+  have serifs, and every surviving astrolabe reads that way, so **every letter on the astrolabe and
+  the clock** is in a serif face: the numerals on all the rings, the signs of the zodiac, the
+  altitudes and azimuths on the tympan, the right ascensions and declinations of the grid, the
+  compass points, the names of the lines, and the names of the stars themselves. One hand cut the
+  lot, which is what an engraved instrument looks like. The planisphere is a printed modern card and
+  keeps the sans face it is actually printed in, and so do the two sky views. Arabic and abjad take
+  the Naskh face on any card.
+
+- **A ring of the twelve signs**, which is what a planet hand is read against. The clock comes with
+  one; the astrolabe can have one, outside everything else it is wearing.
+
+  **A sign is thirty degrees of ecliptic longitude and it is not thirty degrees of the ring.** The
+  card is centred on the celestial pole, so a bearing from the pivot is set by right ascension
+  alone, and right ascension runs ahead of and behind ecliptic longitude by turns —
+  tan RA = cos ε · tan λ, the reduction to the equator. A sign therefore takes about **27.9°** of the
+  ring near the equinoxes and **32.2°** near the solstices, and the only four places the two agree
+  are the equinoxes and the solstices themselves. Measured off the drawn ring: Aries 27.90°, Cancer
+  32.20°, Libra 27.90°, Capricorn 32.20°, the twelve closing the circle to 360.0000°, and each
+  within 0.033° of the closed form. That last thirtieth of a degree is precession, not error: set the
+  clock to J2000 and the residual falls to zero, because the page builds the ecliptic in the J2000
+  frame and precesses it to the date.
+
+  **The projection makes no difference at all.** Stereographic and equal spacing set the radius of a
+  point and never its bearing, so the ring is the same ring under either — measured identical to
+  8 parts in 10¹¹ of a degree.
+
+  Every hand lands in the house its own longitude puts it in; measured for the Sun, the Moon and the
+  seven planets, all nine agree. The Sun is exact to four decimal places, being on the ecliptic by
+  definition. A body off the ecliptic reads out by the right ascension its ecliptic latitude costs,
+  which was worst at 1.35° of ring for Mars — under a twentieth of a sign, and only visible within
+  that much of a boundary.
 
 - **Numerals**: Western, the Arabic-Indic digits (٠ ١ ٢ ٣), or **abjad**, which is what is really cut
   into a brass astrolabe. Abjad numbers the letters — alif is one, ba two, up to ya for ten, then kaf
@@ -297,6 +323,21 @@ drawn on the sphere.
   a second times the cosine of the declination — the first thing anyone meets at the eyepiece.
   **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
   all: over three hours the Moon leaves a sidereal field entirely.
+
+- **Light, medium and heavy**, since setting thirty switches one at a time to get a clear chart is
+  nobody's idea of an evening. **Medium is exactly how the page opens**, so choosing it changes
+  nothing, and the other two are a step either side: **light** strips the chart back to what you
+  would actually see and name outdoors — stars, their names, the constellation figures, the Milky
+  Way, the planets and the horizon — and **heavy** turns on everything the page knows. Only the
+  layers move: the place, the moment, the view and the instrument are left alone, as they are by
+  Reset defaults.
+
+- **A view you have just chosen starts square, and so does a reloaded page.** Pressing a view button
+  re-seats it — centred, unmagnified, unslid — rather than carrying over whatever you had dragged the
+  last one to. The address bar follows the view as you move, which meant a reload put you back
+  wherever you happened to have dragged and magnified to; the page now marks the hash it writes
+  itself and ignores that mark's view on the way back in. A link **you** copied carries no such mark
+  and keeps the view it was copied at, which is the whole point of copying it.
 
 - **A switch that does not apply is greyed, not annotated.** *Clock hands*, *Planet hands* and the
   two outer rings used to carry the words "on a card" under them, which told a reader nothing they
