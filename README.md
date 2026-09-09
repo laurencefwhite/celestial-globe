@@ -15,8 +15,12 @@ drawn on the sphere.
   a second tap (or the card's *Fly to* button) flies there, and a tap on empty sky clears the
   selection; the panels fold into the corners and a tap on the globe folds an open one.
 - **Five views, and no more.** There are five ways of looking at this and everything else is a
-  variant of one of them, so they are five buttons: **Sky from inside**, **Celestial sphere**,
-  **Planisphere**, **Astrolabe**, **Astronomical clock**. What each fixes and what it leaves to you
+  variant of one of them, so they are five buttons: **Celestial sphere**, **Sky view**,
+  **Planisphere**, **Astrolabe**, **Astronomical clock**. The five are also pills down the left edge
+  of the screen, and the three chart weights pills down the right, so neither has to be dug out of a
+  panel. They sit at the edges when the panels are folded and just inboard of them when they are not,
+  which is where the other floating pills already live; on a phone, where an open panel is a sheet
+  across the whole screen, they wait until it is folded away. What each fixes and what it leaves to you
   is not arbitrary. A globe from outside is orthographic and mirrored by its nature — that is what a
   sphere seen from without does to the sky — so it has no variants and both menus grey out. The
   other four all have a real choice of layout and can be turned whichever way up you like.
@@ -290,8 +294,13 @@ drawn on the sphere.
   constellations back to front. The status line says which of the two you are in whenever you change
   either menu.
 
-  The ordinary inside view opens unmirrored, which is what printed instruments use: a *BBC Sky at
-  Night* card for 50° N has north at the bottom and east at the right.
+  **The sky view opens differently on a phone.** Hold a phone up at the sky and it is a window, not
+  a globe: what is on your left has to be drawn on the left, or nothing tracks as you turn round. So
+  on a touch screen it opens with north at the top and **east at the left**, which is the unmirrored
+  pairing — the sky as you actually see it. On a desktop the chart is on a table rather than held up,
+  and it opens mirrored, north at the top with east at the right, which is the readable arrangement
+  there. The hemisphere makes no difference to this: the handedness is a property of the pairing
+  alone. One tap on *East at right/left* moves between them either way.
 
   **The three instruments open mirrored**, deliberately: north at the top with east at the right in
   the southern hemisphere, south at the top with east at the left in the northern. That is a choice
@@ -328,9 +337,10 @@ drawn on the sphere.
   nobody's idea of an evening. **Medium is exactly how the page opens**, so choosing it changes
   nothing, and the other two are a step either side: **light** strips the chart back to what you
   would actually see and name outdoors — stars, their names, the constellation figures, the Milky
-  Way, the planets and the horizon — and **heavy** turns on everything the page knows. Only the
-  layers move: the place, the moment, the view and the instrument are left alone, as they are by
-  Reset defaults.
+  Way, the planets and the horizon — and **heavy** turns on everything the page knows, the three
+  optional rings included, so an astrolabe under heavy comes out wearing its degrees, its right
+  ascensions and its signs. Only the layers move: the place, the moment, the view and the instrument
+  are left alone, as they are by Reset defaults.
 
 - **A view you have just chosen starts square, and so does a reloaded page.** Pressing a view button
   re-seats it — centred, unmagnified, unslid — rather than carrying over whatever you had dragged the
@@ -366,6 +376,21 @@ drawn on the sphere.
   reasoning that a tympan carries altitude and azimuth circles rather than a graticule of right
   ascension. True of brass, but this is also a chart, and a switch that turns itself off is worse
   than an anachronism. The instruments no longer touch it.
+
+- **Daylight falls on one side of the world only.** The Sun drowns the stars, but only the ones it
+  is shining on. Half the sphere on any chart that shows the whole of it is under your feet, in the
+  Earth's own shadow, and the stars there are as bright at noon as at midnight, because it is night
+  there. They used to be faded and dropped along with the rest, which put the sky's own daylight on
+  the far side of the world. Which side a star is on is one dot product against the zenith, so each
+  now takes its own limit, its own size and its own opacity. Measured at a moment with the Sun 47°
+  up: above the horizon forty sampled stars drop from a mean of 202 to 146 when daylight is switched
+  on, and below it the worst of forty changes by 0.3 of 255, which is the edge of a circle being
+  drawn at the same size twice.
+
+  The grids and the great circles are a separate matter and do change tone everywhere, daylight or
+  not, so that they keep their contrast against a blue sky; a star sitting on one shares in that,
+  which is why the same forty move by 7.8 of 255 with the lines drawn over them. A line that crosses
+  the horizon cannot be two colours, so that one stays as it is.
 
 - **Daylight fades the sky, not the lines drawn on it.** The stars, the Milky Way and the
   constellation figures wash out at sunrise, because that is what they do. The grids and the great

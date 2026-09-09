@@ -306,6 +306,13 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
   font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
 }
 .floatbtn:hover{background:rgba(255,255,255,.07);color:var(--ink)}
+.floatbtn.on{background:rgba(142,208,255,.18);border-color:rgba(142,208,255,.45);color:var(--accent)}
+/* the two stacks of pills: the five views down one edge, the three chart weights down the other,
+   so neither has to be dug out of a panel to be reached */
+.pillcol{position:absolute;display:none;z-index:4;flex-direction:column;gap:6px}
+.pillcol.show{display:flex}
+.pillcol .floatbtn{position:static;display:block;height:27px;padding:0 11px;font-size:9.5px}
+#detailpills{align-items:flex-end}
 #controls.min ~ #resetfloat{display:block}
 
 /* red-and-black night vision: the stage goes to luminance, then a red multiply leaves only red light */
@@ -543,8 +550,8 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-radec"><span class="sw"></span><span class="tl">Right ascension &amp; declination</span></label>
       <div class="sub-t">View</div>
       <div class="views">
-        <button class="btn sm" id="v-inside" title="The sky as it is overhead, laid flat">Sky from inside</button>
         <button class="btn sm" id="v-globe" title="The celestial sphere seen from outside, as a globe on a stand">Celestial sphere</button>
+        <button class="btn sm" id="v-inside" title="The sky as it is overhead, laid flat. On a phone it opens the way you would see it, with east on the other hand">Sky view</button>
         <button class="btn sm" id="v-planisphere" title="Every star that ever rises here, on one card about the pole">Planisphere</button>
         <button class="btn sm" id="v-astrolabe" title="The tympan cut for this latitude, bounded at the far tropic">Astrolabe</button>
         <button class="btn sm" id="v-clock" title="An astrolabe with the hands of an astronomical clock">Astronomical clock</button>
@@ -605,6 +612,18 @@ body.night #stage{filter:grayscale(1)}
   <button class="btn floatbtn" id="resetfloat" title="Recentre on the sky overhead and fit the globe">Reset view</button>
   <button class="btn floatbtn" id="pointfloat" title="Hold the sky still, or let it follow the phone again">Freeze</button>
   <button class="btn floatbtn" id="nowfloat" title="Back to the present moment">Now</button>
+  <div class="pillcol" id="viewpills">
+    <button class="btn floatbtn" id="p-globe" title="The celestial sphere seen from outside">Sphere</button>
+    <button class="btn floatbtn" id="p-inside" title="The sky as it is overhead">Sky</button>
+    <button class="btn floatbtn" id="p-planisphere" title="Every star that ever rises here, on one card">Planisphere</button>
+    <button class="btn floatbtn" id="p-astrolabe" title="The tympan cut for this latitude">Astrolabe</button>
+    <button class="btn floatbtn" id="p-clock" title="An astrolabe with the hands of an astronomical clock">Clock</button>
+  </div>
+  <div class="pillcol" id="detailpills">
+    <button class="btn floatbtn" id="d-light" title="The naked-eye sky and nothing else">Light</button>
+    <button class="btn floatbtn" id="d-medium" title="The chart as the page opens it">Medium</button>
+    <button class="btn floatbtn" id="d-heavy" title="Everything the page knows, rings and all">Heavy</button>
+  </div>
 
   <div class="panel" id="field" hidden>
     <button class="pmin" data-name="Field" title="Minimise"></button>
@@ -1499,13 +1518,15 @@ var DETAIL = {
            asteroids: false, comets: false, showers: false, pics: false, sats: false, tracks: false,
            paths: false, cgrid: false, hgrid: false, tropics: false, ecliptic: false, galactic: false,
            linelabels: false, meridian: false, stars: true, starnames: true, conlines: true,
-           mw: true, planets: true, horizon: true, below: true },
+           mw: true, planets: true, horizon: true, below: true,
+           degring: false, raring: false, zodring: false },
   medium: null,                                   /* filled in from the defaults below */
   heavy: { bayer: true, conbounds: true, connames: true, conlines: true, dso: true, moons: true,
            asteroids: true, comets: true, showers: true, pics: true, sats: true, tracks: true,
            paths: true, cgrid: true, hgrid: true, tropics: true, ecliptic: true, galactic: true,
            linelabels: true, meridian: true, stars: true, starnames: true, mw: true,
-           planets: true, horizon: true, below: true }
+           planets: true, horizon: true, below: true,
+           degring: true, raring: true, zodring: true }
 };
 var DETAIL_KEYS = Object.keys(DETAIL.light);
 var detailLevel = 'medium';
@@ -1685,8 +1706,24 @@ function resize() {
    already, so the clock wants nothing special. In the south the same pairing runs backwards, and a
    clock that runs backwards is a poor clock, so the southern clock alone puts east on the left. It
    keeps north at the top and it keeps its hours going round the way a clock's hours go. */
+/* Which way up a chart opens, and which side east falls on.
+
+   A whole-sky chart centred on the pole has only one handedness: N, E, S, W runs one way about the
+   zenith when you stand and look up, and the other way in a mirror. North at the top with east at
+   the left is the sky as you actually see it; north at the top with east at the right is its mirror,
+   which is what a celestial globe shows and what reads most naturally on a table.
+
+   So the sky view opens differently on a phone. Hold a phone up at the sky and it is a window, not
+   a globe: what is on your left has to be drawn on the left, or nothing tracks as you turn round.
+   Held that way east must be on the other hand from the desktop default, and it makes no difference
+   which hemisphere you are in, the handedness being a property of the pairing alone. On a desktop
+   the chart is on a table and the mirrored pairing is the readable one. */
+function handheld() {
+  return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+}
 function defaultOrient(kind) {
   if (kind === 'clock' && obs.lat < 0) return { northTop: true, eastRight: false };
+  if (kind === 'inside' && handheld()) return { northTop: true, eastRight: false };
   return { northTop: true, eastRight: true };
 }
 var northTop = true, eastRight = true;
@@ -1704,7 +1741,53 @@ function unroll(dx, dy) {
 }
 /* The pills sit in a row beside the folded Layers pill, running towards the middle of the screen,
    so they land in the same place relative to it whatever corner the panel happens to fold into. */
+/* The two stacks live on the edges rather than in the corners the panels already own: the views run
+   down the left below whatever the masthead leaves, the weights up the right above whatever the
+   eyepiece leaves. Both go away when there is not room for them, which on a small screen means
+   while a panel is open across it. */
+function placeCols() {
+  var vp = document.getElementById('viewpills'), dp = document.getElementById('detailpills');
+  var W2 = window.innerWidth, H2 = window.innerHeight;
+  /* on a phone an open panel is a sheet across the whole screen: nothing else can be shown beside it */
+  var show = W2 >= 300 && H2 >= 430 && !(smallScreen() && document.querySelector('.panel:not(.min)'));
+  vp.classList.toggle('show', show);
+  dp.classList.toggle('show', show);
+  if (!show) return;
+  /* they sit at the edge when the panels are folded away and just inboard of them when they are not,
+     which is where the other floating pills already live */
+  var lx = 12, rx = W2 - 12;
+  document.querySelectorAll('.panel').forEach(function (pn) {
+    if (pn.classList.contains('min') || pn.hidden) return;
+    var r = pn.getBoundingClientRect();
+    if (r.width < 4) return;
+    if (r.left + r.width / 2 < W2 / 2) lx = Math.max(lx, r.right + 12);
+    else rx = Math.min(rx, r.left - 12);
+  });
+  var vh = vp.getBoundingClientRect().height, dh = dp.getBoundingClientRect().height;
+  var dw = dp.getBoundingClientRect().width;
+  vp.style.left = Math.round(lx) + 'px';
+  vp.style.top = Math.round(clamp((H2 - vh) / 2, 58, H2 - vh - 46)) + 'px';
+  dp.style.left = Math.round(rx - dw) + 'px';
+  dp.style.right = 'auto';
+  dp.style.top = Math.round(clamp((H2 - dh) / 2, 58, H2 - dh - 46)) + 'px';
+  /* and give way altogether if the two would meet in the middle */
+  var clash = (lx + vp.getBoundingClientRect().width + 8) > (rx - dw);
+  vp.classList.toggle('show', !clash);
+  dp.classList.toggle('show', !clash);
+}
+function syncPills() {
+  var kind = currentView();
+  VIEW_ORDER.forEach(function (k) {
+    var b = document.getElementById('p-' + k);
+    if (b) b.classList.toggle('on', k === kind);
+  });
+  ['light', 'medium', 'heavy'].forEach(function (l) {
+    var b = document.getElementById('d-' + l);
+    if (b) b.classList.toggle('on', l === detailLevel);
+  });
+}
 function placePills() {
+  placeCols();
   var panel = document.getElementById('controls');
   var min = panel.classList.contains('min');
   var list = pillList();
@@ -2248,9 +2331,9 @@ function drawDaylight(c) {
 /* ------------------------------------------------------------- stars */
 var magLimit = null;                             /* null: let the zoom decide, as it always has */
 function autoStarLimit() { return Math.min(8.0, 6.0 + 2.2 * Math.log2(Math.max(0.82, zoom))); }
+function fullStarLimit() { return magLimit === null ? autoStarLimit() : magLimit; }
 function starLimit() {
-  var lim = magLimit === null ? autoStarLimit() : magLimit;
-  return lim - 4.5 * skyBrightness(sky);         /* daylight drowns all but the brightest */
+  return fullStarLimit() - 4.5 * skyBrightness(sky);   /* daylight drowns all but the brightest */
 }
 function starRadius(mag, lim) {
   var r = 0.55 + Math.pow(Math.max(0, lim - mag), 1.15) * 0.45;
@@ -2258,44 +2341,59 @@ function starRadius(mag, lim) {
 }
 var STAR_BINS = [-0.05, 0.25, 0.55, 0.85, 1.15, 1.5, 9];
 var starBinPaths = STAR_BINS.map(function () { return null; });
+/* Daylight drowns the stars, but only the ones the daylight is falling on. Half the sphere on any
+   chart that shows the whole of it is under the observer's feet, in the Earth's own shadow, and the
+   stars there are as bright at noon as at midnight, because it is night there. Fading them with the
+   rest put the sky's own daylight on the far side of the world.
+   Which side a star is on is one dot product against the zenith, so each takes its own limit, its
+   own size and its own alpha: the day's above the horizon, the night's below it. */
 function drawStars(c) {
-  var lim = starLimit(), s = R0 * zoom, sgn = reflectNow() ? -1 : 1;
+  var full = fullStarLimit(), bri = skyBrightness(c);
+  var dayLim = full - 4.5 * bri, lim = full;
+  var Zx = c.Z[0], Zy = c.Z[1], Zz = c.Z[2], split = bri > 0.004;
+  var s = R0 * zoom, sgn = reflectNow() ? -1 : 1;
   var m00 = rotM[0][0], m10 = rotM[1][0], m20 = rotM[2][0], m01 = rotM[0][1], m11 = rotM[1][1], m21 = rotM[2][1], m02 = rotM[0][2], m12 = rotM[1][2], m22 = rotM[2][2];
   var paths = STAR_BINS.map(function () { return new Path2D(); });
-  var glow = [];
-  var hitLim = lim - 1.5;
+  var dayPaths = STAR_BINS.map(function () { return new Path2D(); });
+  var glow = [], dayGlow = [];
   var flat = projF === PROJ_BY.orthographic.f;         /* orthographic needs no radial factor at all */
   for (var i = 0; i < NS; i++) {
     var mag = SMAG[i];
     if (mag > lim) break;                              /* sorted by magnitude */
     var vx = SX[i], vy = SY[i], vz = SZ[i];
+    var day = split && (vx * Zx + vy * Zy + vz * Zz) > 0;   /* is the Sun's light on this one */
+    var useLim = day ? dayLim : lim;
+    if (mag > useLim) continue;
     var x = m00 * vx + m10 * vy + m20 * vz;
     if (x <= projClipCos) continue;
     var y = m01 * vx + m11 * vy + m21 * vz, z = m02 * vx + m12 * vy + m22 * vz;
     var sf = flat ? s : s * projF(x, Math.sqrt(y * y + z * z));
     var px = CX + sgn * sf * y, py = CY - sf * z;
     if (px < -10 || px > W + 10 || py < -10 || py > H + 10) continue;
-    var r = starRadius(mag, lim);
+    var r = starRadius(mag, useLim);
     var bv = SBV[i], b = 0;
     while (bv >= STAR_BINS[b]) b++;
-    var pth = paths[b];
+    var pth = (day ? dayPaths : paths)[b];
     pth.moveTo(px + r, py); pth.arc(px, py, r, 0, 6.2832);
-    if (mag < 1.6) glow.push([px, py, r, b]);
-    if (mag < hitLim || starName[i]) addHit(px, py, Math.max(3, r), 'star', i);
-    if (opt.starnames || opt.bayer) queueStarLabel(i, px, py, r, mag, lim, c);
+    if (mag < 1.6) (day ? dayGlow : glow).push([px, py, r, b]);
+    if (mag < useLim - 1.5 || starName[i]) addHit(px, py, Math.max(3, r), 'star', i);
+    if (opt.starnames || opt.bayer) queueStarLabel(i, px, py, r, mag, useLim, c);
   }
-  for (var k = 0; k < glow.length; k++) {
-    var gl = glow[k], col = starRGB(STAR_BINS[gl[3]] - 0.1);
-    var gr = ctx.createRadialGradient(gl[0], gl[1], gl[2] * 0.5, gl[0], gl[1], gl[2] * 3.2);
-    gr.addColorStop(0, 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',.45)'); gr.addColorStop(1, 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',0)');
-    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(gl[0], gl[1], gl[2] * 3.2, 0, 2 * Math.PI); ctx.fill();
-  }
-  var fade = 1 - 0.7 * skyBrightness(c);
-  ctx.globalAlpha = fade;
+  var fade = 1 - 0.7 * bri;
+  [[glow, 1], [dayGlow, fade]].forEach(function (set) {
+    ctx.globalAlpha = set[1];
+    for (var k = 0; k < set[0].length; k++) {
+      var gl = set[0][k], col = starRGB(STAR_BINS[gl[3]] - 0.1);
+      var gr = ctx.createRadialGradient(gl[0], gl[1], gl[2] * 0.5, gl[0], gl[1], gl[2] * 3.2);
+      gr.addColorStop(0, 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',.45)'); gr.addColorStop(1, 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',0)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(gl[0], gl[1], gl[2] * 3.2, 0, 2 * Math.PI); ctx.fill();
+    }
+  });
   for (var q = 0; q < paths.length; q++) {
     var rgb = starRGB(STAR_BINS[q] - 0.1);
     ctx.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
-    ctx.fill(paths[q]);
+    ctx.globalAlpha = 1; ctx.fill(paths[q]);          /* night: nothing shining on them */
+    ctx.globalAlpha = fade; ctx.fill(dayPaths[q]);    /* day: washed out with the sky */
   }
   ctx.globalAlpha = 1;
   if (hover && hover.kind === 'star') {
@@ -4874,6 +4972,7 @@ document.getElementById('resetview').addEventListener('click', resetView);
 function resetDefaults() {
   clearDisc();
   Object.keys(OPT_DEFAULTS).forEach(function (k) {
+    if (k === 'inside') return;                   /* which view you are in has its own buttons */
     opt[k] = OPT_DEFAULTS[k];
     var el = document.getElementById('L-' + k);
     if (el) el.checked = opt[k];
@@ -4896,7 +4995,7 @@ function resetDefaults() {
   syncOptics();
   projKind = DEFAULT_PROJECTION; projEl.value = DEFAULT_PROJECTION;
   document.getElementById('daystep').value = DEFAULT_DAY_STEP;
-  var od0 = defaultOrient(null);
+  var od0 = defaultOrient(currentView());
   northTop = od0.northTop; eastRight = od0.eastRight; syncOrientUI();
   if (nightEl.checked) { nightEl.checked = false; document.body.classList.remove('night'); }
   syncViewUI();
@@ -5182,14 +5281,22 @@ var northEl = document.getElementById('northat'), eastEl = document.getElementBy
    way round it was a globe seen from infinity with the handedness of standing inside it, which is
    not a thing. */
 var VIEWS = {
-  inside:      { name: 'Sky from inside', proj: ['stereographic', 'equidistant'], orient: true },
+  inside:      { name: 'Sky view', proj: ['stereographic', 'equidistant'], orient: true },
   globe:       { name: 'Celestial sphere', proj: ['orthographic'], orient: false },
   planisphere: { name: 'Planisphere', proj: ['equidistant', 'stereographic'], orient: true, disc: true },
   astrolabe:   { name: 'Astrolabe', proj: ['stereographic', 'equidistant'], orient: true, disc: true },
   clock:       { name: 'Astronomical clock', proj: ['stereographic', 'equidistant'], orient: true, disc: true }
 };
-var VIEW_ORDER = ['inside', 'globe', 'planisphere', 'astrolabe', 'clock'];
+var VIEW_ORDER = ['globe', 'inside', 'planisphere', 'astrolabe', 'clock'];
 var insideProj = 'stereographic';                /* the layout the inside view was last left in */
+VIEW_ORDER.forEach(function (k) {
+  var b = document.getElementById('p-' + k);
+  if (b) b.addEventListener('click', function (e) { e.stopPropagation(); setView(k); });
+});
+['light', 'medium', 'heavy'].forEach(function (l) {
+  var b = document.getElementById('d-' + l);
+  if (b) b.addEventListener('click', function (e) { e.stopPropagation(); applyDetail(l); });
+});
 function currentView() { return disc ? disc.kind : (opt.inside ? 'inside' : 'globe'); }
 function setView(kind) {
   if (!VIEWS[kind]) return;
@@ -5220,6 +5327,7 @@ function setView(kind) {
 /* the buttons say which view is out, and the menus grey where the view has already decided */
 function syncViewUI() {
   var kind = currentView(), V = VIEWS[kind] || VIEWS.inside;
+  syncPills();
   VIEW_ORDER.forEach(function (k) {
     var b = document.getElementById('v-' + k);
     if (b) b.classList.toggle('on', k === kind);
@@ -5307,7 +5415,7 @@ function setObserver(lat, lon, name, country, tz, keepView) {
   document.getElementById('lon').value = lon.toFixed(4);
   document.getElementById('subtitle').textContent = 'The sky over ' + obs.name;
   lsSet('cg-obs', obs);
-  var od1 = defaultOrient(disc && disc.kind);
+  var od1 = defaultOrient(currentView());
   northTop = od1.northTop; eastRight = od1.eastRight; syncOrientUI();
   skyDirty = true; trackCache = {}; holdLst = null;
   tickClocks(); updateScrubLabel();
@@ -6019,6 +6127,8 @@ function applyDetail(level) {
     var el = document.getElementById('L-' + k);
     if (el) el.checked = opt[k];
   });
+  if (disc) tuneDisc();                           /* the rings change how much room the card needs */
+  syncViewUI(); syncPills();
   skyDirty = true; draw();
   setStatus(level.charAt(0).toUpperCase() + level.slice(1) + ' chart · ' +
             (level === 'light' ? 'what you would see and name outdoors'
@@ -6060,7 +6170,8 @@ function applyHash(h) {
     if (!isNaN(la) && !isNaN(lo)) {
       obs = { lat: la, lon: lo, name: decodeURIComponent(o[2] || ''), country: decodeURIComponent(o[4] || ''), tz: decodeURIComponent(o[3] || 'UTC') };
       if (!obs.name) obs.name = la.toFixed(2) + ', ' + lo.toFixed(2);
-      northTop = true; eastRight = true; syncOrientUI();
+      var oh = defaultOrient(currentView());
+      northTop = oh.northTop; eastRight = oh.eastRight; syncOrientUI();
       any = true;
     }
   }
@@ -6100,18 +6211,18 @@ function applyHash(h) {
     var r0 = parseFloat(v[0]), r1 = parseFloat(v[1]), z = parseFloat(v[2]);
     if (!isNaN(r0) && !isNaN(r1)) { rotation = [r0, clamp(r1, -90, 90), 0]; any = true; hashHadView = true; }
     if (!isNaN(z)) zoom = clamp(z, ZMIN, ZMAX);
-    if (v[3] && ROLL[v[3]] !== undefined) { facing = v[3]; northTop = facing === 'S'; eastRight = !northTop; }
-    if (v[4] === 'R' || v[4] === 'L') eastRight = v[4] === 'R';
+    if (v[3] && ROLL[v[3]] !== undefined) { facing = v[3]; northTop = facing === 'S'; eastRight = !northTop; hashHadOrient = true; }
+    if (v[4] === 'R' || v[4] === 'L') { eastRight = v[4] === 'R'; hashHadOrient = true; }
     syncOrientUI();
   } else if (q.v) {
     var w = q.v.split(',');
-    if (w[3] && ROLL[w[3]] !== undefined) { facing = w[3]; northTop = facing === 'S'; eastRight = !northTop; }
-    if (w[4] === 'R' || w[4] === 'L') eastRight = w[4] === 'R';
+    if (w[3] && ROLL[w[3]] !== undefined) { facing = w[3]; northTop = facing === 'S'; eastRight = !northTop; hashHadOrient = true; }
+    if (w[4] === 'R' || w[4] === 'L') { eastRight = w[4] === 'R'; hashHadOrient = true; }
     syncOrientUI();
   }
   return any;
 }
-var hashHadView = false, hashTimer = null;
+var hashHadView = false, hashHadOrient = false, hashTimer = null;
 function refreshHash() {
   clearTimeout(hashTimer);
   hashTimer = setTimeout(function () {
@@ -6350,6 +6461,10 @@ updateScrubLabel();
   requestWake();
 })();
 (function intro() {
+  if (!hashHadOrient) {                           /* nobody has said which way up: ask the device */
+    var oi = defaultOrient(currentView());
+    northTop = oi.northTop; eastRight = oi.eastRight; syncOrientUI();
+  }
   syncViewUI();
   if (hashHadView) { draw(); if (opt.spin) startSpin(); return; }
   var c = ensureSky(), z = lonlat(c.Z);
@@ -6434,6 +6549,18 @@ window.CG = {
   ink: ink,
   numerals: function (n) { if (n) { NUMERALS = n; numeralsEl.value = n; draw(); } return NUMERALS; },
   detail: function (l) { if (l) applyDetail(l); return detailLevel; },
+  pills: function () {
+    var out = {};
+    ['viewpills', 'detailpills'].forEach(function (id) {
+      var el = document.getElementById(id), r = el.getBoundingClientRect();
+      out[id] = { shown: el.classList.contains('show'),
+                  x: Math.round(r.left), y: Math.round(r.top),
+                  w: Math.round(r.width), h: Math.round(r.height) };
+    });
+    out.on = Array.prototype.slice.call(document.querySelectorAll('.pillcol .floatbtn.on'))
+      .map(function (b) { return b.id; });
+    return out;
+  },
   detailKeys: function () { return DETAIL_KEYS.slice(); },
   numStr: numStr, abjad: abjad, cardBands: cardBands, cardFont: cardFont, cardSerif: cardSerif, numFont: numFont,
   plateSolid: function (v) { if (v !== undefined) { plateSolid = v; plateSlider.set(v, 0.25); draw(); } return plateSolid; },
