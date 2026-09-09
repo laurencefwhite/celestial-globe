@@ -197,6 +197,48 @@ drawn on the sphere.
   With a ring outside the hours, the clock and planet hands reach on to its inner rim rather than
   stopping at the card's edge, since a hand pointing at nothing in particular is no use.
 
+  The degree ring is divided **to the single degree**, three hundred and sixty marks with the fives
+  and the tens standing taller, which is as fine as a ring of that width can be ruled and still be
+  read. Measured off the rendered limb rather than asserted: the ink round the ring repeats exactly
+  360 times, three times more strongly than at any neighbouring count; four pixels out only the
+  seventy-two five-degree marks survive, and six and a half pixels out only the thirty-six tens.
+
+- **A diagonal scale**, optionally, on the degree ring. A single degree is far too narrow to
+  subdivide across, so the old instrument makers went the other way and used the width of the band:
+  the ring is ruled into six concentric arcs and a slanted line runs from each degree mark on the
+  inner arc to the next degree mark on the outer. Follow the index in until it meets your arc, and
+  read how far along the slant has got — the degree is divided into six, which is **ten minutes of
+  arc**. It buys precision out of the depth of the ring rather than out of its circumference, which
+  is why every serious brass instrument from the sixteenth century on carries one. The band widens
+  from 17 to 37 pixels when it is switched on, and the card draws in to make room.
+
+- **The suspension**, optionally: the three pieces an astrolabe actually hangs from, and each has a
+  name because each does a job. The **throne**, or *kursi*, is the scalloped lug standing off the top
+  of the mater; the **shackle** is hinged into it; the **ring** passes through the shackle and takes
+  the thumb. The point of the arrangement is that it swings freely in two directions, so the
+  instrument hangs plumb however it is held — which is the whole basis of measuring an altitude with
+  one. It keeps its proportion to the instrument, within reason, and the card gives up 66 pixels of
+  radius for it. It is offered on the astrolabe and on the clock, which is the same instrument with
+  hands, and not on the planisphere, which is a card and does not hang from anything. The diagonal
+  scale likewise waits for a degree ring to sit in.
+
+- **Numerals**: Western, the Arabic-Indic digits (٠ ١ ٢ ٣), or **abjad**, which is what is really cut
+  into a brass astrolabe. Abjad numbers the letters — alif is one, ba two, up to ya for ten, then kaf
+  twenty and on by tens to sad ninety, then qaf a hundred and so to ta four hundred — and a number is
+  written as the letters that sum to it, largest first. Twenty-five is كه, a hundred and eighty is قف,
+  three hundred and thirty is شل. There is no zero, so it is set as a dash. The Mashriqi order is
+  used; the Maghrib assigned some of the later letters differently. Every number the test throws at
+  it decomposes and sums back to itself.
+
+- **Everything on the rings is cut, not printed.** The hour limb, the degree ring, the right
+  ascension ring, the planisphere's calendar and hour scales, and the cardinal points on the tympan
+  are all drawn as grooves: a dark stroke offset up and to the left and a light one down and to the
+  right, the light coming from the upper left, so the shadowed wall of the groove is the near one.
+  The direction matters and was wrong once — with the dark on the low side the marks stand proud
+  instead of sinking in, which is exactly what an incised line must not do. Tested by probing the
+  pixels either side of a mark: on the north badge the upper wall reads 75 and the lower 95, and six
+  of the seven diagonal-scale arcs are dark above and light below.
+
 - **Which way up, and which hand.** Two menus settle the orientation of any chart seen from inside:
   *North at top or bottom*, and *East at right or left*. They are not independent in the way they
   look. A whole-sky chart centred on the pole has only one handedness: going round the horizon N, E,
@@ -245,6 +287,20 @@ drawn on the sphere.
 - **The Layers panel folds.** Each heading takes the run of switches under it and puts them away,
   with a count of what is inside, and what you leave open is remembered. One button at the top opens
   or shuts the lot. It opens with one section showing rather than nine.
+
+- **The four poles, each named in its own colour.** Two coordinate systems cross on the sphere and
+  each has a pair of poles, which are the easiest points on it to lose. Alt/az has the **zenith** and
+  the **nadir**, marked in the amber of the horizon; RA/dec has the **north** and **south celestial
+  poles**, marked in the blue of the celestial grid. Each goes out with the system it belongs to, so
+  what is marked is always the frame you have asked to be shown in.
+
+- **Numbers on both grids.** A grid with nothing written on it is a net, not a scale. The
+  declinations are named at ±30° and ±60° on the two meridians that face the observer's north and
+  south, and the right ascensions every two hours along the equator, so wherever the view is pointed
+  at least one of each falls on the screen. The horizon grid names its altitudes up both halves of
+  the meridian, above the horizon and below it, and its azimuths in whole degrees sitting just clear
+  of the horizon itself — which is what turns the alt/az circles on an astrolabe's tympan from
+  decoration into something you can read a bearing off.
 
 - **The celestial grid is yours to set.** An instrument used to switch it off behind you, on the
   reasoning that a tympan carries altitude and azimuth circles rather than a graticule of right

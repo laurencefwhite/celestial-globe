@@ -575,6 +575,14 @@ body.night #stage{filter:grayscale(1)}
         </div></div>
       <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring <small>on a card</small></span></label>
       <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring <small>on a card</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-diagonal"><span class="sw"></span><span class="tl">Diagonal scale <small>reads to 10\u2032</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-suspend"><span class="sw"></span><span class="tl">Suspension ring <small>throne and shackle</small></span></label>
+      <div class="row" id="numrow"><label for="numerals">Numerals</label>
+        <select class="sel" id="numerals">
+          <option value="western">Western \u00b7 0 1 2 3</option>
+          <option value="arabic">Arabic \u00b7 \u0660 \u0661 \u0662 \u0663</option>
+          <option value="abjad">Abjad \u00b7 \u0627 \u0628 \u062c \u062f</option>
+        </select></div>
       <div class="row" id="degrow"><label for="degzero">Zero at</label>
         <select class="sel" id="degzero">
           <option value="north">North · as a bearing</option>
@@ -1468,7 +1476,8 @@ var opt = {
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
   linecards: true, linelabels: false, meridian: false, hands: false, phands: false,
-  preview: false, brass: false, plate: false, degring: false, raring: false,
+  preview: false, brass: false, plate: false, degring: false, raring: false, diagonal: false,
+  suspend: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
@@ -1997,6 +2006,7 @@ function draw() {
   if (opt.galactic) lineTrace('galactic', inkFor(PAL.galactic), 1, [2, 4]);
   if (opt.hgrid) drawHorizonGrid(c);
   if (opt.horizon) drawHorizon(c);
+  if (opt.horizon || opt.hgrid) drawZenithNadir(c);
   if (opt.connames && zoom < 60) drawConNames();
   if (opt.fov) drawFieldCircle();
   if (opt.linelabels) drawLineLabels();
@@ -2087,10 +2097,9 @@ function drawCelestialGrid() {
   }
   drawLine(grat(), inkFor(PAL.grat), 1, null);
   /* the poles */
-  [[0, 90], [0, -90]].forEach(function (pll) {
-    var p = proj(unitv(pll[0], pll[1]));
-    if (onScreen(p)) { ctx.strokeStyle = PAL.gratLab; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p[0] - 5, p[1]); ctx.lineTo(p[0] + 5, p[1]); ctx.moveTo(p[0], p[1] - 5); ctx.lineTo(p[0], p[1] + 5); ctx.stroke(); }
-  });
+  poleMark(unitv(0, 90), 'north celestial pole', PAL.gratLab);
+  poleMark(unitv(0, -90), 'south celestial pole', PAL.gratLab);
+  gridNumbers(stepLat);
   if (!ext) return;
   /* grid values along the edges of the view */
   ctx.font = '400 10px ' + FONT; ctx.fillStyle = PAL.gratLab; ctx.textBaseline = 'middle';
@@ -2111,6 +2120,31 @@ function drawCelestialGrid() {
     ctx.textAlign = 'left';
     ctx.fillText(fmtDec(lat, fineD), 8, q[1]);
     boxes.push([4, q[1] - 8, 80, q[1] + 8]);
+  }
+}
+/* A grid with no numbers on it is a net, not a scale. The declinations are written along the two
+   meridians that face the observer's own north and south, and the right ascensions along the equator,
+   so wherever the view is pointed at least one of each falls somewhere on the screen. */
+function gridNumbers(stepLat) {
+  var lab = Math.max(30, Math.ceil(stepLat / 10) * 10), lat, lon, q;
+  ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = PAL.gratLab;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (lat = -60; lat <= 60; lat += lab) {
+    if (!lat) continue;                             /* the equator is drawn and named elsewhere */
+    for (lon = 0; lon < 360; lon += 180) {
+      q = proj(unitv(lon, lat));
+      if (q && onScreen(q)) {                       /* whole degrees: the grid is ruled in them */
+        ctx.fillText((lat < 0 ? '−' : '+') + Math.abs(lat) + '°', q[0], q[1] - 7);
+        boxes.push([q[0] - 14, q[1] - 14, q[0] + 14, q[1]]);
+      }
+    }
+  }
+  for (lon = 0; lon < 360; lon += 30) {
+    q = proj(unitv(lon, 0));
+    if (q && onScreen(q)) {
+      ctx.fillText(lon / 15 + 'ʰ', q[0], q[1] - 7);
+      boxes.push([q[0] - 12, q[1] - 14, q[0] + 12, q[1]]);
+    }
   }
 }
 function drawTropics() {
@@ -2799,16 +2833,27 @@ function drawHorizon(c) {
   for (mk = -90; mk <= 90; mk += 3) { var lm = lonlat(fromHor(mk, 0, c)); mer.push([lm[0] > 180 ? lm[0] - 360 : lm[0], lm[1]]); }
   for (mk = 90; mk >= -90; mk -= 3) { var lp = lonlat(fromHor(mk, 180, c)); mer.push([lp[0] > 180 ? lp[0] - 360 : lp[0], lp[1]]); }
   if (opt.meridian) lineTrace('meridian', { type: 'LineString', coordinates: mer }, LINE_INFO.meridian.colour, 1, [2, 5]);
-  /* zenith */
-  var z = proj(c.Z);
-  if (onScreen(z)) {
-    ctx.strokeStyle = 'rgba(255,196,120,.7)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(z[0] - 6, z[1]); ctx.lineTo(z[0] + 6, z[1]); ctx.moveTo(z[0], z[1] - 6); ctx.lineTo(z[0], z[1] + 6); ctx.stroke();
-    ctx.beginPath(); ctx.arc(z[0], z[1], 3, 0, 2 * Math.PI); ctx.stroke();
-    ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = 'rgba(255,196,120,.7)'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('zenith', z[0] + 9, z[1] - 8);
-    boxes.push([z[0] - 8, z[1] - 16, z[0] + 44, z[1] + 8]);
-  }
+}
+/* Each of the two coordinate systems has a pair of poles, and they are the easiest points on the
+   whole sphere to lose track of. Alt/az has the zenith and the nadir; RA/dec has the two celestial
+   poles. Each is marked in the colour of its own system and goes out with it, so what you see marked
+   is always the frame you have asked to be shown in. */
+function poleMark(v, name, colour) {
+  var z = proj(v);
+  if (!z || !onScreen(z)) return;
+  ctx.strokeStyle = colour; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(z[0] - 6, z[1]); ctx.lineTo(z[0] + 6, z[1]);
+  ctx.moveTo(z[0], z[1] - 6); ctx.lineTo(z[0], z[1] + 6); ctx.stroke();
+  ctx.beginPath(); ctx.arc(z[0], z[1], 3, 0, 2 * Math.PI); ctx.stroke();
+  ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = colour;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(name, z[0] + 9, z[1] - 8);
+  boxes.push([z[0] - 8, z[1] - 16, z[0] + 11 + ctx.measureText(name).width, z[1] + 8]);
+}
+function drawZenithNadir(c) {
+  poleMark(c.Z, 'zenith', 'rgba(255,196,120,.7)');
+  poleMark(vscale(c.Z, -1), 'nadir', 'rgba(255,196,120,.45)');
 }
 /* the cardinal letters sit outside the globe, on the ray from the centre through each horizon point;
    when the rim runs off the screen they stop at the screen edge instead */
@@ -2847,10 +2892,26 @@ function drawCardinals(c) {
     ly = clamp(ly, m + rad, H - m - rad);
     ctx.globalAlpha = behind ? 0.4 : 1;
     ctx.font = (major ? '600 12px ' : '500 10px ') + FONT;
-    ctx.fillStyle = 'rgba(4,8,16,.8)'; ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,196,120,' + (behind ? '.25' : '.45') + ')'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = major ? PAL.horizon : 'rgba(255,196,120,.8)';
-    ctx.fillText(name, lx, ly + 0.5);
+    var onPlate = disc && opt.plate && disc.kind !== 'planisphere';
+    if (onPlate) {
+      /* on brass they are cut into the plate like everything else, not stuck on it */
+      var cutp = cutPair(true);
+      ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(120,90,30,.30)'; ctx.fill();
+      ctx.save(); ctx.translate(-0.5, -0.6);
+      ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI);
+      ctx.strokeStyle = cutp.dark; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.translate(0.4, 0.5);
+      ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI);
+      ctx.strokeStyle = cutp.light; ctx.lineWidth = 0.9; ctx.stroke(); ctx.restore();
+      ctx.fillStyle = cutp.dark; ctx.fillText(name, lx - 0.5, ly - 0.1);
+      ctx.fillStyle = cutp.light; ctx.fillText(name, lx + 0.4, ly + 1);
+    } else {
+      ctx.fillStyle = 'rgba(4,8,16,.8)'; ctx.beginPath(); ctx.arc(lx, ly, rad, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,196,120,' + (behind ? '.25' : '.45') + ')'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = major ? PAL.horizon : 'rgba(255,196,120,.8)';
+      ctx.fillText(name, lx, ly + 0.5);
+    }
     boxes.push([lx - rad - 2, ly - rad - 2, lx + rad + 2, ly + rad + 2]);
     ctx.globalAlpha = 1;
     if (!behind) addHit(lx, ly, rad + 2, 'cardinal', { name: name, az: az });
@@ -2881,11 +2942,25 @@ function drawHorizonGrid(c) {
   if (plate && opt.plate) return;                 /* the brass plate engraves them itself */
   var lines = horizonGridGeo(c);
   drawLine(lines, plate ? PAL.tympan : PAL.hgrid, 1, null);
-  if (zoom >= 1.6 || plate) {
-    ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = 'rgba(255,196,120,.6)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (var a2 = altStep; a2 < 90; a2 += altStep) {
-      var p = proj(fromHor(a2, 180, c)); if (onScreen(p)) { ctx.fillText(a2 + '°', p[0], p[1]); boxes.push([p[0] - 12, p[1] - 7, p[0] + 12, p[1] + 7]); }
-    }
+  /* altitudes up both halves of the meridian, and azimuths sitting just clear of the horizon */
+  ctx.font = '400 9.5px ' + FONT; ctx.fillStyle = 'rgba(255,196,120,.6)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  var a2, az2, p;
+  for (a2 = altStep; a2 < 90; a2 += altStep) {
+    [0, 180].forEach(function (az) {
+      var q = proj(fromHor(a2, az, c));
+      if (q && onScreen(q)) { ctx.fillText(a2 + '°', q[0], q[1]); boxes.push([q[0] - 12, q[1] - 7, q[0] + 12, q[1] + 7]); }
+    });
+    if (plate) continue;
+    [0, 180].forEach(function (az) {
+      var q = proj(fromHor(-a2, az, c));
+      if (q && onScreen(q)) { ctx.fillText('−' + a2 + '°', q[0], q[1]); boxes.push([q[0] - 14, q[1] - 7, q[0] + 14, q[1] + 7]); }
+    });
+  }
+  var azStep = plate ? 15 : altStep;
+  for (az2 = 0; az2 < 360; az2 += azStep) {
+    p = proj(fromHor(3, az2, c));
+    if (p && onScreen(p)) { ctx.fillText(az2 + '°', p[0], p[1]); boxes.push([p[0] - 14, p[1] - 7, p[0] + 14, p[1] + 7]); }
   }
 }
 
@@ -2925,6 +3000,52 @@ function haForClockTime(hours, c, withEq) {
   var tzh = tzOffsetMinutes(c.date) / 60;
   var eq = withEq ? eqTimeMin(c.jd) / 60 : 0;
   return (hours - 12) * 15 - tzh * 15 + obs.lon + eq * 15;
+}
+/* How the numbers are written. Western digits; the Arabic-Indic digits, which are what "Arabic
+   numerals" actually look like in Arabic; or abjad, which is what is really on a brass astrolabe.
+   Abjad numbers letters: alif is one, ba two, up to ya for ten, then kaf twenty and on by tens to
+   sad ninety, then qaf a hundred and so to ta four hundred. A number is written as the letters that
+   sum to it, largest first, so twenty-five is kaf-ha and a hundred and eighty is qaf-fa. It is the
+   Mashriqi order; the Maghrib assigned some of the later letters differently. */
+var NUMERALS = 'western';
+var ARABIC_DIGIT = ['\u0660', '\u0661', '\u0662', '\u0663', '\u0664',
+                    '\u0665', '\u0666', '\u0667', '\u0668', '\u0669'];
+var ABJAD = [[400, '\u062a'], [300, '\u0634'], [200, '\u0631'], [100, '\u0642'],
+             [90, '\u0635'], [80, '\u0641'], [70, '\u0639'], [60, '\u0633'], [50, '\u0646'],
+             [40, '\u0645'], [30, '\u0644'], [20, '\u0643'], [10, '\u064a'],
+             [9, '\u0637'], [8, '\u062d'], [7, '\u0632'], [6, '\u0648'], [5, '\u0647'],
+             [4, '\u062f'], [3, '\u062c'], [2, '\u0628'], [1, '\u0627']];
+function abjad(n) {
+  if (n <= 0) return '\u2014';                     /* there is no zero in abjad */
+  var out = '';
+  for (var i = 0; i < ABJAD.length; i++)
+    while (n >= ABJAD[i][0]) { out += ABJAD[i][1]; n -= ABJAD[i][0]; }
+  return out;
+}
+function numStr(n) {
+  if (NUMERALS === 'abjad') return abjad(n);
+  if (NUMERALS === 'arabic')
+    return String(n).replace(/\d/g, function (d) { return ARABIC_DIGIT[+d]; });
+  return String(n);
+}
+var ARABIC_FONT = "'Noto Naskh Arabic', 'Traditional Arabic', 'Segoe UI', 'Times New Roman', serif";
+function numFont(px, weight) {
+  return (weight || '600 ') + px + 'px ' + (NUMERALS === 'western' ? FONT : ARABIC_FONT);
+}
+/* Everything cut into brass is cut, including the graduations. Same rule as the plate: the light is
+   from the upper left, so the shadowed wall of the groove is the upper one. */
+var CUT = { dark: 'rgba(52,32,2,.9)', light: 'rgba(255,242,200,.65)' };
+var CUT_DARK = { dark: 'rgba(2,6,14,.85)', light: 'rgba(190,215,250,.85)' };
+function cutPair(brassy) { return brassy ? CUT : CUT_DARK; }
+function cardTickCut(a, r0, r1, width, brassy) {
+  var c = cutPair(brassy);
+  ctx.save(); ctx.translate(-0.5, -0.6); cardTick(a, r0, r1, c.dark, width + 0.3); ctx.restore();
+  ctx.save(); ctx.translate(0.4, 0.5); cardTick(a, r0, r1, c.light, width); ctx.restore();
+}
+function cardTextCut(a, r, text, font, brassy) {
+  var c = cutPair(brassy);
+  ctx.save(); ctx.translate(-0.5, -0.6); cardText(a, r, text, font, c.dark); ctx.restore();
+  ctx.save(); ctx.translate(0.4, 0.5); cardText(a, r, text, font, c.light); ctx.restore();
 }
 function cardTick(a, r0, r1, colour, width) {
   ctx.beginPath();
@@ -3006,6 +3127,58 @@ function drawBrassPlate(c, rp) {
   ctx.restore();
 }
 
+/* What an astrolabe hangs from. Three pieces, and each has a name because each does a job. The
+   throne, or kursi, is the shaped lug standing off the top of the mater; the shackle is the loop
+   hinged into it; the ring passes through the shackle and takes the thumb. The point of the
+   arrangement is that it swings freely in two directions, so the instrument hangs plumb whichever
+   way it is held, which is the whole basis of measuring an altitude with it. */
+/* The throne keeps its proportion to the instrument, within reason: too literal a scaling and it
+   walks off the top of the screen. It stands 56 units tall as drawn, so SUSP_H is the room to keep. */
+function suspScale(r) { return Math.max(0.8, Math.min(1.15, r / 240)); }
+var SUSP_H = 66;
+function drawSuspension(r) {
+  var top = CY - r, cut = cutPair(true);
+  ctx.save();
+  ctx.translate(CX, top);
+  var k = suspScale(r); ctx.scale(k, k);
+  /* the throne: a scalloped lug rising off the limb */
+  ctx.beginPath();
+  ctx.moveTo(-26, 4);
+  ctx.bezierCurveTo(-20, -6, -14, -9, -11, -13);
+  ctx.lineTo(-7, -19);
+  ctx.lineTo(7, -19);
+  ctx.lineTo(11, -13);
+  ctx.bezierCurveTo(14, -9, 20, -6, 26, 4);
+  ctx.closePath();
+  ctx.fillStyle = brassBand(0, 0, 0, 30); ctx.fill();
+  ctx.strokeStyle = cut.dark; ctx.lineWidth = 1; ctx.stroke();
+  /* three scallops cut into its face, as the brass ones carry */
+  [-13, 0, 13].forEach(function (x) {
+    ctx.save(); ctx.translate(-0.5, -0.6);
+    ctx.beginPath(); ctx.arc(x, -1, 5, Math.PI, 0); ctx.strokeStyle = cut.dark; ctx.lineWidth = 0.9; ctx.stroke();
+    ctx.restore();
+    ctx.save(); ctx.translate(0.4, 0.5);
+    ctx.beginPath(); ctx.arc(x, -1, 5, Math.PI, 0); ctx.strokeStyle = cut.light; ctx.lineWidth = 0.7; ctx.stroke();
+    ctx.restore();
+  });
+  /* the shackle, hinged into it */
+  ctx.beginPath();
+  ctx.moveTo(-6, -19); ctx.lineTo(-6, -29); ctx.lineTo(6, -29); ctx.lineTo(6, -19);
+  ctx.closePath();
+  ctx.fillStyle = brassBand(0, -24, 0, 14); ctx.fill();
+  ctx.strokeStyle = cut.dark; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, -22, 2.2, 0, 2 * Math.PI);
+  ctx.fillStyle = 'rgba(30,18,2,.8)'; ctx.fill();
+  /* and the ring itself, which the thumb goes through */
+  ringPath(0, -40, 6.5, 12.5);
+  ctx.fillStyle = brassBand(0, -40, 6.5, 12.5); ctx.fill('evenodd');
+  [6.5, 12.5].forEach(function (rr) {
+    ctx.beginPath(); ctx.arc(0, -40, rr, 0, 2 * Math.PI);
+    ctx.strokeStyle = cut.dark; ctx.lineWidth = 1; ctx.stroke();
+  });
+  ctx.restore();
+}
+
 /* A ring of degrees round the whole card, which a real limb carries alongside its hours. Where zero
    sits is a convention with no single right answer, so it is a choice. A modern bearing starts at
    north and runs the way a compass runs. The limb of a brass astrolabe is commonly divided instead
@@ -3023,34 +3196,81 @@ var RING_W = 17;
 function cardScaleWidth() { return disc && disc.kind === 'planisphere' ? 32 : 18; }
 function cardBands() {
   var r = cardScaleWidth(), out = [];
-  if (opt.degring) { out.push({ kind: 'deg', r0: r, r1: r + RING_W }); r += RING_W; }
-  if (opt.raring) { out.push({ kind: 'ra', r0: r, r1: r + RING_W }); r += RING_W; }
+  if (opt.degring) {
+    var dw = opt.diagonal ? RING_W + 20 : RING_W;   /* the diagonals need room to slant in */
+    out.push({ kind: 'deg', r0: r, r1: r + dw }); r += dw + 2;
+  }
+  if (opt.raring) { out.push({ kind: 'ra', r0: r, r1: r + RING_W }); r += RING_W + 2; }
   return out;
 }
-function cardExtra() { return cardBands().length * (RING_W + 2); }
+function cardExtra() {
+  var b = cardBands();
+  var hangs = opt.suspend && disc && disc.kind !== 'planisphere';
+  return (b.length ? b[b.length - 1].r1 - cardScaleWidth() + 4 : 0) + (hangs ? SUSP_H : 0);
+}
 /* How solid the plate is, and how faint a star has to be before it loses its pointer. Both were
    fixed numbers picked by eye, which is fine until someone wants the other end of them: a plate you
    can see nothing through, as brass really is, or a rete crowded with every star it can reach. */
 var plateSolid = 0.92, reteLimit = 2.4;
 function degZeroBearing(c) { return horBearing(degZero === 'east' ? 90 : 0, c); }
+/* Every degree gets its own mark, with the fives and the tens taller, which is as fine as a ring
+   this size can be divided and still be read.
+
+   The diagonal scale is the old instrument-maker's answer to wanting more than that. A single degree
+   is too narrow to subdivide across, so instead the band is ruled into concentric arcs and a slanted
+   line is drawn from each degree mark on the inner arc to the next degree mark on the outer. Follow
+   the index in until it meets your arc and read where the slant has got to: with six arcs the degree
+   is divided into six, which is ten minutes of arc. It buys accuracy out of the width of the ring
+   rather than out of its circumference, which is why every serious brass instrument from the
+   sixteenth century onwards carries one. */
 function drawDegreeRing(c, r0, r1, brassy) {
   var zero = degZeroBearing(c);
   var quarter = horBearing(degZero === 'east' ? 180 : 90, c);
   if (zero === null || quarter === null) return;
   var step = (((quarter - zero) * RAD + 540) % 360 - 180) > 0 ? 1 : -1;
   if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
-  var major = brassy ? 'rgba(58,36,4,.85)' : PAL.cardRim;
-  var minor = brassy ? 'rgba(70,46,8,.5)' : PAL.cardTick;
-  var ink = brassy ? 'rgba(52,32,2,.95)' : PAL.cardText;
-  var d, a;
-  for (d = 0; d < 360; d += 2) {
+  var d, a, cut = cutPair(brassy);
+  var diag = opt.diagonal && (r1 - r0) >= 30;
+  var top = diag ? r0 + (r1 - r0) * 0.50 : r1;      /* the diagonals fill the outer half of the band */
+  for (d = 0; d < 360; d++) {
     a = zero + step * d * DEG;
-    var big = d % 10 === 0;
-    cardTick(a, r0, r0 + (d % 30 === 0 ? 7 : big ? 5 : 3), d % 30 === 0 ? major : big ? major : minor, 1);
+    var len = d % 10 === 0 ? 7 : d % 5 === 0 ? 5 : 2.6;
+    cardTickCut(a, r0, r0 + len, d % 10 === 0 ? 1.2 : 1, brassy);
+  }
+  if (diag) {
+    var arcs = 6, i, j;
+    /* the arcs are what you read across, so they are cut deepest; the slants are lighter, and
+       every tenth is cut heavy so the eye can find its place round a limb of three hundred and sixty */
+    for (i = 0; i <= arcs; i++) {
+      var rr = top + (r1 - top) * (i / arcs);
+      var edge = i === 0 || i === arcs;
+      ctx.save(); ctx.translate(-0.5, -0.6);
+      ctx.beginPath(); ctx.arc(CX, CY, rr, 0, 2 * Math.PI);
+      ctx.strokeStyle = cut.dark; ctx.lineWidth = edge ? 1.5 : 1.1; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.translate(0.45, 0.55);
+      ctx.beginPath(); ctx.arc(CX, CY, rr, 0, 2 * Math.PI);
+      ctx.strokeStyle = cut.light; ctx.lineWidth = edge ? 1.1 : 0.8; ctx.stroke(); ctx.restore();
+    }
+    for (d = 0; d < 360; d++) {                     /* and the slants, one to each degree */
+      var a0 = zero + step * d * DEG, a1 = zero + step * (d + 1) * DEG;
+      var heavy = d % 10 === 0 ? 0.35 : 0;
+      [[-0.5, -0.6, cut.dark, 0.7 + heavy], [0.4, 0.5, cut.light, 0.5 + heavy]].forEach(function (o) {
+        ctx.save(); ctx.translate(o[0], o[1]);
+        ctx.beginPath();
+        for (j = 0; j <= arcs; j++) {
+          var t = j / arcs, rr2 = top + (r1 - top) * t;
+          var aa = a0 + (a1 - a0) * t;
+          var x = CX + Math.cos(aa) * rr2, y = CY + Math.sin(aa) * rr2;
+          if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+        }
+        ctx.strokeStyle = o[2]; ctx.lineWidth = o[3]; ctx.stroke();
+        ctx.restore();
+      });
+    }
   }
   for (d = 0; d < 360; d += 30) {
     a = zero + step * d * DEG;
-    cardText(a, r0 + (r1 - r0) * 0.66, String(d), '600 8.5px ' + FONT, ink);
+    cardTextCut(a, r0 + (top - r0) * 0.62, numStr(d), numFont(8.5), brassy);
   }
 }
 /* Right ascension, which unlike everything else on the outside of the card belongs to the sky and
@@ -3058,19 +3278,17 @@ function drawDegreeRing(c, r0, r1, brassy) {
    is placed through the same bearing function as everything else and needs no special pleading. */
 function drawRaRing(c, r0, r1, brassy) {
   if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
-  var majorCol = brassy ? 'rgba(58,36,4,.85)' : PAL.cardRim;
-  var minorCol = brassy ? 'rgba(70,46,8,.5)' : PAL.cardTick;
-  var ink = brassy ? 'rgba(52,32,2,.95)' : PAL.cardText;
   var k, a;
   for (k = 0; k < 48; k++) {                      /* half an hour to the small division */
     a = haBearing(c.lst - k * 7.5, c);
-    if (a !== null) cardTick(a, r0, r0 + (k % 2 === 0 ? 6 : 3.5), k % 2 === 0 ? majorCol : minorCol, 1);
+    if (a !== null) cardTickCut(a, r0, r0 + (k % 2 === 0 ? 6 : 3.5), 1, brassy);
   }
   for (k = 0; k < 24; k += 2) {
     a = haBearing(c.lst - k * 15, c);
     if (a === null) continue;
-    cardTick(a, r0, r0 + 9, majorCol, 1.3);
-    cardText(a, r0 + (r1 - r0) * 0.68, k + 'h', '600 8.5px ' + FONT, ink);
+    cardTickCut(a, r0, r0 + 9, 1.3, brassy);
+    cardTextCut(a, r0 + (r1 - r0) * 0.68, numStr(k) + (NUMERALS === 'western' ? 'h' : ''),
+                numFont(8.5), brassy);
   }
 }
 
@@ -3119,6 +3337,10 @@ function drawCard(c) {
     else drawRaRing(c, rp + B.r0, rp + B.r1, brassy);
   });
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
+  if (opt.suspend && disc.kind !== 'planisphere') {
+    var bands = cardBands();
+    drawSuspension(rp + (bands.length ? bands[bands.length - 1].r1 : cardScaleWidth()) + 2);
+  }
 }
 /* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
    date set at the right ascension the Sun has on it. The outer one is fixed to the observer and
@@ -3130,23 +3352,24 @@ function drawDateAndHour(c, rp) {
   for (m = 0; m < 12; m++) {
     for (d = 5; d <= 25; d += 5) {
       a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, d)))), c);
-      if (a !== null) cardTick(a, rp, rp + (d === 15 ? 6 : 4), PAL.cardTick, 1);
+      if (a !== null) cardTickCut(a, rp, rp + (d === 15 ? 6 : 4), 1, false);
     }
     a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 1)))), c);
-    if (a !== null) cardTick(a, rp, rp + 9, PAL.cardRim, 1.2);
+    if (a !== null) cardTickCut(a, rp, rp + 9, 1.2, false);
     a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 16)))), c);
-    if (a !== null) cardText(a, rp + 8.5, MONS[m].toUpperCase(), '600 9.5px ' + FONT, PAL.cardText);
+    if (a !== null) cardTextCut(a, rp + 8.5, MONS[m].toUpperCase(), '600 9.5px ' + FONT, false);
   }
   /* the clock scale: the hour angle of the mean sun at that local time, on this meridian */
   var h, half;
   for (h = 0; h < 24; h++) {
     for (half = 0; half < 2; half++) {
       a = haBearing(haForClockTime(h + half / 2, c, true), c);
-      if (a !== null) cardTick(a, r1, r1 + (half ? 4 : 7), half ? PAL.cardTick : PAL.cardRim, half ? 1 : 1.2);
+      if (a !== null) cardTickCut(a, r1, r1 + (half ? 4 : 7), half ? 1 : 1.2, false);
     }
     if (h % 2) continue;
     a = haBearing(haForClockTime(h, c, true), c);
-    if (a !== null) cardText(a, r1 + 12, (h < 10 ? '0' : '') + h + ':00', '500 9px ' + FONT, PAL.cardText);
+    if (a !== null) cardTextCut(a, r1 + 12, numStr(h) + (NUMERALS === 'western' ? ':00' : ''),
+                                numFont(9, '500 '), false);
   }
   cardIndex(c, rp, r2);
 }
@@ -3159,18 +3382,16 @@ function drawLimb(c, rp) {
   var r1 = rp + 18;
   if (opt.brass) drawBrassLimb(rp, r1); else cardRing(rp, r1);
   var k, a;
+  var brassy = opt.brass;
   for (k = 0; k < 96; k++) {                        /* a quarter of an hour to the small division */
     a = haBearing(haForClockTime(k / 4, c, true), c);
-    if (a !== null) cardTick(a, rp, rp + (k % 4 === 0 ? 6 : 3.5),
-      opt.brass ? (k % 4 === 0 ? 'rgba(60,38,4,.85)' : 'rgba(70,46,8,.55)')
-                : (k % 4 === 0 ? PAL.cardRim : PAL.cardTick), 1);
+    if (a !== null) cardTickCut(a, rp, rp + (k % 4 === 0 ? 6 : 3.5), 1, brassy);
   }
   for (k = 0; k < 24; k++) {
     a = haBearing(haForClockTime(k, c, true), c);
     if (a === null) continue;
-    cardTick(a, rp, rp + 9, opt.brass ? 'rgba(60,38,4,.85)' : PAL.cardRim, 1.3);
-    cardText(a, rp + 12.5, String(k), '600 9.5px ' + FONT,
-             opt.brass ? 'rgba(52,32,2,.95)' : PAL.cardText);
+    cardTickCut(a, rp, rp + 9, 1.3, brassy);
+    cardTextCut(a, rp + 12.5, numStr(k), numFont(9.5), brassy);
   }
   if (!opt.brass) cardIndex(c, rp, r1);            /* in brass the rule does that job */
 }
@@ -3275,7 +3496,10 @@ function handGlyph(h, rp, style, glyph, small) {
 function drawHands(c) {
   /* with a ring outside the hours, a hand that stopped at the card's own rim would be pointing at
      nothing in particular: it reaches the inner edge of the outermost scale instead */
-  var rp = discRadiusPx() + (cardBands().length ? cardScaleWidth() : 0);
+  /* out to the inner rim of the outermost ring the card is wearing, so a hand always points at the
+     scale furthest out rather than at whichever one happens to be first */
+  var bands = cardBands();
+  var rp = discRadiusPx() + (bands.length ? bands[bands.length - 1].r0 : 0);
   handReach = rp;
   var sun = bodyByKey.sol, moon = bodyByKey.lun;
   handMarks = [];
@@ -3747,20 +3971,21 @@ function reteFoot(q, hoops, bars, curves) {
   }
   return best;
 }
-var reteDrawn = [];                  /* what the last frame cut, so it can be checked for rigidity */
+var reteDrawn = [], reteNearest = null;                  /* what the last frame cut, so it can be checked for rigidity */
 /* A pointer exists to say which star that is, so a pointer with no name on it is half a pointer.
    The star labels are queued while the stars are drawn, long before the rete decides who gets a
    spike, and they are dropped when the sky is crowded or the zoom is low. This puts the name back,
    at the top of the queue so it is placed first and cannot be crowded out, and only once. */
-function nameThePointer(i, q) {
+function nameThePointer(i, q, c) {
   var e = starName[i];
   if (!e || !e.name) return;
   for (var k = 0; k < labelQ.length; k++)
     if (labelQ[k].kind === 'star' && labelQ[k].ref === i) { labelQ[k].prio = 120; labelQ[k].force = true; return; }
+  var big = SMAG[i] < 1.5;
   queueLabel(q[0], q[1], 4.5, e.name, {
-    font: '500 11px ' + FONT,
-    colour: opt.plate ? 'rgba(38,24,2,.95)' : 'rgba(245,240,225,.95)',
-    prio: 120, kind: 'star', ref: i, force: true
+    font: (big ? '500 ' : '400 ') + (big ? 12 : 11) + 'px ' + FONT,
+    colour: 'rgba(235,240,250,.92)',
+    prio: 120, sub: coordLines([SX[i], SY[i], SZ[i]], c), kind: 'star', ref: i, force: true
   });
 }
 function drawRete(c, rp) {
@@ -3789,7 +4014,7 @@ function drawRete(c, rp) {
   }
   [axis, axis + Math.PI / 2].forEach(function (a) {
     bars.push({ ux: Math.cos(a), uy: Math.sin(a), px: -Math.sin(a), py: Math.cos(a),
-                hw: bar / 2, len: rp, bias: 1.05 });
+                hw: bar / 2, len: rp });
   });
 
   /* the frame, laid down before the ecliptic so the ring reads as the piece on top */
@@ -3837,10 +4062,10 @@ function drawRete(c, rp) {
 
   /* and the pointers, each standing on the member that runs nearest to its star */
   var hoops = [
-    { cx: CX, cy: CY, r0: rp - bw, r1: rp - 0.5, bias: 0.80 },        /* the outer ring, favoured */
-    { cx: CX, cy: CY, r0: rTropic - hw / 2, r1: rTropic + hw / 2, bias: 1.0 }
+    { cx: CX, cy: CY, r0: rp - bw, r1: rp - 0.5 },
+    { cx: CX, cy: CY, r0: rTropic - hw / 2, r1: rTropic + hw / 2 }
   ];
-  var curves = [{ band: band, hw: w / 2, bias: 0.92 }];
+  var curves = [{ band: band, hw: w / 2 }];
   var lim = reteLimit, n = 0, spikes = [], gap = Math.max(15, rp * 0.068), reach = rp * 0.40;
   var most = Math.round(clamp(10 + (lim - 1) * 14, 12, 60));
   for (var i = 0; i < NS && n < most; i++) {
@@ -3853,6 +4078,10 @@ function drawRete(c, rp) {
     for (var t2 = 0; t2 < spikes.length; t2++)
       if (Math.hypot(q[0] - spikes[t2][0], q[1] - spikes[t2][1]) < gap) { crowded = true; break; }
     if (crowded) continue;
+    reteNearest = function (x, y) {
+      var g = reteFoot([x, y], hoops, bars, curves);
+      return g ? Math.hypot(x - g.x, y - g.y) : 1e9;
+    };
     var f = reteFoot(q, hoops, bars, curves);
     if (!f) continue;
     var run = Math.hypot(q[0] - f.x, q[1] - f.y);
@@ -3861,7 +4090,7 @@ function drawRete(c, rp) {
     var side = Math.sin(Math.atan2(f.y - CY, f.x - CX) - axis) >= 0 ? 1 : -1;
     flamePointer(f.x, f.y, f.nx, f.ny, q[0], q[1], clamp(w * 0.24, 2.1, 4.4), side);
     reteDrawn.push({ i: i, foot: [f.x, f.y], tip: [q[0], q[1]], side: side, run: run });
-    nameThePointer(i, q);
+    nameThePointer(i, q, c);
     spikes.push(q);
     n++;
   }
@@ -4400,7 +4629,9 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'sats' && opt.sats && !sats.length) buildSatList();
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
-    if (key === 'degring' || key === 'raring') { tuneDisc(); }
+    if (key === 'degring' || key === 'raring' || key === 'diagonal' || key === 'suspend') {
+      tuneDisc(); syncViewUI();
+    }
     if (key === 'preview') {
       var fp = document.getElementById('field');
       fp.hidden = !opt.preview;
@@ -4552,6 +4783,7 @@ function resetDefaults() {
   satGroupSel = DEFAULT_SAT_GROUP; document.getElementById('satgrp').value = DEFAULT_SAT_GROUP;
   homeField();
   degZero = 'north'; degZeroEl.value = 'north';
+  NUMERALS = 'western'; numeralsEl.value = 'western';
   plateSolid = 0.92; plateSlider.set(0.92, 0.25);
   reteLimit = 2.4; reteSlider.set(2.4, 0.5);
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
@@ -4823,6 +5055,8 @@ var reteSlider = hSlider(document.getElementById('hrete'), {
   ticks: [{ v: 1, major: true }, { v: 2 }, { v: 3, major: true }, { v: 4 }, { v: 5, major: true }],
   onInput: function (v) { reteLimit = v; draw(); }
 });
+var numeralsEl = document.getElementById('numerals');
+numeralsEl.addEventListener('change', function () { NUMERALS = numeralsEl.value; draw(); });
 var degZeroEl = document.getElementById('degzero');
 degZeroEl.addEventListener('change', function () { degZero = degZeroEl.value; draw(); });
 var northEl = document.getElementById('northat'), eastEl = document.getElementById('eastat');
@@ -4899,10 +5133,14 @@ function syncViewUI() {
   projEl.disabled = opts.length < 2;
   document.getElementById('projrow').classList.toggle('fixed', opts.length < 2);
   var onCard = !!disc;
-  ['L-degring', 'L-raring'].forEach(function (id) {
-    var e = document.getElementById(id);
-    e.disabled = !onCard;
-    e.closest('.tog').classList.toggle('off', !onCard);
+  document.getElementById('numrow').classList.toggle('fixed', !onCard);
+  numeralsEl.disabled = !onCard;
+  var brassCard = !!disc && disc.kind !== 'planisphere';   /* a planisphere does not hang from a ring */
+  ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend'].forEach(function (id) {
+    var e = document.getElementById(id), live = id === 'L-suspend' ? brassCard : onCard;
+    if (id === 'L-diagonal') live = onCard && opt.degring;
+    e.disabled = !live;
+    e.closest('.tog').classList.toggle('off', !live);
   });
   var dr = document.getElementById('L-degring');
   document.getElementById('degrow').classList.toggle('fixed', !onCard || !opt.degring);
@@ -6053,6 +6291,8 @@ window.CG = {
   daysToPos: daysToPos, posToDays: posToDays,
   degZero: function (z) { if (z) { degZero = z; degZeroEl.value = z; draw(); } return degZero; },
   degZeroBearing: function (c) { return degZeroBearing(c || ensureSky()); },
+  numerals: function (n) { if (n) { NUMERALS = n; numeralsEl.value = n; draw(); } return NUMERALS; },
+  numStr: numStr, abjad: abjad, cardBands: cardBands,
   plateSolid: function (v) { if (v !== undefined) { plateSolid = v; plateSlider.set(v, 0.25); draw(); } return plateSolid; },
   reteLimit: function (v) { if (v !== undefined) { reteLimit = v; reteSlider.set(v, 0.5); draw(); } return reteLimit; },
   starVec: function (i) { return [SX[i], SY[i], SZ[i]]; },
@@ -6063,6 +6303,8 @@ window.CG = {
   bandNearest: bandNearest,
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
   labels: function () { return labelQ.map(function (l) { return { kind: l.kind, ref: l.ref, text: l.text }; }); },
+  labelStyles: function () { return labelQ.map(function (l) { return { kind: l.kind, ref: l.ref, font: l.font, colour: l.colour, prio: l.prio }; }); },
+  nearestMemberDistance: function (x, y) { return reteNearest ? reteNearest(x, y) : null; },
   starMag: function (i) { return SMAG[i]; },
   starName: function (i) { return starName[i] && starName[i].name; },
   horizonCircle: horizonCircle,
