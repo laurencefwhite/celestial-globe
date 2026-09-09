@@ -589,6 +589,7 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring</span></label>
       <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring</span></label>
       <label class="tog"><input type="checkbox" id="L-zodring"><span class="sw"></span><span class="tl">Zodiac ring <small>the twelve signs</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-calring"><span class="sw"></span><span class="tl">Calendar ring <small>the months, against them</small></span></label>
       <label class="tog"><input type="checkbox" id="L-diagonal"><span class="sw"></span><span class="tl">Diagonal scale <small>reads to 10&prime;</small></span></label>
       <label class="tog"><input type="checkbox" id="L-suspend"><span class="sw"></span><span class="tl">Suspension ring <small>throne and shackle</small></span></label>
       <div class="row" id="numrow"><label for="numerals">Numerals</label>
@@ -1504,7 +1505,7 @@ var opt = {
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
   linecards: true, linelabels: false, meridian: false, hands: false, phands: false,
   preview: false, brass: false, plate: false, degring: false, raring: false, diagonal: false,
-  suspend: false, zodring: false,
+  suspend: false, zodring: false, calring: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
@@ -1519,14 +1520,14 @@ var DETAIL = {
            paths: false, cgrid: false, hgrid: false, tropics: false, ecliptic: false, galactic: false,
            linelabels: false, meridian: false, stars: true, starnames: true, conlines: true,
            mw: true, planets: true, horizon: true, below: true,
-           degring: false, raring: false, zodring: false },
+           degring: false, raring: false, zodring: false, calring: false },
   medium: null,                                   /* filled in from the defaults below */
   heavy: { bayer: true, conbounds: true, connames: true, conlines: true, dso: true, moons: true,
            asteroids: true, comets: true, showers: true, pics: true, sats: true, tracks: true,
            paths: true, cgrid: true, hgrid: true, tropics: true, ecliptic: true, galactic: true,
            linelabels: true, meridian: true, stars: true, starnames: true, mw: true,
            planets: true, horizon: true, below: true,
-           degring: true, raring: true, zodring: true }
+           degring: true, raring: true, zodring: true, calring: true }
 };
 var DETAIL_KEYS = Object.keys(DETAIL.light);
 var detailLevel = 'medium';
@@ -1763,6 +1764,8 @@ function placeCols() {
     if (r.left + r.width / 2 < W2 / 2) lx = Math.max(lx, r.right + 12);
     else rx = Math.min(rx, r.left - 12);
   });
+  /* the single pills sit at the top of their panel and the columns run down the middle of the edge,
+     so the two never meet and the columns have only the panels to keep clear of */
   var vh = vp.getBoundingClientRect().height, dh = dp.getBoundingClientRect().height;
   var dw = dp.getBoundingClientRect().width;
   vp.style.left = Math.round(lx) + 'px';
@@ -1786,14 +1789,14 @@ function syncPills() {
     if (b) b.classList.toggle('on', l === detailLevel);
   });
 }
-function placePills() {
-  placeCols();
-  var panel = document.getElementById('controls');
-  var min = panel.classList.contains('min');
-  var list = pillList();
-  /* The pills live just inboard of the panel they belong to, whether it is open or folded away. On a
-     phone an open panel is a sheet across the whole width, so there they wait until it is folded. */
-  var show = min || !smallScreen();
+/* Each pill lives just inboard of the panel it belongs to, whether that panel is open or folded away.
+   Now belongs to the clock, so it stands beside the masthead, which is where the clocks and the two
+   scrubbers are; Reset view and Freeze belong to the controls and stand beside those. On a phone an
+   open panel is a sheet across the whole width, so there they wait until it is folded. */
+function placeGroup(panelId, list) {
+  var panel = document.getElementById(panelId);
+  if (!panel) return;
+  var show = panel.classList.contains('min') || !smallScreen();
   list.forEach(function (el) { el.style.display = show ? 'block' : 'none'; });
   if (!show || !list.length) return;
   var r = panel.getBoundingClientRect();
@@ -1809,10 +1812,12 @@ function placePills() {
     edge = leftwards ? x : x + w;
   }
 }
-function pillList() {
-  var out = [document.getElementById('resetfloat'), document.getElementById('nowfloat')];
+function placePills() {
+  placeCols();
+  var out = [document.getElementById('resetfloat')];
   if (pointAvailable) out.push(document.getElementById('pointfloat'));
-  return out.filter(Boolean);
+  placeGroup('controls', out.filter(Boolean));
+  placeGroup('masthead', [document.getElementById('nowfloat')].filter(Boolean));
 }
 function applyProjection() {
   rotation[2] = pointing ? pointRoll : rollFor();
@@ -3349,6 +3354,9 @@ function cardBands() {
     out.push({ kind: 'deg', r0: r, r1: r + dw }); r += dw + 2;
   }
   if (opt.raring) { out.push({ kind: 'ra', r0: r, r1: r + RING_W }); r += RING_W + 2; }
+  if (opt.calring) {                                /* the calendar sits beside the signs, as on the back */
+    out.push({ kind: 'cal', r0: r, r1: r + RING_W + 3 }); r += RING_W + 5;
+  }
   if (opt.zodring) {                                /* the signs go outside the lot */
     out.push({ kind: 'zodiac', r0: r, r1: r + RING_W + 5 }); r += RING_W + 7;
   }
@@ -3528,6 +3536,7 @@ function drawCard(c) {
   cardBands().forEach(function (B) {
     if (B.kind === 'deg') drawDegreeRing(c, rp + B.r0, rp + B.r1, brassy);
     else if (B.kind === 'zodiac') drawZodiacRing(c, rp + B.r0, rp + B.r1, brassy);
+    else if (B.kind === 'cal') drawCalendarRing(c, rp + B.r0, rp + B.r1, brassy);
     else drawRaRing(c, rp + B.r0, rp + B.r1, brassy);
   });
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
@@ -3539,22 +3548,55 @@ function drawCard(c) {
 /* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
    date set at the right ascension the Sun has on it. The outer one is fixed to the observer and
    carries the clock. Read one against the other and you have the instrument. */
-function drawDateAndHour(c, rp) {
-  var r1 = rp + 15, r2 = rp + 32;
-  cardRing(rp, r1); cardRing(r1, r2);
+/* Where a date falls on a card. The scale is not the calendar spaced evenly: it is the Sun's own
+   right ascension on that day, which is what makes the date line up with the star it is under. */
+function dateBearing(y, m, d, c) {
+  return haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, d)))), c);
+}
+function turnFrom(a0, a1) {                       /* the short way round, signed */
+  return ((a1 - a0) * RAD + 540) % 360 - 180;
+}
+/* A run of ticks with a name beside it every so often is not a calendar; you cannot see where one
+   month ends and the next begins, which is the one thing the scale is for. So the twelve months are
+   drawn as cells: each opens with a division ruled right across the band, every other one is washed
+   over so the block itself is visible, the name sits in the middle of its own cell rather than near
+   it, and the graduations inside are days -- short for one, longer for five, longer again for ten. */
+function drawCalendarRing(c, r0, r1, brassy) {
   var y = c.date.getUTCFullYear(), m, d, a;
-  for (m = 0; m < 12; m++) {
-    for (d = 5; d <= 25; d += 5) {
-      a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, d)))), c);
-      if (a !== null) cardTickCut(a, rp, rp + (d === 15 ? 6 : 4), 1, false);
-    }
-    a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 1)))), c);
-    if (a !== null) cardTickCut(a, rp, rp + 9, 1.2, false);
-    a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 16)))), c);
-    if (a !== null) cardTextCut(a, rp + 8.5, MONS[m].toUpperCase(), cardFont(9.5), false);
+  if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
+  var edge = [];
+  for (m = 0; m <= 12; m++) edge.push(dateBearing(y, m, 1, c));
+  for (m = 0; m < 12; m++) {                      /* every other month washed over, so a month is a block */
+    if (m % 2 || edge[m] === null || edge[m + 1] === null) continue;
+    var t = turnFrom(edge[m], edge[m + 1]) * DEG;
+    ctx.beginPath();
+    ctx.arc(CX, CY, r1, edge[m], edge[m] + t, t < 0);
+    ctx.arc(CX, CY, r0, edge[m] + t, edge[m], t > 0);
+    ctx.closePath();
+    ctx.fillStyle = brassy ? 'rgba(120,88,26,.22)' : 'rgba(150,190,240,.09)';
+    ctx.fill();
   }
+  for (m = 0; m < 12; m++) {
+    var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    for (d = 2; d <= last; d++) {                 /* one tick to the day, and the fives and tens taller */
+      a = dateBearing(y, m, d, c);
+      if (a !== null) cardTickCut(a, r0, r0 + (d % 10 === 0 ? 6 : d % 5 === 0 ? 4 : 2.2), 1, brassy);
+    }
+    if (edge[m] === null) continue;
+    cardTickCut(edge[m], r0, r1, 1.4, brassy);    /* the first of the month, right across the band */
+    if (edge[m + 1] === null) continue;
+    var mid = edge[m] + turnFrom(edge[m], edge[m + 1]) * DEG / 2;
+    cardTextCut(mid, r0 + (r1 - r0) * 0.66, MONS[m].toUpperCase(), cardFont(9.5), brassy);
+  }
+}
+function drawDateAndHour(c, rp) {
+  var r1 = rp + 17, r2 = rp + 34;
+  drawCalendarRing(c, rp, r1, false);
+  cardRing(r1, r2);
+  var a;
   /* the clock scale: the hour angle of the mean sun at that local time, on this meridian */
   var h, half;
+  var y = c.date.getUTCFullYear();
   for (h = 0; h < 24; h++) {
     for (half = 0; half < 2; half++) {
       a = haBearing(haForClockTime(h + half / 2, c, true), c);
@@ -4461,7 +4503,7 @@ cv.addEventListener('pointerleave', function (e) { endPointer(e); if (e.pointerT
 cv.addEventListener('wheel', function (e) {
   e.preventDefault();
   var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0016));
-  if (disc) zoom = clamp(zoom * f, ZMIN, ZMAX);   /* a card magnifies about its own pivot */
+  if (disc) zoomCardAbout(clamp(zoom * f, ZMIN, ZMAX), e.clientX, e.clientY);
   else zoomAbout(clamp(zoom * f, ZMIN, ZMAX), e.clientX, e.clientY);
   markInteract(); draw(); fadeHint();
 }, { passive: false });
@@ -4471,7 +4513,7 @@ cv.addEventListener('wheel', function (e) {
    magnification where a pixel is half a degree of sky. */
 cv.addEventListener('dblclick', function (e) {
   if (opt.fov || opt.preview) pointFieldAt(e.clientX, e.clientY);
-  if (disc) { zoom = clamp(zoom * 2.2, ZMIN, ZMAX); draw(); return; }
+  if (disc) { zoomCardAbout(clamp(zoom * 2.2, ZMIN, ZMAX), e.clientX, e.clientY); draw(); return; }
   var ll = projection.invert([e.clientX, e.clientY]);
   if (ll) flyTo(ll[0], ll[1], Math.min(ZMAX, zoom * 2.2));
   else draw();
@@ -4494,11 +4536,22 @@ function pointFieldAt(mx, my) {
   return true;
 }
 /* zoom so that the point under the cursor stays put, when it lies on the sphere */
+/* Magnifying a card must not turn the sky. The plate is cut for this latitude and the rete stands on
+   it, so the geometry has to stay exactly as it is and the card slides instead. Everything on a card
+   scales about its pivot, so holding the point under the cursor still is one shift of that pivot and
+   nothing else: the plate, the horizon and the rete are untouched. */
+function zoomCardAbout(newZoom, mx, my) {
+  var f = newZoom / zoom;
+  var dx = mx - CX, dy = my - CY;
+  zoom = newZoom;
+  discPan = [discPan[0] + dx * (1 - f), discPan[1] + dy * (1 - f)];
+  clampDiscPan();
+}
 function zoomAbout(newZoom, mx, my) {
   var ll = projection.invert([mx, my]);
   var ok = ll && !isNaN(ll[0]) && Math.hypot(mx - CX, my - CY) < R0 * zoom * 0.97;
   zoom = newZoom;
-  if (!ok || zoom < 1.4) return;
+  if (!ok) return;
   applyProjection();
   var p = projection(ll);
   if (!p) return;
@@ -4800,12 +4853,37 @@ function hitName(h) {
   if (h.kind === 'hand') return h.ref.body && h.ref.body.name;
   return null;
 }
+/* Going to an object on a card is the same instruction as anywhere else, but it cannot be carried
+   out the same way: turning the sky to bring the thing to the middle would turn the plate with it and
+   the instrument would no longer be the instrument. So on a card the sky stands still and the card
+   itself is magnified and slid, which puts the object in the middle by moving the paper rather than
+   the heavens. How far it may slide is capped as it is for a drag, so at low magnification it comes
+   as near the middle as the card allows. */
+function flyOnCard(v, targetZoom) {
+  var q = proj(v);
+  if (!q) return;
+  var off = [q[0] - CX, q[1] - CY];
+  var z0 = zoom, z1 = clamp(targetZoom === undefined ? Math.max(zoom, 1.8) : targetZoom, ZMIN, ZMAX);
+  var pan0 = discPan.slice(), t0 = performance.now(), dur = 950;
+  if (flying) { cancelAnimationFrame(flying); flying = null; }
+  stopMomentum(); hideTip();
+  (function step(t) {
+    var u = Math.min(1, (t - t0) / dur);
+    var e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    zoom = Math.exp(Math.log(z0) + (Math.log(z1) - Math.log(z0)) * e);
+    var f = zoom / z0;
+    discPan = [pan0[0] + (-f * off[0] - pan0[0]) * e, pan0[1] + (-f * off[1] - pan0[1]) * e];
+    clampDiscPan();
+    draw();
+    if (u < 1) flying = requestAnimationFrame(step); else flying = null;
+  })(performance.now());
+}
 function flyToHit(h) {
   var r = hitVector(h);
   if (!r) return;
   var v = r.v, z = r.z;
-  var ll = lonlat(v);
-  flyTo(ll[0], ll[1], z);
+  if (disc) flyOnCard(v, z);
+  else { var ll = lonlat(v); flyTo(ll[0], ll[1], z); }
   var kind = h.kind, ref = h.ref;
   setTimeout(function () {
     hover = { kind: kind, ref: ref };
@@ -4830,7 +4908,7 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
     if (key === 'degring' || key === 'raring' || key === 'diagonal' || key === 'suspend' ||
-        key === 'zodring') {
+        key === 'zodring' || key === 'calring') {
       tuneDisc(); syncViewUI();
     }
     if (key === 'preview') {
@@ -5022,7 +5100,7 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
 var INSTRUMENT_BASE = {
   below: true, horizon: true, hgrid: false, tropics: false, ecliptic: false,
   connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false,
-  starnames: true, brass: false, plate: false, zodring: false
+  starnames: true, brass: false, plate: false, zodring: false, calring: false
 };
 var INSTRUMENT_KEYS = Object.keys(INSTRUMENT_BASE).concat(['inside']);
 var INSTRUMENTS = {
@@ -5034,6 +5112,8 @@ var INSTRUMENTS = {
     note: function (alat) {
       return 'Planisphere for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': every star that ever rises here, on one card. Run the clock and the sky turns under the horizon. ' +
+             'The inner ring is the date, one tick to the day and a cell to the month; the outer is the clock. ' +
+             'Read one against the other at the index line. ' +
              'Azimuthal equidistant, as most modern planispheres are; switch the projection to stereographic for the older kind.';
     }
   },
@@ -5351,10 +5431,12 @@ function syncViewUI() {
   document.getElementById('numrow').classList.toggle('fixed', !onCard);
   numeralsEl.disabled = !onCard;
   var hangs = !!disc && disc.kind === 'astrolabe';   /* only the astrolabe hangs from a ring */
+  var brassCard = !!disc && disc.kind !== 'planisphere';
   ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend', 'L-hands', 'L-phands',
-   'L-zodring'].forEach(function (id) {
+   'L-zodring', 'L-calring'].forEach(function (id) {
     var e = document.getElementById(id), live = id === 'L-suspend' ? hangs : onCard;
     if (id === 'L-diagonal') live = onCard && opt.degring;
+    if (id === 'L-calring') live = brassCard;     /* a planisphere carries one already */
     e.disabled = !live;
     e.closest('.tog').classList.toggle('off', !live);
   });
@@ -6546,6 +6628,8 @@ window.CG = {
   degZero: function (z) { if (z) { degZero = z; degZeroEl.value = z; draw(); } return degZero; },
   degZeroBearing: function (c) { return degZeroBearing(c || ensureSky()); },
   eclBearing: function (lon, c) { return eclBearing(lon, c || ensureSky()); },
+  dateBearing: function (y, m, d, c) { return dateBearing(y, m, d, c || ensureSky()); },
+  flyToHit: flyToHit, zoomCardAbout: zoomCardAbout,
   ink: ink,
   numerals: function (n) { if (n) { NUMERALS = n; numeralsEl.value = n; draw(); } return NUMERALS; },
   detail: function (l) { if (l) applyDetail(l); return detailLevel; },

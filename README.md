@@ -20,7 +20,11 @@ drawn on the sphere.
   of the screen, and the three chart weights pills down the right, so neither has to be dug out of a
   panel. They sit at the edges when the panels are folded and just inboard of them when they are not,
   which is where the other floating pills already live; on a phone, where an open panel is a sheet
-  across the whole screen, they wait until it is folded away. What each fixes and what it leaves to you
+  across the whole screen, they wait until it is folded away.
+
+  Each single pill stands beside the panel it belongs to rather than all of them in one corner:
+  **Now** acts on the clock, so it goes next to the masthead, which is where the clocks and the two
+  scrubbers are, while **Reset view** and **Freeze** stay with the controls. What each fixes and what it leaves to you
   is not arbitrary. A globe from outside is orthographic and mirrored by its nature — that is what a
   sphere seen from without does to the sky — so it has no variants and both menus grey out. The
   other four all have a real choice of layout and can be turned whichever way up you like.
@@ -125,6 +129,16 @@ drawn on the sphere.
   under it. A quarter turn is a quarter of a sidereal day. The arrow keys step the clock the same
   way. Magnified, a card is bigger than the window, so ctrl and drag slides it about — hold still for
   a moment first on a touch screen, since one finger already means turn and two already mean magnify.
+
+  **Magnifying a card, and going to something on one, move the card and never the sky.** The plate is
+  cut for this latitude and the rete stands on it, so turning the sky to bring an object to the middle
+  would turn the plate with it and the instrument would stop being the instrument. Everything on a
+  card scales about its pivot, so holding the point under the cursor still while the wheel turns is
+  one shift of that pivot and nothing else; and clicking an object magnifies and slides the card to
+  bring it in, rather than flying the sky round. Measured on all three instruments: the card goes from
+  0.56 to 2.50 and slides to suit while the rotation moves by at most four millionths of a degree,
+  which is the millisecond of clock skew between the two readings rather than anything the fly did;
+  and a star under the pointer stays within 0.3 px of it as the wheel is turned.
   The same gesture slides **any** view, not only a card. In the sky views turning and sliding are two
   different things and both are wanted: turn to bring a part of the sky round, slide to put it
   somewhere else on the screen — clear of an open panel, or centred on the object you are looking at
@@ -241,6 +255,28 @@ drawn on the sphere.
   lot, which is what an engraved instrument looks like. The planisphere is a printed modern card and
   keeps the sans face it is actually printed in, and so do the two sky views. Arabic and abjad take
   the Naskh face on any card.
+
+- **The calendar, as twelve cells rather than a run of ticks.** A tick every five days with a name
+  beside it every so often is not a calendar: you cannot see where one month ends and the next
+  begins, which is the one thing the scale is for. Each month now opens with a division ruled right
+  across the band, every other one is washed over so the block itself is visible, the name sits in
+  the middle of its own cell rather than near it, and the graduations inside are days — short for
+  one, longer for five, longer again for ten.
+
+  Two things about the scale are worth saying, because both look like errors and neither is. **The
+  twelve cells do not close the circle**: they span 359.73°, because the scale is the Sun's own right
+  ascension and that comes round in a tropical year of 365.2422 days, so a common year of 365 falls a
+  quarter of a degree short — 359.76° predicted, 359.73° measured. And **no cell is thirty degrees
+  wide**: they run from 26.98° to 34.14°, because the Sun does not keep pace with the calendar. The
+  check that matters is the other way about, and it holds: put the clock at midnight on the first of
+  a month and the Sun stands on its own date mark, worst 0.06° of ring over six dates through a year.
+
+- **A calendar ring for the brass too**, optionally, on the astrolabe and the clock, sitting beside
+  the signs. This is not decoration: the back of a real astrolabe carries a calendar scale concentric
+  with a zodiac one, and that pair is how a date is turned into the Sun's place among the stars,
+  which is the first step in nearly every operation with the instrument. Read the date on the one and
+  the sign against it on the other. The planisphere already carries a calendar as its own inner
+  scale, so the switch is greyed there.
 
 - **A ring of the twelve signs**, which is what a planet hand is read against. The clock comes with
   one; the astrolabe can have one, outside everything else it is wearing.
@@ -534,6 +570,15 @@ planet to a few arcseconds within the fitted span, 2025–2028, and degrade slow
 and comet positions are two-body from the epoch elements: good to a few arcminutes for the main belt,
 rougher for a comet far from its epoch. Comet brightness comes from each comet's own magnitude law
 and is a rough guide only.
+
+The **celestial grid, its convergence point and the two celestial pole markers are J2000**, the
+epoch every right ascension and declination on the page is quoted in. The **meridian is not**: it is
+a line of the horizon system, running from due south through the zenith to due north, so it passes
+through the pole the sky actually turns about tonight — the pole of date. The two poles are not the
+same point, and at high magnification you can see the meridian miss the marker. That gap is the
+precession accumulated since J2000 and nothing else: 20.04″ a year, which for 2026 is 0.1486°,
+measured at 0.1486°, doubling to 0.2972° by 2053 and 0.7051° by 2126. The marker's azimuth reads
+179.834° rather than 180°, which is the same figure seen another way.
 
 Rise, transit and set are found by sampling the body's altitude every ten minutes through the
 observer's day and refining each crossing, using the conventional horizon of −50′ for stars and
