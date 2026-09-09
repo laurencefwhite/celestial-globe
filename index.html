@@ -538,7 +538,7 @@ body.night #stage{filter:grayscale(1)}
       <div class="sub-t">View</div>
       <div class="views">
         <button class="btn sm" id="v-inside" title="The sky as it is overhead, laid flat">Sky from inside</button>
-        <button class="btn sm" id="v-globe" title="The celestial sphere seen from outside, as a globe on a stand">Globe from outside</button>
+        <button class="btn sm" id="v-globe" title="The celestial sphere seen from outside, as a globe on a stand">Celestial sphere</button>
         <button class="btn sm" id="v-planisphere" title="Every star that ever rises here, on one card about the pole">Planisphere</button>
         <button class="btn sm" id="v-astrolabe" title="The tympan cut for this latitude, bounded at the far tropic">Astrolabe</button>
         <button class="btn sm" id="v-clock" title="An astrolabe with the hands of an astronomical clock">Astronomical clock</button>
@@ -669,7 +669,8 @@ body.night #stage{filter:grayscale(1)}
     <button class="kclose" title="Close">&times;</button>
     <h2>Keyboard and mouse</h2>
     <table>
-      <tr><td>Drag</td><td>turn the globe</td></tr>
+      <tr><td>Drag</td><td>turn the globe; on an instrument, turn the sky under the plate</td></tr>
+      <tr><td>Ctrl-drag, &#8984;-drag</td><td>slide the whole view about the screen. On a touch screen, hold still a moment first</td></tr>
       <tr><td>Scroll, pinch</td><td>zoom, about the pointer</td></tr>
       <tr><td>Double-click</td><td>zoom in on a point</td></tr>
       <tr><td>Click an object</td><td>fly to it; on a touch screen, tap to select and tap again to fly</td></tr>
@@ -1543,11 +1544,20 @@ var disc = null;                     /* {kind, deg, clip, lat} while an instrume
    it. Turning it is not that way: the pole must stay at the middle of the card whatever happens. So
    the card slides bodily instead, which is what sliding a paper chart about the table does. Ctrl and
    drag on a desktop; on a touch screen, hold still for a moment first and then move, since one
-   finger already means turn and two already mean magnify. */
+   finger already means turn and two already mean magnify.
+
+   The same gesture slides the sky views. There the drag is turning the sphere, not sliding it, so
+   the two are different things and both are wanted: turn to bring a part of the sky round, slide to
+   put it somewhere else on the screen — off to one side of a panel, say, or centred on the object
+   you are actually looking at rather than on the pole. How far it may slide is capped at rather more
+   than half the short side of the window, so the sphere cannot be pushed clean out of sight. */
 var discPan = [0, 0], baseCX = 0, baseCY = 0;
 function applyDiscPan() { CX = baseCX + discPan[0]; CY = baseCY + discPan[1]; }
 function clampDiscPan() {
-  var rp = discRadiusPx(), lim = Math.max(0, rp - Math.min(W, H) * 0.25);
+  var short = Math.min(W, H);
+  var rp = disc ? discRadiusPx() : R0 * zoom;
+  var lim = Math.max(0, rp - short * 0.25);
+  if (!disc) lim = Math.min(lim, short * 0.55);   /* a zoomed sky would otherwise slide forever */
   discPan[0] = clamp(discPan[0], -lim, lim);
   discPan[1] = clamp(discPan[1], -lim, lim);
   applyDiscPan();
@@ -1626,7 +1636,7 @@ function resize() {
     if (left > 0 || right < W) CX = (left + right) / 2;
   }
   baseCX = CX; baseCY = CY;
-  if (disc) clampDiscPan();
+  clampDiscPan();
   drawSky();
   draw();
 }
@@ -3205,7 +3215,7 @@ function cardBands() {
 }
 function cardExtra() {
   var b = cardBands();
-  var hangs = opt.suspend && disc && disc.kind !== 'planisphere';
+  var hangs = opt.suspend && disc && disc.kind === 'astrolabe';
   return (b.length ? b[b.length - 1].r1 - cardScaleWidth() + 4 : 0) + (hangs ? SUSP_H : 0);
 }
 /* How solid the plate is, and how faint a star has to be before it loses its pointer. Both were
@@ -3337,7 +3347,7 @@ function drawCard(c) {
     else drawRaRing(c, rp + B.r0, rp + B.r1, brassy);
   });
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
-  if (opt.suspend && disc.kind !== 'planisphere') {
+  if (opt.suspend && disc.kind === 'astrolabe') {
     var bands = cardBands();
     drawSuspension(rp + (bands.length ? bands[bands.length - 1].r1 : cardScaleWidth()) + 2);
   }
@@ -3979,6 +3989,7 @@ var reteDrawn = [], reteNearest = null;                  /* what the last frame 
 function nameThePointer(i, q, c) {
   var e = starName[i];
   if (!e || !e.name) return;
+  if (!opt.starnames) return;                     /* the names switch owns every star name there is */
   for (var k = 0; k < labelQ.length; k++)
     if (labelQ[k].kind === 'star' && labelQ[k].ref === i) { labelQ[k].prio = 120; labelQ[k].force = true; return; }
   var big = SMAG[i] < 1.5;
@@ -4168,12 +4179,13 @@ cv.addEventListener('pointerdown', function (e) {
   stopMomentum();
   if (ids.length === 1) {
     dragStart = { x: e.clientX, y: e.clientY, rot: rotation.slice(), lastT: 0, lastRot: rotation.slice() };
-    if (disc) {
-      var ds = dragStart;
-      ds.holdTimer = setTimeout(function () {
-        if (dragStart === ds && !moved) { ds.held = true; setStatus('Hold and move to slide the card'); }
-      }, 400);
-    }
+    var ds = dragStart;
+    ds.holdTimer = setTimeout(function () {
+      if (dragStart === ds && !moved) {
+        ds.held = true;
+        setStatus('Hold and move to slide the ' + (disc ? 'card' : 'view'));
+      }
+    }, 400);
     cv.classList.add('dragging');
   } else if (ids.length === 2) {
     pinch = { d: dist2(pointers[ids[0]], pointers[ids[1]]), zoom: zoom };
@@ -4187,7 +4199,7 @@ cv.addEventListener('pointermove', function (e) {
   if (ids.length === 2 && pinch) {
     var nd = dist2(pointers[ids[0]], pointers[ids[1]]);
     zoom = clamp(pinch.zoom * (nd / pinch.d), ZMIN, ZMAX);
-    if (disc) clampDiscPan();
+    clampDiscPan();
     markInteract(); draw();
     return;
   }
@@ -4196,11 +4208,8 @@ cv.addEventListener('pointermove', function (e) {
     var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
     if (!moved && Math.abs(dx) + Math.abs(dy) <= 3) return;      /* a tap or click that wobbles is not a drag */
     moved = true;
-    if (disc) {
-      if (e.ctrlKey || e.metaKey || dragStart.held) panCard(e.clientX, e.clientY);
-      else spinCard(e.clientX, e.clientY);
-      return;
-    }
+    if (e.ctrlKey || e.metaKey || dragStart.held) { panView(e.clientX, e.clientY); return; }
+    if (disc) { spinCard(e.clientX, e.clientY); return; }
     var u = unroll(dx, dy);
     rotation = [dragStart.rot[0] + sgn * u[0] * k, clamp(dragStart.rot[1] - u[1] * k, -90, 90), rotation[2]];
     var tnow = performance.now();
@@ -4573,6 +4582,7 @@ function resetView() {
     setStatus(INSTRUMENTS[disc.kind].name + ' set square again \u00b7 press its own button to put it down');
     return;
   }
+  discPan = [0, 0]; applyDiscPan();               /* a slid sky comes back to the middle too */
   flyToZenith(1);
 }
 /* where a thing that has been pointed at actually is, and how close you would want to be to it */
@@ -4926,10 +4936,10 @@ function cardTurnSlope(c) {
   if (b === null || b2 === null) return 0;
   return (((b2 - b) * RAD + 540) % 360 - 180) / 5;
 }
-function panCard(x, y) {
+function panView(x, y) {
   if (dragStart.panFrom === undefined) {
     dragStart.panFrom = [x, y]; dragStart.panWas = discPan.slice();
-    setStatus('Sliding the card. Reset view puts it back in the middle.');
+    setStatus('Sliding the ' + (disc ? 'card' : 'view') + '. Reset view puts it back in the middle.');
     return;
   }
   discPan = [dragStart.panWas[0] + (x - dragStart.panFrom[0]),
@@ -5077,7 +5087,7 @@ var northEl = document.getElementById('northat'), eastEl = document.getElementBy
    not a thing. */
 var VIEWS = {
   inside:      { name: 'Sky from inside', proj: ['stereographic', 'equidistant'], orient: true },
-  globe:       { name: 'Globe from outside', proj: ['orthographic'], orient: false },
+  globe:       { name: 'Celestial sphere', proj: ['orthographic'], orient: false },
   planisphere: { name: 'Planisphere', proj: ['equidistant', 'stereographic'], orient: true, disc: true },
   astrolabe:   { name: 'Astrolabe', proj: ['stereographic', 'equidistant'], orient: true, disc: true },
   clock:       { name: 'Astronomical clock', proj: ['stereographic', 'equidistant'], orient: true, disc: true }
@@ -5135,9 +5145,9 @@ function syncViewUI() {
   var onCard = !!disc;
   document.getElementById('numrow').classList.toggle('fixed', !onCard);
   numeralsEl.disabled = !onCard;
-  var brassCard = !!disc && disc.kind !== 'planisphere';   /* a planisphere does not hang from a ring */
+  var hangs = !!disc && disc.kind === 'astrolabe';   /* only the astrolabe hangs from a ring */
   ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend'].forEach(function (id) {
-    var e = document.getElementById(id), live = id === 'L-suspend' ? brassCard : onCard;
+    var e = document.getElementById(id), live = id === 'L-suspend' ? hangs : onCard;
     if (id === 'L-diagonal') live = onCard && opt.degring;
     e.disabled = !live;
     e.closest('.tog').classList.toggle('off', !live);
