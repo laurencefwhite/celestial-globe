@@ -15,7 +15,7 @@ drawn on the sphere.
   a second tap (or the card's *Fly to* button) flies there, and a tap on empty sky clears the
   selection; the panels fold into the corners and a tap on the globe folds an open one.
 - **Five views, and no more.** There are five ways of looking at this and everything else is a
-  variant of one of them, so they are five buttons: **Sky from inside**, **Globe from outside**,
+  variant of one of them, so they are five buttons: **Sky from inside**, **Celestial sphere**,
   **Planisphere**, **Astrolabe**, **Astronomical clock**. What each fixes and what it leaves to you
   is not arbitrary. A globe from outside is orthographic and mirrored by its nature — that is what a
   sphere seen from without does to the sky — so it has no variants and both menus grey out. The
@@ -121,6 +121,11 @@ drawn on the sphere.
   under it. A quarter turn is a quarter of a sidereal day. The arrow keys step the clock the same
   way. Magnified, a card is bigger than the window, so ctrl and drag slides it about — hold still for
   a moment first on a touch screen, since one finger already means turn and two already mean magnify.
+  The same gesture slides **any** view, not only a card. In the sky views turning and sliding are two
+  different things and both are wanted: turn to bring a part of the sky round, slide to put it
+  somewhere else on the screen — clear of an open panel, or centred on the object you are looking at
+  rather than on the pole. The slide is capped at rather more than half the short side of the window
+  so the sphere cannot be pushed out of sight, and *Reset view* returns it to the middle.
   Magnifying a card works on its own pivot rather than on the point under the cursor, which would
   walk it off its pole.
 
@@ -150,7 +155,9 @@ drawn on the sphere.
 
   How faint a star has to be before it loses its pointer is yours to set too, from first magnitude to
   fifth, and every star that gets one carries its name: a pointer exists to say which star that is,
-  so its label is forced to the head of the queue rather than left to be crowded out. The rete carries the ecliptic as a broad ring divided
+  so its label is forced to the head of the queue rather than left to be crowded out. Forced to the
+  head of the queue, not exempt from it — *Star names* still governs them, so switching the names off
+  leaves the rete's pointers bare like everything else. The rete carries the ecliptic as a broad ring divided
   into its twelve signs, two straight members across the face, a hoop on the celestial equator, and
   a spread of tapering pointers, each ending in a spike on one named star.
 
@@ -218,9 +225,9 @@ drawn on the sphere.
   the thumb. The point of the arrangement is that it swings freely in two directions, so the
   instrument hangs plumb however it is held — which is the whole basis of measuring an altitude with
   one. It keeps its proportion to the instrument, within reason, and the card gives up 66 pixels of
-  radius for it. It is offered on the astrolabe and on the clock, which is the same instrument with
-  hands, and not on the planisphere, which is a card and does not hang from anything. The diagonal
-  scale likewise waits for a degree ring to sit in.
+  radius for it. It belongs to the astrolabe alone: a planisphere is a card and does not hang from
+  anything, and a clock is mounted on a wall rather than held up by the thumb. The diagonal scale
+  likewise waits for a degree ring to sit in.
 
 - **Numerals**: Western, the Arabic-Indic digits (٠ ١ ٢ ٣), or **abjad**, which is what is really cut
   into a brass astrolabe. Abjad numbers the letters — alif is one, ba two, up to ya for ten, then kaf
