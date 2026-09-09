@@ -229,6 +229,13 @@ drawn on the sphere.
   anything, and a clock is mounted on a wall rather than held up by the thumb. The diagonal scale
   likewise waits for a degree ring to sit in.
 
+- **The hand it is written in.** Brass was cut with a graver by someone trained on letter forms that
+  have serifs, and every surviving astrolabe reads that way, so the astrolabe and the clock carry
+  their numerals, their signs of the zodiac, their altitudes and their compass points in a serif
+  face. The planisphere is a printed modern card and keeps the sans face it is actually printed in.
+  Star names are not engraving and stay as they are in every other view. Arabic and abjad take the
+  Naskh face on any card, that being the hand they belong to.
+
 - **Numerals**: Western, the Arabic-Indic digits (٠ ١ ٢ ٣), or **abjad**, which is what is really cut
   into a brass astrolabe. Abjad numbers the letters — alif is one, ba two, up to ya for ten, then kaf
   twenty and on by tens to sad ninety, then qaf a hundred and so to ta four hundred — and a number is
@@ -290,6 +297,11 @@ drawn on the sphere.
   a second times the cosine of the declination — the first thing anyone meets at the eyepiece.
   **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
   all: over three hours the Moon leaves a sidereal field entirely.
+
+- **A switch that does not apply is greyed, not annotated.** *Clock hands*, *Planet hands* and the
+  two outer rings used to carry the words "on a card" under them, which told a reader nothing they
+  could act on. They now simply go dim and dead in the views where they mean nothing, which is the
+  same information without the footnote.
 
 - **The Layers panel folds.** Each heading takes the run of switches under it and puts them away,
   with a count of what is inside, and what you leave open is remembered. One button at the top opens

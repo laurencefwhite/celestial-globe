@@ -561,8 +561,8 @@ body.night #stage{filter:grayscale(1)}
         </select>
       </div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
-      <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands <small>on a card</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands <small>on a card</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands</span></label>
+      <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands</span></label>
       <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
       <label class="tog"><input type="checkbox" id="L-plate"><span class="sw"></span><span class="tl">Brass plate <small>the tympan</small></span></label>
       <div class="row two" id="platerow"><label for="hplate">Solid</label>
@@ -573,15 +573,15 @@ body.night #stage{filter:grayscale(1)}
         <div class="hslider" id="hrete" tabindex="0" role="slider" aria-label="How faint a star gets a pointer">
           <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
         </div></div>
-      <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring <small>on a card</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring <small>on a card</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-diagonal"><span class="sw"></span><span class="tl">Diagonal scale <small>reads to 10\u2032</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring</span></label>
+      <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring</span></label>
+      <label class="tog"><input type="checkbox" id="L-diagonal"><span class="sw"></span><span class="tl">Diagonal scale <small>reads to 10&prime;</small></span></label>
       <label class="tog"><input type="checkbox" id="L-suspend"><span class="sw"></span><span class="tl">Suspension ring <small>throne and shackle</small></span></label>
       <div class="row" id="numrow"><label for="numerals">Numerals</label>
         <select class="sel" id="numerals">
-          <option value="western">Western \u00b7 0 1 2 3</option>
-          <option value="arabic">Arabic \u00b7 \u0660 \u0661 \u0662 \u0663</option>
-          <option value="abjad">Abjad \u00b7 \u0627 \u0628 \u062c \u062f</option>
+          <option value="western">Western &middot; 0 1 2 3</option>
+          <option value="arabic">Arabic &middot; &#x660;&#x661;&#x662;&#x663;</option>
+          <option value="abjad">Abjad &middot; &#x627;&#x628;&#x62c;&#x62f;</option>
         </select></div>
       <div class="row" id="degrow"><label for="degzero">Zero at</label>
         <select class="sel" id="degzero">
@@ -2013,7 +2013,7 @@ function draw() {
     var rete = disc && disc.kind !== 'planisphere';
     lineTrace('ecliptic', ECLIPTIC, rete ? PAL.rete : inkFor(PAL.ecliptic), rete ? 1.8 : 1, rete ? null : [6, 5]);
   }
-  if (opt.galactic) lineTrace('galactic', inkFor(PAL.galactic), 1, [2, 4]);
+  if (opt.galactic) lineTrace('galactic', GALACTIC, inkFor(PAL.galactic), 1, [2, 4]);
   if (opt.hgrid) drawHorizonGrid(c);
   if (opt.horizon) drawHorizon(c);
   if (opt.horizon || opt.hgrid) drawZenithNadir(c);
@@ -2901,7 +2901,7 @@ function drawCardinals(c) {
     lx = clamp(lx, m + rad, W - m - rad);
     ly = clamp(ly, m + rad, H - m - rad);
     ctx.globalAlpha = behind ? 0.4 : 1;
-    ctx.font = (major ? '600 12px ' : '500 10px ') + FONT;
+    ctx.font = cardFont(major ? 12 : 10, major ? '600 ' : '500 ');
     var onPlate = disc && opt.plate && disc.kind !== 'planisphere';
     if (onPlate) {
       /* on brass they are cut into the plate like everything else, not stuck on it */
@@ -3039,8 +3039,17 @@ function numStr(n) {
   return String(n);
 }
 var ARABIC_FONT = "'Noto Naskh Arabic', 'Traditional Arabic', 'Segoe UI', 'Times New Roman', serif";
+/* The hand the instrument is written in. Brass was cut with a graver by someone trained on letter
+   forms that have serifs, and every surviving astrolabe reads that way; a planisphere is a printed
+   modern card and keeps the sans face it is actually printed in. Arabic and abjad take the Naskh
+   face whichever card they are on, since that is the hand they belong to. */
+function cardSerif() { return !!disc && disc.kind !== 'planisphere'; }
+function cardFont(px, weight) {
+  return (weight || '600 ') + px + 'px ' + (cardSerif() ? SERIF : FONT);
+}
 function numFont(px, weight) {
-  return (weight || '600 ') + px + 'px ' + (NUMERALS === 'western' ? FONT : ARABIC_FONT);
+  return (weight || '600 ') + px + 'px ' +
+         (NUMERALS !== 'western' ? ARABIC_FONT : cardSerif() ? SERIF : FONT);
 }
 /* Everything cut into brass is cut, including the graduations. Same rule as the plate: the light is
    from the upper left, so the shadowed wall of the groove is the upper one. */
@@ -3125,7 +3134,7 @@ function drawBrassPlate(c, rp) {
   /* and the horizon itself, deeper than the rest */
   engrave(horizonCircle(c, 0), 'rgba(40,24,2,.95)', 'rgba(255,244,205,.75)', 1.9);
   /* the altitudes, numbered as they are on a plate */
-  ctx.font = '600 9px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = cardFont(9); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   var step = horizonGridStep();
   for (var a2 = step; a2 < 90; a2 += step) {
     var q = proj(fromHor(a2, 180, c));
@@ -3367,7 +3376,7 @@ function drawDateAndHour(c, rp) {
     a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 1)))), c);
     if (a !== null) cardTickCut(a, rp, rp + 9, 1.2, false);
     a = haBearing(c.lst - sunRaOn(jdOf(new Date(Date.UTC(y, m, 16)))), c);
-    if (a !== null) cardTextCut(a, rp + 8.5, MONS[m].toUpperCase(), '600 9.5px ' + FONT, false);
+    if (a !== null) cardTextCut(a, rp + 8.5, MONS[m].toUpperCase(), cardFont(9.5), false);
   }
   /* the clock scale: the hour angle of the mean sun at that local time, on this meridian */
   var h, half;
@@ -4064,7 +4073,7 @@ function drawRete(c, rp) {
       ctx.save();
       ctx.translate(dm.q[0], dm.q[1]);
       ctx.rotate(turn);
-      ctx.font = '700 ' + Math.round(clamp(w * 0.48, 6.5, 9.5)) + 'px ' + FONT;
+      ctx.font = cardFont(Math.round(clamp(w * 0.48, 6.5, 9.5)), '700 ');
       ctx.fillStyle = 'rgba(52,32,2,.95)';
       ctx.fillText(ZODIAC_SHORT[k], 0, 0.5);
       ctx.restore();
@@ -5146,7 +5155,7 @@ function syncViewUI() {
   document.getElementById('numrow').classList.toggle('fixed', !onCard);
   numeralsEl.disabled = !onCard;
   var hangs = !!disc && disc.kind === 'astrolabe';   /* only the astrolabe hangs from a ring */
-  ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend'].forEach(function (id) {
+  ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend', 'L-hands', 'L-phands'].forEach(function (id) {
     var e = document.getElementById(id), live = id === 'L-suspend' ? hangs : onCard;
     if (id === 'L-diagonal') live = onCard && opt.degring;
     e.disabled = !live;
@@ -6302,7 +6311,7 @@ window.CG = {
   degZero: function (z) { if (z) { degZero = z; degZeroEl.value = z; draw(); } return degZero; },
   degZeroBearing: function (c) { return degZeroBearing(c || ensureSky()); },
   numerals: function (n) { if (n) { NUMERALS = n; numeralsEl.value = n; draw(); } return NUMERALS; },
-  numStr: numStr, abjad: abjad, cardBands: cardBands,
+  numStr: numStr, abjad: abjad, cardBands: cardBands, cardFont: cardFont, cardSerif: cardSerif, numFont: numFont,
   plateSolid: function (v) { if (v !== undefined) { plateSolid = v; plateSlider.set(v, 0.25); draw(); } return plateSolid; },
   reteLimit: function (v) { if (v !== undefined) { reteLimit = v; reteSlider.set(v, 0.5); draw(); } return reteLimit; },
   starVec: function (i) { return [SX[i], SY[i], SZ[i]]; },
