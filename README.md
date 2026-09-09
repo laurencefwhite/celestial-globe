@@ -141,11 +141,16 @@ drawn on the sphere.
   laid across the face to read the hour. That is the real stack, and it is drawn in that order, the
   plate a shade duller and darker than the rete so the piece on top reads as the piece on top.
 
-  The plate is a little short of opaque, so the brighter stars still come through and the thing stays
-  a chart as well as an instrument. Its circles are incised rather than drawn on — a dark line with a
-  light one along its upper edge, which is what a cut groove does to the light — and the ground below
-  the horizon is darker, as on brass it is the part with nothing on it. Rete and plate have a switch
-  each. The rete carries the ecliptic as a broad ring divided
+  How solid the plate is, is yours to set, from a third of the way up to wholly opaque as brass
+  really is. Its circles are incised rather than drawn on: the light comes from the upper left, so
+  the near wall of a groove is the shadowed one and the far wall catches the light, which puts the
+  dark fringe above and the bright one below. Get that the wrong way round and every line reads as a
+  raised bead instead of a cut one. The ground below the horizon is darker, as on brass it is the
+  part with nothing on it.
+
+  How faint a star has to be before it loses its pointer is yours to set too, from first magnitude to
+  fifth, and every star that gets one carries its name: a pointer exists to say which star that is,
+  so its label is forced to the head of the queue rather than left to be crowded out. The rete carries the ecliptic as a broad ring divided
   into its twelve signs, two straight members across the face, a hoop on the celestial equator, and
   a spread of tapering pointers, each ending in a spike on one named star.
 
@@ -173,12 +178,24 @@ drawn on the sphere.
   pixels, which is why the brass is offered on the astrolabe and the clock and not on the
   planisphere.
 
-- **A degree ring**, optional, on any of the three cards, and in brass where the card is brass. It
-  runs in compass order, north through east, and where zero sits is a choice with no single right
-  answer, so it is a menu. A modern bearing starts at north. The limb of a brass astrolabe is
-  commonly divided instead into four quadrants of ninety from the horizontal diameter, which puts
-  zero at the east and west points. Both are offered; the two differ only in where the counting
-  starts. Turning it on shrinks the card to make room for it.
+- **Two more rings**, optional, on any of the three cards, and in brass where the card is brass.
+  They stack outward from the card's own scale and it shrinks to make room.
+
+  The **degree ring** runs in compass order, north through east. Where zero sits is a menu, and the
+  default is north for a reason rather than by preference: on a north-up card the north point lies on
+  the meridian, so zero falls where an object transits and the ring reads the hour angle directly,
+  with ninety, a hundred and eighty and two hundred and seventy on the quarters. East is offered
+  because the limb of a brass astrolabe is commonly divided into four quadrants of ninety from the
+  horizontal diameter, which is the historical answer rather than the legible one.
+
+  The **right ascension ring** is the odd one out, and the interesting one. Everything else outside
+  the card is fixed to the observer: the hours are a clock, and the degrees go round with them. Right
+  ascension belongs to the sky and turns with the stars. Reading one against the other is reading the
+  sidereal time. Checked: over three hours 0h moves 45.1 degrees, which is three hours of the sky's
+  own turning, while midnight on the clock ring moves a hundredth of a degree.
+
+  With a ring outside the hours, the clock and planet hands reach on to its inner rim rather than
+  stopping at the card's edge, since a hand pointing at nothing in particular is no use.
 
 - **Which way up, and which hand.** Two menus settle the orientation of any chart seen from inside:
   *North at top or bottom*, and *East at right or left*. They are not independent in the way they

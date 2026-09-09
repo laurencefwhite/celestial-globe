@@ -127,6 +127,8 @@ body{
 @media (max-width:860px){ #field{right:10px;bottom:44px;width:auto} }
 .togs .row.two{display:flex;gap:6px}
 .togs .row.two .sel{flex:1;min-width:0}
+.togs .row.two .hslider{flex:1;min-width:0;height:18px}
+.togs .row.two label{min-width:52px}
 .togs .instr .btn.on{background:rgba(142,208,255,.18);border-color:rgba(142,208,255,.45);color:var(--accent)}
 .togs .instr .btn{flex:1}
 #controls::-webkit-scrollbar{width:6px}
@@ -563,7 +565,16 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands <small>on a card</small></span></label>
       <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
       <label class="tog"><input type="checkbox" id="L-plate"><span class="sw"></span><span class="tl">Brass plate <small>the tympan</small></span></label>
+      <div class="row two" id="platerow"><label for="hplate">Solid</label>
+        <div class="hslider" id="hplate" tabindex="0" role="slider" aria-label="How solid the plate is">
+          <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
+        </div></div>
+      <div class="row two" id="reterow"><label for="hrete">Pointers</label>
+        <div class="hslider" id="hrete" tabindex="0" role="slider" aria-label="How faint a star gets a pointer">
+          <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
+        </div></div>
       <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring <small>on a card</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring <small>on a card</small></span></label>
       <div class="row" id="degrow"><label for="degzero">Zero at</label>
         <select class="sel" id="degzero">
           <option value="north">North · as a bearing</option>
@@ -1457,7 +1468,7 @@ var opt = {
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
   linecards: true, linelabels: false, meridian: false, hands: false, phands: false,
-  preview: false, brass: false, plate: false, degring: false,
+  preview: false, brass: false, plate: false, degring: false, raring: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
@@ -2953,11 +2964,11 @@ function cardRing(r0, r1) {
    it is simply darker, which says the same thing and keeps the sky underneath legible. */
 function engrave(geo, dark, light, width) {
   ctx.save();
-  ctx.translate(0.6, 0.7);
+  ctx.translate(-0.55, -0.65);                    /* the shadowed near wall of the groove */
   drawLine(geo, dark, width + 0.4, null);
   ctx.restore();
   ctx.save();
-  ctx.translate(-0.4, -0.5);
+  ctx.translate(0.45, 0.55);                      /* the far wall, which the light reaches */
   drawLine(geo, light, width, null);
   ctx.restore();
 }
@@ -2965,11 +2976,12 @@ function drawBrassPlate(c, rp) {
   ctx.save();
   ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI); ctx.clip();
   var g = ctx.createLinearGradient(CX - rp, CY - rp, CX + rp, CY + rp);
-  g.addColorStop(0.00, 'rgba(76,54,14,.92)');
-  g.addColorStop(0.30, 'rgba(140,105,42,.92)');
-  g.addColorStop(0.48, 'rgba(178,152,92,.92)');
-  g.addColorStop(0.66, 'rgba(132,99,38,.92)');
-  g.addColorStop(1.00, 'rgba(94,68,18,.92)');
+  var al = plateSolid.toFixed(3);
+  g.addColorStop(0.00, 'rgba(76,54,14,' + al + ')');
+  g.addColorStop(0.30, 'rgba(140,105,42,' + al + ')');
+  g.addColorStop(0.48, 'rgba(178,152,92,' + al + ')');
+  g.addColorStop(0.66, 'rgba(132,99,38,' + al + ')');
+  g.addColorStop(1.00, 'rgba(94,68,18,' + al + ')');
   ctx.fillStyle = g;
   ctx.fillRect(CX - rp, CY - rp, rp * 2, rp * 2);
   /* the ground, which on brass is the part with nothing on it */
@@ -2987,8 +2999,8 @@ function drawBrassPlate(c, rp) {
   for (var a2 = step; a2 < 90; a2 += step) {
     var q = proj(fromHor(a2, 180, c));
     if (q && Math.hypot(q[0] - CX, q[1] - CY) < rp - 6) {
-      ctx.fillStyle = 'rgba(48,30,4,.9)'; ctx.fillText(a2 + '\u00b0', q[0] + 0.6, q[1] + 0.7);
-      ctx.fillStyle = 'rgba(255,240,195,.6)'; ctx.fillText(a2 + '\u00b0', q[0] - 0.4, q[1] - 0.5);
+      ctx.fillStyle = 'rgba(48,30,4,.9)'; ctx.fillText(a2 + '\u00b0', q[0] - 0.55, q[1] - 0.65);
+      ctx.fillStyle = 'rgba(255,240,195,.6)'; ctx.fillText(a2 + '\u00b0', q[0] + 0.45, q[1] + 0.55);
     }
   }
   ctx.restore();
@@ -3002,6 +3014,24 @@ function drawBrassPlate(c, rp) {
    compass order either way, north through east, so it agrees with itself whichever way round the
    card the chart happens to be. */
 var degZero = 'north';
+/* The rings a card can carry outside its own scale, stacked outward in a fixed order. The hours (or
+   the calendar and the clock, on a planisphere) sit against the rim; then the degrees; then right
+   ascension. The last of those is the odd one out and worth saying why: the hour ring is fixed to
+   the observer, since it is a clock, and the degree ring with it, while right ascension belongs to
+   the sky and turns with the stars. Reading one against the other is reading the sidereal time. */
+var RING_W = 17;
+function cardScaleWidth() { return disc && disc.kind === 'planisphere' ? 32 : 18; }
+function cardBands() {
+  var r = cardScaleWidth(), out = [];
+  if (opt.degring) { out.push({ kind: 'deg', r0: r, r1: r + RING_W }); r += RING_W; }
+  if (opt.raring) { out.push({ kind: 'ra', r0: r, r1: r + RING_W }); r += RING_W; }
+  return out;
+}
+function cardExtra() { return cardBands().length * (RING_W + 2); }
+/* How solid the plate is, and how faint a star has to be before it loses its pointer. Both were
+   fixed numbers picked by eye, which is fine until someone wants the other end of them: a plate you
+   can see nothing through, as brass really is, or a rete crowded with every star it can reach. */
+var plateSolid = 0.92, reteLimit = 2.4;
 function degZeroBearing(c) { return horBearing(degZero === 'east' ? 90 : 0, c); }
 function drawDegreeRing(c, r0, r1, brassy) {
   var zero = degZeroBearing(c);
@@ -3023,6 +3053,27 @@ function drawDegreeRing(c, r0, r1, brassy) {
     cardText(a, r0 + (r1 - r0) * 0.66, String(d), '600 8.5px ' + FONT, ink);
   }
 }
+/* Right ascension, which unlike everything else on the outside of the card belongs to the sky and
+   turns with it. A point of right ascension alpha stands at hour angle LST minus alpha, so the ring
+   is placed through the same bearing function as everything else and needs no special pleading. */
+function drawRaRing(c, r0, r1, brassy) {
+  if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
+  var majorCol = brassy ? 'rgba(58,36,4,.85)' : PAL.cardRim;
+  var minorCol = brassy ? 'rgba(70,46,8,.5)' : PAL.cardTick;
+  var ink = brassy ? 'rgba(52,32,2,.95)' : PAL.cardText;
+  var k, a;
+  for (k = 0; k < 48; k++) {                      /* half an hour to the small division */
+    a = haBearing(c.lst - k * 7.5, c);
+    if (a !== null) cardTick(a, r0, r0 + (k % 2 === 0 ? 6 : 3.5), k % 2 === 0 ? majorCol : minorCol, 1);
+  }
+  for (k = 0; k < 24; k += 2) {
+    a = haBearing(c.lst - k * 15, c);
+    if (a === null) continue;
+    cardTick(a, r0, r0 + 9, majorCol, 1.3);
+    cardText(a, r0 + (r1 - r0) * 0.68, k + 'h', '600 8.5px ' + FONT, ink);
+  }
+}
+
 /* The index: one bright line at the moment shown, drawn out across whatever rings the card carries.
    On a planisphere it is what you read the date against the time with; on an astrolabe it is where
    the Sun should be found on the limb, and is a standing check that the two agree. */
@@ -3062,10 +3113,11 @@ function drawCard(c) {
   if (rp < 120) return;                                  /* too small to letter */
   if (opt.plate && disc.kind !== 'planisphere') drawBrassPlate(c, rp);
   if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp);
-  if (opt.degring) {
-    var inner = rp + (disc.kind === 'planisphere' ? 32 : 18);
-    drawDegreeRing(c, inner, inner + 17, opt.brass && disc.kind !== 'planisphere');
-  }
+  var brassy = opt.brass && disc.kind !== 'planisphere';
+  cardBands().forEach(function (B) {
+    if (B.kind === 'deg') drawDegreeRing(c, rp + B.r0, rp + B.r1, brassy);
+    else drawRaRing(c, rp + B.r0, rp + B.r1, brassy);
+  });
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
 }
 /* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
@@ -3203,7 +3255,7 @@ function handShaft(h, rp, style, from) {
   ctx.lineWidth = style.width; ctx.stroke();
   ctx.lineCap = 'butt';
 }
-var handMarks = [];
+var handMarks = [], handReach = 0;
 function handGlyph(h, rp, style, glyph, small) {
   if (!glyph) return;
   var text = glyphOk(glyph + GLYPH_TEXT) ? glyph + GLYPH_TEXT : (style.abbr || '');
@@ -3221,7 +3273,11 @@ function handGlyph(h, rp, style, glyph, small) {
   ctx.restore();
 }
 function drawHands(c) {
-  var rp = discRadiusPx(), sun = bodyByKey.sol, moon = bodyByKey.lun;
+  /* with a ring outside the hours, a hand that stopped at the card's own rim would be pointing at
+     nothing in particular: it reaches the inner edge of the outermost scale instead */
+  var rp = discRadiusPx() + (cardBands().length ? cardScaleWidth() : 0);
+  handReach = rp;
+  var sun = bodyByKey.sol, moon = bodyByKey.lun;
   handMarks = [];
   /* the dragon first, so the bright hands lie over it */
   var om = moonNode(c.jd);
@@ -3252,7 +3308,7 @@ function oneHand(b, style, rp, small) {
   handShaft(h, rp - Math.max(5, style.width * 2.4), style);
   handHead(h, rp, style, onBrass);
   /* a bead on the hand where the body actually is, since it may be off the card */
-  var at = Math.min(h.d, rp);
+  var at = Math.min(h.d, discRadiusPx());
   ctx.beginPath(); ctx.arc(CX + h.dx * at, CY + h.dy * at, style.width + 2.6, 0, 2 * Math.PI);
   ctx.fillStyle = style.colour; ctx.fill();
   if (onBrass) { ctx.strokeStyle = 'rgba(34,20,2,.85)'; ctx.lineWidth = 1.1; ctx.stroke(); }
@@ -3692,6 +3748,21 @@ function reteFoot(q, hoops, bars, curves) {
   return best;
 }
 var reteDrawn = [];                  /* what the last frame cut, so it can be checked for rigidity */
+/* A pointer exists to say which star that is, so a pointer with no name on it is half a pointer.
+   The star labels are queued while the stars are drawn, long before the rete decides who gets a
+   spike, and they are dropped when the sky is crowded or the zoom is low. This puts the name back,
+   at the top of the queue so it is placed first and cannot be crowded out, and only once. */
+function nameThePointer(i, q) {
+  var e = starName[i];
+  if (!e || !e.name) return;
+  for (var k = 0; k < labelQ.length; k++)
+    if (labelQ[k].kind === 'star' && labelQ[k].ref === i) { labelQ[k].prio = 120; labelQ[k].force = true; return; }
+  queueLabel(q[0], q[1], 4.5, e.name, {
+    font: '500 11px ' + FONT,
+    colour: opt.plate ? 'rgba(38,24,2,.95)' : 'rgba(245,240,225,.95)',
+    prio: 120, kind: 'star', ref: i, force: true
+  });
+}
 function drawRete(c, rp) {
   var band = eclipticBand(c);
   if (!band) return;
@@ -3770,8 +3841,9 @@ function drawRete(c, rp) {
     { cx: CX, cy: CY, r0: rTropic - hw / 2, r1: rTropic + hw / 2, bias: 1.0 }
   ];
   var curves = [{ band: band, hw: w / 2, bias: 0.92 }];
-  var lim = 2.4, n = 0, spikes = [], gap = Math.max(15, rp * 0.068), reach = rp * 0.40;
-  for (var i = 0; i < NS && n < 24; i++) {
+  var lim = reteLimit, n = 0, spikes = [], gap = Math.max(15, rp * 0.068), reach = rp * 0.40;
+  var most = Math.round(clamp(10 + (lim - 1) * 14, 12, 60));
+  for (var i = 0; i < NS && n < most; i++) {
     if (SMAG[i] > lim) break;
     if (!starName[i] || !starName[i].name) continue;
     var q = proj([SX[i], SY[i], SZ[i]]);
@@ -3789,6 +3861,7 @@ function drawRete(c, rp) {
     var side = Math.sin(Math.atan2(f.y - CY, f.x - CX) - axis) >= 0 ? 1 : -1;
     flamePointer(f.x, f.y, f.nx, f.ny, q[0], q[1], clamp(w * 0.24, 2.1, 4.4), side);
     reteDrawn.push({ i: i, foot: [f.x, f.y], tip: [q[0], q[1]], side: side, run: run });
+    nameThePointer(i, q);
     spikes.push(q);
     n++;
   }
@@ -4327,7 +4400,7 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'sats' && opt.sats && !sats.length) buildSatList();
     if (key === 'hold') holdLst = null;
     if (key === 'awake') { if (opt.awake) requestWake(); else releaseWake(); }
-    if (key === 'degring') { tuneDisc(); }
+    if (key === 'degring' || key === 'raring') { tuneDisc(); }
     if (key === 'preview') {
       var fp = document.getElementById('field');
       fp.hidden = !opt.preview;
@@ -4479,6 +4552,8 @@ function resetDefaults() {
   satGroupSel = DEFAULT_SAT_GROUP; document.getElementById('satgrp').value = DEFAULT_SAT_GROUP;
   homeField();
   degZero = 'north'; degZeroEl.value = 'north';
+  plateSolid = 0.92; plateSlider.set(0.92, 0.25);
+  reteLimit = 2.4; reteSlider.set(2.4, 0.5);
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
   trackMode = 'sidereal'; document.getElementById('fld-track').value = 'sidereal';
   lockKey = null; fieldTarget = null; fieldAltAz = null;
@@ -4559,7 +4634,7 @@ function fitDisc() {
 function tuneDisc() {
   if (!disc) return;
   var P = curProj(), alat = Math.abs(disc.lat);
-  disc.margin = INSTRUMENTS[disc.kind].margin + (opt.degring ? 19 : 0);   /* room for the degrees */
+  disc.margin = INSTRUMENTS[disc.kind].margin + cardExtra();   /* room for whatever rings it carries */
   /* far enough out that the whole horizon is projected before the rim cuts it, or the ground would
      be shaded on the wrong side of the line */
   disc.deg = Math.min(INSTRUMENTS[disc.kind].reach(alat), P.maxClip - 6);
@@ -4673,6 +4748,10 @@ function markInstrument(kind) { syncBrassSwitch(kind); }
 /* there is no brass to put on a planisphere, and none at all without an instrument out */
 function syncBrassSwitch(kind) {
   var live = kind === 'astrolabe' || kind === 'clock';
+  ['platerow', 'reterow'].forEach(function (id) {
+    var r = document.getElementById(id);
+    if (r) r.classList.toggle('fixed', !live);
+  });
   ['L-brass', 'L-plate'].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -4733,6 +4812,16 @@ projEl.addEventListener('change', function () {
   if (!disc) insideProj = projKind;
   tuneDisc();                                     /* an instrument keeps its rim through a change of projection */
   describeView(); hideTip(); draw();
+});
+var plateSlider = hSlider(document.getElementById('hplate'), {
+  min: 0.25, max: 1, step: 0.01, wheel: 0.05, value: 0.92, origin: 0.25,
+  ticks: [{ v: 0.5 }, { v: 0.75 }, { v: 1, major: true }],
+  onInput: function (v) { plateSolid = v; draw(); }
+});
+var reteSlider = hSlider(document.getElementById('hrete'), {
+  min: 0.5, max: 5, step: 0.1, wheel: 0.25, value: 2.4, origin: 0.5,
+  ticks: [{ v: 1, major: true }, { v: 2 }, { v: 3, major: true }, { v: 4 }, { v: 5, major: true }],
+  onInput: function (v) { reteLimit = v; draw(); }
 });
 var degZeroEl = document.getElementById('degzero');
 degZeroEl.addEventListener('change', function () { degZero = degZeroEl.value; draw(); });
@@ -4810,9 +4899,12 @@ function syncViewUI() {
   projEl.disabled = opts.length < 2;
   document.getElementById('projrow').classList.toggle('fixed', opts.length < 2);
   var onCard = !!disc;
+  ['L-degring', 'L-raring'].forEach(function (id) {
+    var e = document.getElementById(id);
+    e.disabled = !onCard;
+    e.closest('.tog').classList.toggle('off', !onCard);
+  });
   var dr = document.getElementById('L-degring');
-  dr.disabled = !onCard;
-  dr.closest('.tog').classList.toggle('off', !onCard);
   document.getElementById('degrow').classList.toggle('fixed', !onCard || !opt.degring);
   degZeroEl.disabled = !onCard || !opt.degring;
   var face = document.getElementById('facerow');
@@ -5961,6 +6053,8 @@ window.CG = {
   daysToPos: daysToPos, posToDays: posToDays,
   degZero: function (z) { if (z) { degZero = z; degZeroEl.value = z; draw(); } return degZero; },
   degZeroBearing: function (c) { return degZeroBearing(c || ensureSky()); },
+  plateSolid: function (v) { if (v !== undefined) { plateSolid = v; plateSlider.set(v, 0.25); draw(); } return plateSolid; },
+  reteLimit: function (v) { if (v !== undefined) { reteLimit = v; reteSlider.set(v, 0.5); draw(); } return reteLimit; },
   starVec: function (i) { return [SX[i], SY[i], SZ[i]]; },
   setRotation: function (a, b) { rotation = [a, b, rotation[2]]; draw(); },
   handColours: function () { var o = {}; PLANET_HANDS.forEach(function (h) { o[h.key] = h.colour; }); return o; },
@@ -5968,6 +6062,12 @@ window.CG = {
   eclipticBand: function () { return eclipticBand(ensureSky()); },
   bandNearest: bandNearest,
   projInfo: function () { var P = curProj(); return { R0: R0, zoom: zoom, rad: P.rad }; },
+  labels: function () { return labelQ.map(function (l) { return { kind: l.kind, ref: l.ref, text: l.text }; }); },
+  starMag: function (i) { return SMAG[i]; },
+  starName: function (i) { return starName[i] && starName[i].name; },
+  horizonCircle: horizonCircle,
+  handReach: function () { return handReach; },
+  cardScaleWidth: cardScaleWidth,
   reteDrawn: function () { return reteDrawn.map(function (d) { return { i: d.i, foot: d.foot.slice(), tip: d.tip.slice(), side: d.side, run: d.run }; }); },
   reteBars: function () {
     var ring = eclipticRing(ensureSky());
