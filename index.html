@@ -1670,9 +1670,13 @@ function screenScale() { return clamp(Math.min(W, H) / 780, 0.62, 1); }
 var rotM = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];    /* the rotation as a matrix, for the star loop */
 var viewV = [1, 0, 0];                            /* J2000 direction at the centre of the view */
 
+/* The card is fitted to the room again only when the room changes: the window, or a panel opening
+   beside it. A panel merely growing a line, as the masthead does when the Sun sets and its line
+   wraps, is not a change of room, and refitting on it threw away whatever magnification the card
+   had been given. */
+var fitKey = '';
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  setTimeout(fitDisc, 0);
   W = window.innerWidth; H = window.innerHeight;
   [cv, skyCv].forEach(function (c) {
     c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
@@ -1711,6 +1715,8 @@ function resize() {
     if (left > 0 || right < W) CX = (left + right) / 2;
   }
   baseCX = CX; baseCY = CY;
+  var key = W + 'x' + H + 'x' + R0.toFixed(1);
+  if (key !== fitKey) { fitKey = key; setTimeout(fitDisc, 0); }
   clampDiscPan();
   drawSky();
   draw();
