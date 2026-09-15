@@ -478,8 +478,8 @@ body.night #stage{filter:grayscale(1)}
       <div class="row" id="detailrow"><label for="detail">How much</label>
         <select class="sel" id="detail">
           <option value="light">Light &middot; the naked-eye sky</option>
-          <option value="medium" selected>Medium &middot; as it opens</option>
-          <option value="heavy">Heavy &middot; everything on</option>
+          <option value="medium" selected>Medium &middot; as it opens on a desktop</option>
+          <option value="heavy">Detailed &middot; everything on</option>
         </select></div>
       <div class="sub-t">Sky</div>
       <label class="tog"><input type="checkbox" id="L-stars" checked><span class="sw"></span><span class="tl">Stars</span></label>
@@ -625,8 +625,8 @@ body.night #stage{filter:grayscale(1)}
   </div>
   <div class="pillcol" id="detailpills">
     <button class="btn floatbtn" id="d-light" title="The naked-eye sky and nothing else">Light</button>
-    <button class="btn floatbtn" id="d-medium" title="The chart as the page opens it">Medium</button>
-    <button class="btn floatbtn" id="d-heavy" title="Everything the page knows, rings and all">Heavy</button>
+    <button class="btn floatbtn" id="d-medium" title="The chart as the page opens on a desktop">Medium</button>
+    <button class="btn floatbtn" id="d-heavy" title="Everything the page knows, rings and all">Detailed</button>
   </div>
 
   <div class="panel" id="field" hidden>
@@ -1515,8 +1515,11 @@ var opt = {
 /* Three ways to have the sky, since setting thirty switches one at a time to get a clear chart is
    nobody's idea of an evening. Medium is exactly how the page opens, so choosing it changes nothing
    and the other two are a step either side of it: light strips the chart back to what you would
-   actually see and name outdoors, heavy turns on everything the page knows. Only the layers move.
-   The place, the moment, the view and the instrument are left alone, as they are by Reset defaults. */
+   actually see and name outdoors, detailed turns on everything the page knows. Only the layers move.
+   The place, the moment, the view and the instrument are left alone, as they are by Reset defaults.
+   The key for the detailed chart is still "heavy" underneath, so old links and settings keep working.
+   A phone opens light: at that size medium is a crowd, and the lighter chart is the one that can be
+   read at arm's length. */
 var DETAIL = {
   light: { bayer: false, conbounds: false, connames: false, dso: false, moons: false,
            asteroids: false, comets: false, showers: false, pics: false, sats: false, tracks: false,
@@ -1533,6 +1536,8 @@ var DETAIL = {
            degring: true, raring: true, zodring: true, calring: true }
 };
 var DETAIL_KEYS = Object.keys(DETAIL.light);
+var DETAIL_NAME = { light: 'Light', medium: 'Medium', heavy: 'Detailed' };
+function defaultDetail() { return smallScreen() ? 'light' : 'medium'; }
 var detailLevel = 'medium';
 
 /* how the page opens, kept so that Reset defaults has something to go back to */
@@ -5279,6 +5284,7 @@ function resetDefaults() {
   degZero = 'north'; degZeroEl.value = 'north';
   NUMERALS = 'western'; numeralsEl.value = 'western';
   detailLevel = 'medium'; detailEl.value = 'medium';
+  if (defaultDetail() !== 'medium') applyDetail(defaultDetail());
   plateSolid = 0.92; plateSlider.set(0.92, 0.25);
   reteLimit = 2.4; reteSlider.set(2.4, 0.5);
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
@@ -6456,10 +6462,10 @@ function applyDetail(level) {
   if (disc) tuneDisc();                           /* the rings change how much room the card needs */
   syncViewUI(); syncPills();
   skyDirty = true; draw();
-  setStatus(level.charAt(0).toUpperCase() + level.slice(1) + ' chart · ' +
+  setStatus((DETAIL_NAME[level] || level) + ' chart · ' +
             (level === 'light' ? 'what you would see and name outdoors'
              : level === 'heavy' ? 'everything the page knows'
-             : 'the way the page opens'));
+             : 'the way the page opens on a desktop'));
 }
 var URL_KEYS = ['stars', 'starnames', 'bayer', 'conlines', 'connames', 'conbounds', 'mw', 'dso', 'planets', 'moons',
                 'asteroids', 'comets', 'showers', 'pics', 'sats', 'tracks', 'paths', 'fov', 'daylight', 'refraction',
@@ -6509,6 +6515,7 @@ function applyHash(h) {
         var el = document.getElementById('L-' + k);
         if (el) el.checked = opt[k];
       });
+      hashHadLayers = true;
       any = true;
     }
   }
@@ -6548,7 +6555,7 @@ function applyHash(h) {
   }
   return any;
 }
-var hashHadView = false, hashHadOrient = false, hashTimer = null;
+var hashHadView = false, hashHadOrient = false, hashHadLayers = false, hashTimer = null;
 function refreshHash() {
   clearTimeout(hashTimer);
   hashTimer = setTimeout(function () {
@@ -6791,7 +6798,18 @@ updateScrubLabel();
     var oi = defaultOrient(currentView());
     northTop = oi.northTop; eastRight = oi.eastRight; syncOrientUI();
   }
-  syncViewUI();
+  /* a phone opens on the light chart, unless a link someone sent has fixed the layers itself */
+  if (!hashHadLayers && defaultDetail() !== detailLevel) {
+    var lv = defaultDetail(), set = DETAIL[lv];
+    detailLevel = lv; detailEl.value = lv;
+    Object.keys(set).forEach(function (k) {
+      opt[k] = set[k];
+      var el = document.getElementById('L-' + k);
+      if (el) el.checked = opt[k];
+    });
+    if (disc) tuneDisc();
+  }
+  syncViewUI(); syncPills();
   if (hashHadView) { draw(); if (opt.spin) startSpin(); return; }
   var c = ensureSky(), z = lonlat(c.Z);
   rotation = [-z[0] - 50, -z[1] - 30, 0];

@@ -382,14 +382,15 @@ drawn on the sphere.
   **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
   all: over three hours the Moon leaves a sidereal field entirely.
 
-- **Light, medium and heavy**, since setting thirty switches one at a time to get a clear chart is
-  nobody's idea of an evening. **Medium is exactly how the page opens**, so choosing it changes
-  nothing, and the other two are a step either side: **light** strips the chart back to what you
-  would actually see and name outdoors — stars, their names, the constellation figures, the Milky
-  Way, the planets and the horizon — and **heavy** turns on everything the page knows, the three
-  optional rings included, so an astrolabe under heavy comes out wearing its degrees, its right
-  ascensions and its signs. Only the layers move: the place, the moment, the view and the instrument
-  are left alone, as they are by Reset defaults.
+- **Light, medium and detailed**, since setting thirty switches one at a time to get a clear chart is
+  nobody's idea of an evening. **Medium is exactly how the page opens on a desktop**, so choosing it
+  there changes nothing, and the other two are a step either side: **light** strips the chart back to
+  what you would actually see and name outdoors — stars, their names, the constellation figures, the
+  Milky Way, the planets and the horizon — and **detailed** turns on everything the page knows, the
+  three optional rings included, so an astrolabe under detailed comes out wearing its degrees, its
+  right ascensions and its signs. A phone opens light, since at that size medium is a crowd; a link
+  someone sent carries its own layers and keeps them. Only the layers move: the place, the moment,
+  the view and the instrument are left alone, as they are by Reset defaults.
 
 - **A view you have just chosen starts square, and so does a reloaded page.** Pressing a view button
   re-seats it — centred, unmagnified, unslid — rather than carrying over whatever you had dragged the
