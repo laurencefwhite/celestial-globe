@@ -94,7 +94,7 @@ body{
 #obs-line .sunline{color:var(--ink-faint)}
 
 /* ---------- controls ---------- */
-#controls{top:18px;right:18px;width:286px;padding:14px 15px 15px;max-height:calc(100vh - 36px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
+#controls{top:18px;right:18px;width:242px;padding:14px 14px 15px;max-height:calc(100vh - 36px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.14) transparent}
 .togs{column-count:1}
 .togs .sub-t{column-span:all}
 .togs .tog,.togs .row{break-inside:avoid}
@@ -108,10 +108,10 @@ body{
 .sval .caution{color:var(--past);opacity:.9;font-size:10.5px;margin-left:5px}
 .optline{margin:6px 0 2px;font-size:10.5px;line-height:1.5;color:var(--dim)}
 .optline b{color:var(--ink);font-weight:600}
-#field{right:18px;bottom:40px;width:252px;padding:12px 12px 10px}
+#field{right:18px;bottom:40px;width:242px;padding:12px 12px 10px}
 #field .lt{cursor:grab;user-select:none}
 #field.grabbing .lt{cursor:grabbing}
-#field canvas{display:block;width:228px;height:228px;border-radius:50%;background:#02040a;margin:2px auto 0}
+#field canvas{display:block;width:218px;height:218px;border-radius:50%;background:#02040a;margin:2px auto 0}
 #field .fld-read{margin-top:7px;font-size:10.5px;line-height:1.55;color:var(--dim);text-align:center}
 #field .fld-read b{color:var(--ink);font-weight:600}
 #field .fld-ctl{margin-top:8px;display:flex;gap:8px;align-items:center}
@@ -182,7 +182,7 @@ select.sel{flex:1;appearance:none;-webkit-appearance:none;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,var(--ink-faint) 50%),linear-gradient(135deg,var(--ink-faint) 50%,transparent 50%);
   background-position:calc(100% - 13px) 55%,calc(100% - 9px) 55%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;padding-right:24px}
 select.sel option{background:#0c111c;color:var(--ink)}
-input.num{width:78px;font-variant-numeric:tabular-nums;min-width:0}
+input.num{width:70px;padding-left:6px;padding-right:6px;font-variant-numeric:tabular-nums;min-width:0}
 input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-color:rgba(255,255,255,.09)}
 
 .search{position:relative}
@@ -292,9 +292,10 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
   letter-spacing:.05em;pointer-events:none;transition:opacity .8s;text-align:center;
 }
 #status{
-  position:absolute;left:50%;transform:translateX(-50%);top:14px;font-size:10.5px;color:var(--ink-faint);
+  position:absolute;left:0;right:0;margin:0 auto;width:max-content;max-width:min(560px,60vw);top:14px;
+  font-size:10.5px;line-height:1.5;color:var(--ink-dim);z-index:6;
   letter-spacing:.04em;pointer-events:none;transition:opacity .4s;opacity:0;text-align:center;
-  background:rgba(10,15,25,.7);padding:4px 10px;border-radius:8px;
+  background:rgba(10,15,25,.8);padding:5px 12px;border-radius:8px;
 }
 #status.on{opacity:1}
 
@@ -364,6 +365,8 @@ body.night #stage{filter:grayscale(1)}
   #legend .lsec{display:block}
   #hint{display:none}
   #credit{display:none}
+  /* under the Clock and Now pills and clear of the views stacked down the right */
+  #status{left:12px;right:auto;margin:0;max-width:calc(100vw - 140px);top:46px;text-align:left}
 }
 </style>
 </head>
@@ -1605,9 +1608,11 @@ var discPan = [0, 0], baseCX = 0, baseCY = 0;
 function applyDiscPan() { CX = baseCX + discPan[0]; CY = baseCY + discPan[1]; }
 function clampDiscPan() {
   var short = Math.min(W, H);
-  var rp = disc ? discRadiusPx() : R0 * zoom;
+  var P = curProj();
+  /* a card may slide until its rim nears the middle of the window; a sky, until the edge of what
+     the projection can show does, which is as far as there is anything to slide to */
+  var rp = disc ? discRadiusPx() : R0 * zoom * P.rad(Math.min(P.clip, P.maxClip) * DEG);
   var lim = Math.max(0, rp - short * 0.25);
-  if (!disc) lim = Math.min(lim, short * 0.55);   /* a zoomed sky would otherwise slide forever */
   discPan[0] = clamp(discPan[0], -lim, lim);
   discPan[1] = clamp(discPan[1], -lim, lim);
   applyDiscPan();
@@ -1754,6 +1759,32 @@ function placeCols() {
   vp.classList.toggle('show', show);
   dp.classList.toggle('show', show);
   if (!show) return;
+  var vh0 = vp.getBoundingClientRect().height, dh0 = dp.getBoundingClientRect().height;
+  if (smallScreen()) {
+    /* On a phone the middle of each edge is where the sky is, so the stacks go to the two corners
+       nothing else has: the views down from the top right, the weights up from the bottom left,
+       each stopping clear of whatever pill is folded into that corner already. */
+    var topR = 12, botL = 12;
+    document.querySelectorAll('.panel.min, .floatbtn').forEach(function (el) {
+      if (el.closest('.pillcol')) return;
+      var r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) return;
+      var midX = r.left + r.width / 2;
+      if (r.top < H2 / 2 && midX > W2 / 2) topR = Math.max(topR, r.bottom + 8);
+      if (r.top > H2 / 2 && midX < W2 / 2) botL = Math.max(botL, H2 - r.top + 8);
+    });
+    var vw0 = vp.getBoundingClientRect().width;
+    vp.style.left = Math.round(W2 - 12 - vw0) + 'px';
+    vp.style.top = Math.round(topR) + 'px';
+    dp.style.left = '12px'; dp.style.right = 'auto';
+    dp.style.top = Math.round(H2 - botL - dh0) + 'px';
+    dp.style.alignItems = 'flex-start';
+    /* and each gives way if its corner has no room for it */
+    vp.classList.toggle('show', topR + vh0 < H2 * 0.6);
+    dp.classList.toggle('show', H2 - botL - dh0 > H2 * 0.4);
+    return;
+  }
+  dp.style.alignItems = '';
   /* they sit at the edge when the panels are folded away and just inboard of them when they are not,
      which is where the other floating pills already live */
   var lx = 12, rx = W2 - 12;
@@ -2932,6 +2963,101 @@ function drawLineLabels() {
     }
   }
 }
+/* ------------------------------------------------- the rings on a card, and what each is for
+   A card can wear half a dozen scales, and which is which is not obvious from the brass. So each
+   answers when pointed at, as the lines on the sky do: what it is, what it is read against, and
+   the graduation under the pointer. */
+var RING_INFO = {
+  hours: { name: 'The hours', where: 'The limb of the mater',
+    what: function () {
+      return 'Mean time on this meridian, the hours on your clock, a quarter of an hour to the small division. ' +
+        'The equation of time is taken out, so the Sun’s own bearing from the pivot reads the time: ' +
+        (opt.hands ? 'follow the Sun hand out to this ring.' : 'lay the rule along the Sun and read where it meets this ring.') +
+        (hoursOutermost() ? ' On the clock the hours are the outermost ring, so every hand reaches them.' : '') +
+        ' It is fixed to the observer and does not turn.';
+    } },
+  clock: { name: 'The clock', where: 'Outer ring of the planisphere',
+    what: 'Mean time on this meridian, half an hour to the small division. It is fixed to the observer. ' +
+      'Turn the disc until the date on the inner ring stands against the hour here, and the aperture shows the sky at that moment.' },
+  date: { name: 'The date', where: 'Inner ring of the planisphere',
+    what: 'One tick to the day, a cell to the month. Each date is placed at the right ascension the Sun has on it, ' +
+      'so the ring turns with the stars and the date stands over the stars the Sun is among. Set it against the clock on the outer ring.' },
+  deg: { name: 'The degree ring', where: 'Round the card',
+    what: function () {
+      return 'The whole circle in degrees, one to the mark, the fives and tens taller; zero at ' +
+        (degZero === 'east' ? 'east and west, as a brass limb is divided into quadrants' : 'north, running through east, as a bearing') +
+        '. It is fixed to the observer. ' +
+        (opt.diagonal ? 'The diagonal scale across it reads to ten minutes of arc: follow the index in to the arc it meets and read where the slant has got to.'
+                      : 'A diagonal scale can be added to it, to read to ten minutes of arc.');
+    } },
+  ra: { name: 'The right ascension ring', where: 'Round the card',
+    what: 'Hours of right ascension, half an hour to the small division. This ring belongs to the sky and turns with the stars, ' +
+      'so reading it against the hours, which stand still, gives the sidereal time: the right ascension on the meridian now.' },
+  cal: { name: 'The calendar ring', where: 'Round the card, against the signs',
+    what: 'The months, one tick to the day and a cell to each, as the back of an astrolabe carries them. Each date sits at the ' +
+      'right ascension the Sun has that day, so it stands against the sign the Sun is in, and the ring turns with the stars.' },
+  zodiac: { name: 'The zodiac ring', where: 'Outermost of the rings',
+    what: 'The twelve signs, thirty degrees of ecliptic longitude each, set by right ascension from the pivot; so a sign takes ' +
+      'a little under thirty degrees of the ring near the equinoxes and a little over near the solstices. A planet hand is read against ' +
+      'it: where the hand crosses the ring is the sign the planet is in. It turns with the stars.' },
+  rete: { name: 'The rete', where: 'The star map, in brass',
+    what: 'The frame of the rete: its outer ring stands on the far tropic, the hoop within it on the near one, and the ecliptic band ' +
+      'runs between, touching each at a solstice. The pointers stand at the brighter stars. The whole turns with the stars over the ' +
+      'tympan, which is fixed and cut for this latitude.' }
+};
+/* the rings a card is wearing, from the rim outward, in the order they are drawn */
+function cardRings() {
+  if (!disc) return [];
+  if (disc.kind === 'planisphere') return [{ kind: 'date', r0: 0, r1: 17 }, { kind: 'clock', r0: 17, r1: 34 }];
+  var st = cardScaleStart(), out = [{ kind: 'hours', r0: st, r1: st + cardScaleWidth() }];
+  cardBands().forEach(function (B) { out.push({ kind: B.kind, r0: B.r0, r1: B.r1 }); });
+  return out;
+}
+function ringAt(mx, my) {
+  if (!disc) return null;
+  var rp = discRadiusPx();
+  if (rp < 120) return null;
+  var d = Math.hypot(mx - CX, my - CY) - rp, rings = cardRings();
+  for (var i = 0; i < rings.length; i++)
+    if (d >= rings[i].r0 - 1 && d <= rings[i].r1 + 1) return { kind: 'ring', ref: rings[i].kind, x: mx, y: my, r: 4 };
+  if (opt.brass && disc.kind !== 'planisphere' && d <= 0 && d >= -clamp(rp * 0.042, 6, 17))
+    return { kind: 'ring', ref: 'rete', x: mx, y: my, r: 4 };
+  return null;
+}
+/* the graduation nearest the pointer's bearing, in the ring's own terms */
+function ringReading(kind, a, c) {
+  function nearest(n, bearingOf, labelOf) {
+    var best = null, bd = 1e9;
+    for (var i = 0; i < n; i++) {
+      var b = bearingOf(i);
+      if (b === null) continue;
+      var dd = Math.abs(((a - b) * RAD + 540) % 360 - 180);
+      if (dd < bd) { bd = dd; best = i; }
+    }
+    return best === null ? null : labelOf(best);
+  }
+  function hm(q) { var h = Math.floor(q / 4), m = (q % 4) * 15; return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+  if (kind === 'hours' || kind === 'clock')
+    return nearest(96, function (i) { return haBearing(haForClockTime(i / 4, c, true), c); }, hm);
+  if (kind === 'ra')
+    return nearest(96, function (i) { return haBearing(c.lst - i * 3.75, c); },
+                   function (i) { return Math.floor(i / 4) + 'h ' + (i % 4) * 15 + 'm'; });
+  if (kind === 'deg') {
+    var zero = degZeroBearing(c), quarter = horBearing(degZero === 'east' ? 180 : 90, c);
+    if (zero === null || quarter === null) return null;
+    var step = (((quarter - zero) * RAD + 540) % 360 - 180) > 0 ? 1 : -1;
+    return nearest(360, function (i) { return zero + step * i * DEG; }, function (i) { return i + '°'; });
+  }
+  if (kind === 'zodiac')
+    return nearest(360, function (i) { return eclBearing(i, c); },
+                   function (i) { return ZODIAC[Math.floor(i / 30)] + ' ' + (i % 30) + '°'; });
+  if (kind === 'cal' || kind === 'date') {
+    var y = c.date.getUTCFullYear();
+    return nearest(366, function (i) { var dt = new Date(Date.UTC(y, 0, 1 + i)); return dt.getUTCFullYear() !== y ? null : dateBearing(y, dt.getUTCMonth(), dt.getUTCDate(), c); },
+                   function (i) { var dt = new Date(Date.UTC(y, 0, 1 + i)); return dt.getUTCDate() + ' ' + MONS[dt.getUTCMonth()]; });
+  }
+  return null;
+}
 function lineAt(mx, my) {
   var best = null, bd = 9;                        /* within nine pixels of the line counts */
   for (var i = 0; i < lineHits.length; i++) {
@@ -3347,8 +3473,19 @@ var degZero = 'north';
    the sky and turns with the stars. Reading one against the other is reading the sidereal time. */
 var RING_W = 17;
 function cardScaleWidth() { return disc && disc.kind === 'planisphere' ? 32 : 18; }
+/* On the clock the hours go outside everything else. A clock is read by its hands, and a hand
+   reaches to the outermost ring it finds, so if the hours sat against the rim the Sun hand would
+   be pointing at the signs or the degrees and the hour would have to be read back from a mark it
+   passed on the way out. The astrolabe keeps its hours on the limb, as a mater carries them. */
+function hoursOutermost() { return !!disc && disc.kind === 'clock'; }
+/* where the card's own scale starts, measured out from the rim */
+function cardScaleStart() {
+  if (!hoursOutermost()) return 0;
+  var b = cardBands();
+  return b.length ? b[b.length - 1].r1 + 2 : 0;
+}
 function cardBands() {
-  var r = cardScaleWidth(), out = [];
+  var r = hoursOutermost() ? 0 : cardScaleWidth(), out = [];
   if (opt.degring) {
     var dw = opt.diagonal ? RING_W + 20 : RING_W;   /* the diagonals need room to slant in */
     out.push({ kind: 'deg', r0: r, r1: r + dw }); r += dw + 2;
@@ -3365,7 +3502,14 @@ function cardBands() {
 function cardExtra() {
   var b = cardBands();
   var hangs = opt.suspend && disc && disc.kind === 'astrolabe';
-  return (b.length ? b[b.length - 1].r1 - cardScaleWidth() + 4 : 0) + (hangs ? SUSP_H : 0);
+  var rings = !b.length ? 0 : hoursOutermost() ? cardScaleStart() + 4 : b[b.length - 1].r1 - cardScaleWidth() + 4;
+  return rings + (hangs ? SUSP_H : 0);
+}
+/* the outer edge of whatever the card wears, measured from the rim: where a hand's glyph goes */
+function cardOuterEdge() {
+  var b = cardBands();
+  if (hoursOutermost()) return cardScaleStart() + cardScaleWidth();
+  return b.length ? b[b.length - 1].r1 : cardScaleWidth();
 }
 /* How solid the plate is, and how faint a star has to be before it loses its pointer. Both were
    fixed numbers picked by eye, which is fine until someone wants the other end of them: a plate you
@@ -3531,7 +3675,7 @@ function drawCard(c) {
   ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1.4; ctx.stroke();
   if (rp < 120) return;                                  /* too small to letter */
   if (opt.plate && disc.kind !== 'planisphere') drawBrassPlate(c, rp);
-  if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp);
+  if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp + cardScaleStart());
   var brassy = opt.brass && disc.kind !== 'planisphere';
   cardBands().forEach(function (B) {
     if (B.kind === 'deg') drawDegreeRing(c, rp + B.r0, rp + B.r1, brassy);
@@ -3540,10 +3684,7 @@ function drawCard(c) {
     else drawRaRing(c, rp + B.r0, rp + B.r1, brassy);
   });
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
-  if (opt.suspend && disc.kind === 'astrolabe') {
-    var bands = cardBands();
-    drawSuspension(rp + (bands.length ? bands[bands.length - 1].r1 : cardScaleWidth()) + 2);
-  }
+  if (opt.suspend && disc.kind === 'astrolabe') drawSuspension(rp + cardOuterEdge() + 2);
 }
 /* The planisphere's two scales. The inner one turns with the stars and carries the calendar, each
    date set at the right ascension the Sun has on it. The outer one is fixed to the observer and
@@ -3740,9 +3881,9 @@ function drawHands(c) {
   /* out to the inner rim of the outermost ring the card is wearing, so a hand always points at the
      scale furthest out rather than at whichever one happens to be first */
   var bands = cardBands();
-  var rp = discRadiusPx() + (bands.length ? bands[bands.length - 1].r0 : 0);
+  var rp = discRadiusPx() + (hoursOutermost() ? cardScaleStart() : bands.length ? bands[bands.length - 1].r0 : 0);
   handReach = rp;
-  handGlyphR = discRadiusPx() + (bands.length ? bands[bands.length - 1].r1 : 0);
+  handGlyphR = discRadiusPx() + (hoursOutermost() || bands.length ? cardOuterEdge() : 0);
   var sun = bodyByKey.sol, moon = bodyByKey.lun;
   handMarks = [];
   /* the dragon first, so the bright hands lie over it */
@@ -4339,8 +4480,11 @@ function drawRete(c, rp) {
   }
   ctx.restore();
 
-  /* the rule, which is what you lay across the face to read the limb */
-  var ar = haBearing(haForClockTime(clockHours(c), c, true), c);
+  /* The rule, which is what you lay across the face to read the limb. It lies along the Sun's own
+     bearing, since the limb is graduated so that the Sun reads the clock, so it is the Sun's pointer
+     and carries a sun at its outer end to say so. When the clock hands are out the Sun hand does the
+     same job along the same line, and the rule stands down rather than lie under it. */
+  var ar = opt.hands ? null : haBearing(haForClockTime(clockHours(c), c, true), c);
   if (ar !== null) {
     ctx.save();
     ctx.translate(CX, CY); ctx.rotate(ar);
@@ -4350,8 +4494,52 @@ function drawRete(c, rp) {
     ctx.strokeStyle = 'rgba(58,36,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(-rp * 0.22, 0); ctx.lineTo(rp, 0);
     ctx.strokeStyle = 'rgba(255,244,205,.85)'; ctx.lineWidth = 0.7; ctx.stroke();
+    var sr = clamp(w * 1.2, 8, 24);
+    brassSun(rp - sr * 1.25, 0, sr, -ar);          /* the face stays upright whichever way the rule lies */
     ctx.restore();
   }
+}
+/* A sun in brass: a disc with sixteen flames about it, the straight and the wavy by turns, which is
+   how the engravers cut it. Drawn in whatever frame the caller has set up, at (x, y) with the
+   flames reaching r, turned by turn so the face can be kept upright. */
+function brassSun(x, y, r, turn) {
+  var n = 16, i, a, tip, ra, rb;
+  ctx.save();
+  ctx.translate(x, y);
+  if (turn) ctx.rotate(turn);
+  ctx.beginPath();
+  for (i = 0; i < n; i++) {
+    a = i * 2 * Math.PI / n;
+    tip = i % 2 ? r * 0.86 : r;                    /* the wavy ones a little shorter */
+    ra = a - Math.PI / n; rb = a + Math.PI / n;
+    var vx0 = Math.cos(ra) * r * 0.6, vy0 = Math.sin(ra) * r * 0.6;
+    var vx1 = Math.cos(rb) * r * 0.6, vy1 = Math.sin(rb) * r * 0.6;
+    var tx = Math.cos(a) * tip, ty = Math.sin(a) * tip;
+    if (i === 0) ctx.moveTo(vx0, vy0);
+    if (i % 2) {                                   /* a wavy flame: bowed out on the way up, in on the way down */
+      var s = Math.PI / (n * 2);
+      ctx.quadraticCurveTo(Math.cos(a - s) * tip * 0.95, Math.sin(a - s) * tip * 0.95, tx, ty);
+      ctx.quadraticCurveTo(Math.cos(a + s * 0.4) * tip * 0.72, Math.sin(a + s * 0.4) * tip * 0.72, vx1, vy1);
+    } else { ctx.lineTo(tx, ty); ctx.lineTo(vx1, vy1); }
+  }
+  ctx.closePath();
+  ctx.fillStyle = brassBand(0, 0, 0, r); ctx.fill();
+  ctx.strokeStyle = 'rgba(58,36,4,.85)'; ctx.lineWidth = 0.9; ctx.lineJoin = 'round'; ctx.stroke();
+  /* the disc, raised: brighter than the flames, with the graver's dark rim */
+  var g = ctx.createRadialGradient(-r * 0.18, -r * 0.18, r * 0.05, 0, 0, r * 0.58);
+  g.addColorStop(0, '#fff3c4'); g.addColorStop(0.55, '#e9c86a'); g.addColorStop(1, '#a8781f');
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.58, 0, 2 * Math.PI);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(58,36,4,.9)'; ctx.lineWidth = 1; ctx.stroke();
+  /* and a face, as the old suns have: two eyes and a mouth cut in, no more */
+  if (r >= 9) {
+    ctx.fillStyle = 'rgba(58,36,4,.85)';
+    ctx.beginPath(); ctx.arc(-r * 0.2, -r * 0.12, r * 0.06, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(r * 0.2, -r * 0.12, r * 0.06, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, r * 0.05, r * 0.26, Math.PI * 0.2, Math.PI * 0.8);
+    ctx.strokeStyle = 'rgba(58,36,4,.85)'; ctx.lineWidth = Math.max(0.8, r * 0.07); ctx.stroke();
+  }
+  ctx.restore();
 }
 /* the mater's limb, in brass, with the rivets that hold a real one together */
 function drawBrassLimb(rp, r1) {
@@ -4430,7 +4618,10 @@ cv.addEventListener('pointermove', function (e) {
   var ids = Object.keys(pointers);
   if (ids.length === 2 && pinch) {
     var nd = dist2(pointers[ids[0]], pointers[ids[1]]);
-    zoom = clamp(pinch.zoom * (nd / pinch.d), ZMIN, ZMAX);
+    var nz = clamp(pinch.zoom * (nd / pinch.d), ZMIN, ZMAX);
+    if (slidesToZoom()) zoomCardAbout(nz, (pointers[ids[0]][0] + pointers[ids[1]][0]) / 2,
+                                          (pointers[ids[0]][1] + pointers[ids[1]][1]) / 2);
+    else zoom = nz;
     clampDiscPan();
     markInteract(); draw();
     return;
@@ -4455,6 +4646,7 @@ cv.addEventListener('pointermove', function (e) {
     markInteract(); draw();
     return;
   }
+  statusHover(e.clientX, e.clientY);
   hoverAt(e.clientX, e.clientY);
 });
 function endPointer(e) {
@@ -4475,6 +4667,7 @@ cv.addEventListener('pointerup', function (e) {
     var lk2 = lineAt(e.clientX, e.clientY);
     if (lk2) h = { kind: 'line', ref: lk2, x: e.clientX, y: e.clientY, r: 4 };
   }
+  if (!h && disc) h = ringAt(e.clientX, e.clientY);
   if (e.pointerType === 'touch') {
     /* no hover on a touch screen: the first tap selects an object and shows its details,
        a second tap on it flies there, a tap on empty sky clears the selection */
@@ -4495,6 +4688,7 @@ cv.addEventListener('pointerup', function (e) {
     if (opt.spin) spinPaused = !spinPaused;
     return;
   }
+  if (h && h.kind === 'ring') { showTip(h, e.clientX, e.clientY); return; }
   if (h) { flyToHit(h); return; }
   if (opt.spin) { spinPaused = !spinPaused; hideTip(); }
 });
@@ -4503,7 +4697,7 @@ cv.addEventListener('pointerleave', function (e) { endPointer(e); if (e.pointerT
 cv.addEventListener('wheel', function (e) {
   e.preventDefault();
   var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0016));
-  if (disc) zoomCardAbout(clamp(zoom * f, ZMIN, ZMAX), e.clientX, e.clientY);
+  if (slidesToZoom()) zoomCardAbout(clamp(zoom * f, ZMIN, ZMAX), e.clientX, e.clientY);
   else zoomAbout(clamp(zoom * f, ZMIN, ZMAX), e.clientX, e.clientY);
   markInteract(); draw(); fadeHint();
 }, { passive: false });
@@ -4513,7 +4707,7 @@ cv.addEventListener('wheel', function (e) {
    magnification where a pixel is half a degree of sky. */
 cv.addEventListener('dblclick', function (e) {
   if (opt.fov || opt.preview) pointFieldAt(e.clientX, e.clientY);
-  if (disc) { zoomCardAbout(clamp(zoom * 2.2, ZMIN, ZMAX), e.clientX, e.clientY); draw(); return; }
+  if (slidesToZoom()) { zoomCardAbout(clamp(zoom * 2.2, ZMIN, ZMAX), e.clientX, e.clientY); draw(); return; }
   var ll = projection.invert([e.clientX, e.clientY]);
   if (ll) flyTo(ll[0], ll[1], Math.min(ZMAX, zoom * 2.2));
   else draw();
@@ -4535,6 +4729,12 @@ function pointFieldAt(mx, my) {
   setStatus(nm ? 'Field on ' + nm : 'Field moved to that point');
   return true;
 }
+/* In the sky view the horizon is held still and the compass points stand where they are, and
+   zooming ought not to disturb that. Turning the sphere to bring a point under the cursor, or an
+   object to the middle, tilts the horizon as soon as the point is off the zenith; so the sky view
+   zooms as a card does, by sliding the view, and the sky itself is not turned. With the horizon
+   let go the sky is its own frame and turning it is the natural thing. */
+function slidesToZoom() { return !!disc || (opt.inside && opt.hold); }
 /* zoom so that the point under the cursor stays put, when it lies on the sphere */
 /* Magnifying a card must not turn the sky. The plate is cut for this latitude and the rete stands on
    it, so the geometry has to stay exactly as it is and the card slides instead. Everything on a card
@@ -4546,6 +4746,10 @@ function zoomCardAbout(newZoom, mx, my) {
   zoom = newZoom;
   discPan = [discPan[0] + dx * (1 - f), discPan[1] + dy * (1 - f)];
   clampDiscPan();
+}
+/* a zoom with no pointer to zoom about: the middle of the window, which on a slid view is not the pivot */
+function zoomMiddle(newZoom) {
+  if (slidesToZoom()) zoomCardAbout(newZoom, W / 2, H / 2); else zoom = newZoom;
 }
 function zoomAbout(newZoom, mx, my) {
   var ll = projection.invert([mx, my]);
@@ -4591,6 +4795,7 @@ function doHover(mx, my) {
     var lk = lineAt(mx, my);
     if (lk) h = { kind: 'line', ref: lk, x: mx, y: my, r: 4 };
   }
+  if (!h && disc) h = ringAt(mx, my);
   if (h) {
     var same = hover && hover.kind === h.kind && sameRef(hover.ref, h.ref);
     hover = { kind: h.kind, ref: h.ref };
@@ -4734,6 +4939,13 @@ function showTip(h, mx, my) {
       var v2 = unitv(ll2[0], ll2[1]);
       html += '<div class="tgrid">' + coordRows(v2, c) + '</div>';
     }
+  } else if (h.kind === 'ring') {
+    var ri = RING_INFO[h.ref];
+    if (!ri) { hideTip(); return; }
+    html = '<div class="tn">' + esc(ri.name) + '</div><div class="tc">' + esc(ri.where) + '</div>' +
+      '<div class="tnote">' + esc(typeof ri.what === 'function' ? ri.what() : ri.what) + '</div>';
+    var rd = c ? ringReading(h.ref, Math.atan2(my - CY, mx - CX), c) : null;
+    if (rd) html += '<div class="tgrid">' + row('Under the pointer', rd) + '</div>';
   } else if (h.kind === 'shower') {
     var sh = h.ref, sst = sh.state || showerState(sh, c);
     var when = fmt(obs.tz, { day: 'numeric', month: 'long' }, 'ms').format(jdToDate(sst.peakJd));
@@ -4769,7 +4981,8 @@ function showTip(h, mx, my) {
       row('Period', st.sat.period.toFixed(1) + ' min') + row('Light', st.lit ? 'sunlit' : 'in Earth’s shadow', !st.lit) + coordRows(st.v, c) + '</div>' +
       '<div class="tnote">Elements ' + age + ' days old, from CelesTrak. Positions are as seen from the observer.</div>';
   }
-  if (coarsePointer) html += '<div class="tgo"><button class="btn sm" id="tipgo">Fly to</button><span>tap again to fly there</span></div>';
+  if (coarsePointer && h.kind !== 'ring' && h.kind !== 'line' && h.kind !== 'cardinal')
+    html += '<div class="tgo"><button class="btn sm" id="tipgo">Fly to</button><span>tap again to fly there</span></div>';
   tip.innerHTML = html;
   tip.classList.toggle('touch', coarsePointer);
   tip.classList.add('on');
@@ -4858,7 +5071,8 @@ function hitName(h) {
    the instrument would no longer be the instrument. So on a card the sky stands still and the card
    itself is magnified and slid, which puts the object in the middle by moving the paper rather than
    the heavens. How far it may slide is capped as it is for a drag, so at low magnification it comes
-   as near the middle as the card allows. */
+   as near the middle as the card allows. The sky view with its horizon held does the same, for
+   the reason given at slidesToZoom. */
 function flyOnCard(v, targetZoom) {
   var q = proj(v);
   if (!q) return;
@@ -4882,7 +5096,7 @@ function flyToHit(h) {
   var r = hitVector(h);
   if (!r) return;
   var v = r.v, z = r.z;
-  if (disc) flyOnCard(v, z);
+  if (slidesToZoom()) flyOnCard(v, z);
   else { var ll = lonlat(v); flyTo(ll[0], ll[1], z); }
   var kind = h.kind, ref = h.ref;
   setTimeout(function () {
@@ -5110,11 +5324,11 @@ var INSTRUMENTS = {
     margin: 48,
     opts: {},                                          /* the base is already a planisphere */
     note: function (alat) {
-      return 'Planisphere for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
+      return 'A planisphere for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': every star that ever rises here, on one card. Run the clock and the sky turns under the horizon. ' +
-             'The inner ring is the date, one tick to the day and a cell to the month; the outer is the clock. ' +
-             'Read one against the other at the index line. ' +
-             'Azimuthal equidistant, as most modern planispheres are; switch the projection to stereographic for the older kind.';
+             'The inner ring is the date, one tick to the day and a cell to the month; the outer ring is the clock. ' +
+             'Read one against the other at the index line. Equal spacing, as most modern planispheres are; ' +
+             'the stereographic layout is the older kind.';
     }
   },
   clock: {
@@ -5124,9 +5338,9 @@ var INSTRUMENTS = {
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, conlines: false,
             hands: true, phands: true, starnames: false, zodring: true },
     note: function () {
-      return 'Astronomical clock: an astrolabe with hands. The Sun and the Moon ride round the tympan, ' +
-             'and the dragon lies along the line of the Moon\u2019s nodes \u2014 an eclipse can only happen ' +
-             'when both are near it. Run the clock and watch them turn.';
+      return 'An astronomical clock: an astrolabe with hands. The Sun and the Moon ride round the tympan and ' +
+             'each hand points at the hours on the outermost ring. The dragon lies along the line of the Moon\u2019s ' +
+             'nodes; an eclipse can only happen when both are near it. Run the clock and watch them turn.';
     }
   },
   astrolabe: {
@@ -5135,9 +5349,10 @@ var INSTRUMENTS = {
     margin: 40,
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, brass: true, plate: true },
     note: function (alat) {
-      return 'Astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
-             ': the tympan\u2019s altitude and azimuth circles cut for here, the rete\u2019s ecliptic over them, ' +
-             'the limb in hours. Stereographic, bounded at the far tropic \u2014 the opposite pole is at infinity.';
+      return 'An astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
+             ': the tympan\u2019s altitude and azimuth circles are cut for here, the rete\u2019s ecliptic turns over ' +
+             'them, and the limb is in hours, read where the rule lies. Stereographic, and bounded at the far tropic, ' +
+             'since the opposite pole is at infinity. Point at any ring for what it is.';
     }
   }
 };
@@ -5310,7 +5525,7 @@ function setInstrument(kind) {
   orientDisc();                                         /* and the meridian upright under it */
   holdLst = null; skyDirty = true; pathCache = {}; trackCache = {};
   hideTip(); draw();
-  setStatus(I.note(alat));
+  noteView(I.note(alat));
 }
 /* the five view buttons carry this now; see setView */
 document.getElementById('resetfloat').addEventListener('click', function (e) { e.stopPropagation(); resetView(); });
@@ -5399,10 +5614,17 @@ function setView(kind) {
   syncViewUI();
   hideTip();
   resetView();                                    /* a view you have just chosen starts square */
-  setStatus(VIEWS[kind].name + ' \u00b7 ' + curProj().name.toLowerCase() +
-    (kind === 'globe' ? ' \u00b7 north up, east right, a mirror image as a globe must be'
-                      : ' \u00b7 ' + (northTop ? 'north at the top' : 'north at the bottom') +
-                        ', east at the ' + (eastRight ? 'right' : 'left')));
+  noteView(viewWords(kind));
+}
+/* what a view is, in a sentence or two, for the note it opens with */
+function viewWords(kind) {
+  if (kind === 'globe')
+    return 'The celestial sphere seen from outside, as a globe on a stand. North is up and east is to ' +
+           'the right, so the sky is mirrored, as it is on any globe. Drag to turn it; scroll to zoom.';
+  var way = (northTop ? 'North at the top' : 'North at the bottom') + ', east at the ' + (eastRight ? 'right' : 'left');
+  return 'The sky overhead, laid flat. ' + way + (mirrorNow() ? ', mirrored as a globe is' : ', as you see it looking up') +
+         '. ' + curProj().name + ' projection' + (curProj().key === 'stereographic' ? ', which keeps shapes true' : ', which keeps heights true') +
+         '. Zooming slides the view and leaves the compass points where they are.';
 }
 /* the buttons say which view is out, and the menus grey where the view has already decided */
 function syncViewUI() {
@@ -5469,17 +5691,36 @@ syncOrientUI();
 northEl.addEventListener('change', function () { setOrient(northEl.value === 'top', eastRight); });
 eastEl.addEventListener('change', function () { setOrient(northTop, eastEl.value === 'right'); });
 var FACING_NAME = { N: 'north', E: 'east', S: 'south', W: 'west' };
-function describeView() {
-  if (!opt.inside) { setStatus('The globe from outside, north up: east is to the right, a mirror image of the sky'); return; }
-  setStatus('North at the ' + (northTop ? 'top' : 'bottom') + ', east at the ' + (eastRight ? 'right' : 'left') +
-            ' \u00b7 ' + (mirrorNow() ? 'mirrored, the way a globe looks from outside'
-                                       : 'the sky as you see it looking up') +
-            ' \u00b7 ' + curProj().name.toLowerCase());
-}
-var statusEl = document.getElementById('status'), statusTimer = null;
+function describeView() { noteView(viewWords(opt.inside ? 'inside' : 'globe')); }
+var statusEl = document.getElementById('status'), statusTimer = null, statusHeld = false;
+/* a long message stays up long enough to be read, and any message stays while the pointer is on it */
 function setStatus(msg) {
   statusEl.textContent = msg; statusEl.classList.add('on');
-  clearTimeout(statusTimer); statusTimer = setTimeout(function () { statusEl.classList.remove('on'); }, 3200);
+  clearTimeout(statusTimer);
+  var stay = Math.min(9000, 3200 + Math.max(0, msg.length - 60) * 30);
+  statusTimer = setTimeout(function () { if (!statusHeld) statusEl.classList.remove('on'); }, stay);
+}
+/* The note a view opens with says what the view is and which way round it is, and is gone in a few
+   seconds. It is kept, and the pointer brought to where it was brings it back. */
+var viewNote = '';
+function noteView(msg) { viewNote = msg; setStatus(msg); }
+function overStatus(mx, my) {
+  var r = statusEl.getBoundingClientRect();
+  var top = r.top || 14, bottom = Math.max(r.bottom, top + 30);
+  var half = Math.max(r.width / 2, 120);
+  return my >= top - 6 && my <= bottom + 6 && Math.abs(mx - (r.left + r.right) / 2) <= half + 10;
+}
+function statusHover(mx, my) {
+  if (!viewNote) return;
+  var over = overStatus(mx, my);
+  if (over && !statusHeld) {
+    statusHeld = true;
+    if (!statusEl.classList.contains('on') || statusEl.textContent !== viewNote) setStatus(viewNote);
+    clearTimeout(statusTimer);
+  } else if (!over && statusHeld) {
+    statusHeld = false;
+    clearTimeout(statusTimer); statusTimer = setTimeout(function () { statusEl.classList.remove('on'); }, 1200);
+  }
 }
 
 /* ------------------------------------------------------------- observer */
@@ -5489,7 +5730,10 @@ function nearestCity(lat, lon) {
   cities.forEach(function (c) { var d = angSep(u, unitv(c.lon, c.lat)); if (d < bd) { bd = d; best = c; } });
   return best;
 }
-function setObserver(lat, lon, name, country, tz, keepView) {
+/* A new place is a new sky, and whatever was being looked at from the old one is not where it was:
+   so the view is always reset afterwards. On a card that means the card is cut again for the new
+   latitude, which is what setting the instrument up does. */
+function setObserver(lat, lon, name, country, tz) {
   lat = clamp(lat, -89.99, 89.99); lon = ((lon + 540) % 360) - 180;
   var near = nearestCity(lat, lon);
   obs = { lat: lat, lon: lon, name: name || (near ? 'near ' + near.name : lat.toFixed(2) + ', ' + lon.toFixed(2)), country: country || (near ? near.country : ''), tz: tz || (near ? near.tz : 'UTC') };
@@ -5501,7 +5745,7 @@ function setObserver(lat, lon, name, country, tz, keepView) {
   northTop = od1.northTop; eastRight = od1.eastRight; syncOrientUI();
   skyDirty = true; trackCache = {}; holdLst = null;
   tickClocks(); updateScrubLabel();
-  if (!keepView) flyToZenith(Math.max(1, zoom)); else draw();
+  if (disc) setInstrument(disc.kind); else resetView();
 }
 /* Set sits under both the place box and the coordinates, so it should do whatever has just been
    typed into either. A place name that has not been applied yet wins, since typing a city and
@@ -5973,8 +6217,8 @@ document.addEventListener('keydown', function (e) {
     rotation = [rotation[0] + sgn * u[0] * step, clamp(rotation[1] - u[1] * step, -90, 90), rotation[2]];
     draw();
   }
-  else if (e.key === '+' || e.key === '=') { zoom = clamp(zoom * 1.25, ZMIN, ZMAX); draw(); }
-  else if (e.key === '-' || e.key === '_') { zoom = clamp(zoom / 1.25, ZMIN, ZMAX); draw(); }
+  else if (e.key === '+' || e.key === '=') { zoomMiddle(clamp(zoom * 1.25, ZMIN, ZMAX)); draw(); }
+  else if (e.key === '-' || e.key === '_') { zoomMiddle(clamp(zoom / 1.25, ZMIN, ZMAX)); draw(); }
   else if (e.key === ' ') { e.preventDefault(); setPlaying(playMode ? null : 'clock'); }
   else if (e.key === 'n' || e.key === 'N') { nightEl.checked = !nightEl.checked; nightEl.dispatchEvent(new Event('change')); }
   else if (e.key === '?' || (e.key === '/' && e.shiftKey)) showKeys(keysEl.hidden);
@@ -6629,7 +6873,10 @@ window.CG = {
   degZeroBearing: function (c) { return degZeroBearing(c || ensureSky()); },
   eclBearing: function (lon, c) { return eclBearing(lon, c || ensureSky()); },
   dateBearing: function (y, m, d, c) { return dateBearing(y, m, d, c || ensureSky()); },
-  flyToHit: flyToHit, zoomCardAbout: zoomCardAbout,
+  flyToHit: flyToHit, zoomCardAbout: zoomCardAbout, ringAt: ringAt, cardRings: cardRings,
+  discPan: function () { return discPan.slice(); }, rotation: function () { return rotation.slice(); },
+  zoom: function () { return zoom; }, status: function () { return { text: statusEl.textContent, on: statusEl.classList.contains('on'), note: viewNote }; },
+  cardScaleStart: cardScaleStart, tipHtml: function () { return tip.innerHTML; }, tipOn: function () { return tip.classList.contains('on'); },
   ink: ink,
   numerals: function (n) { if (n) { NUMERALS = n; numeralsEl.value = n; draw(); } return NUMERALS; },
   detail: function (l) { if (l) applyDetail(l); return detailLevel; },
