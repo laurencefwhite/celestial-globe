@@ -1520,15 +1520,17 @@ var opt = {
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
   linecards: true, linelabels: false, meridian: false, hands: false, phands: false, clockhands: false,
-  preview: false, brass: false, plate: false, degring: false, raring: false, diagonal: false,
-  suspend: false, zodring: false, calring: false,
+  preview: false, brass: false, plate: false, degring: true, raring: false, diagonal: false,
+  suspend: false, zodring: true, calring: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
   ldso: true, lsats: true, lshowers: true
 };
 /* Three ways to have the sky, since setting thirty switches one at a time to get a clear chart is
    nobody's idea of an evening. Medium is exactly how the page opens, so choosing it changes nothing
    and the other two are a step either side of it: light strips the chart back to what you would
-   actually see and name outdoors, detailed turns on everything the page knows. Only the layers move.
+   actually see and name outdoors, detailed turns on everything the page knows. On a card the step
+   is a ring at a time: light wears none, medium the degrees and the signs, detailed the right
+   ascensions and the calendar as well. Only the layers move.
    The place, the moment, the view and the instrument are left alone, as they are by Reset defaults.
    The key for the detailed chart is still "heavy" underneath, so old links and settings keep working.
    A phone opens light: at that size medium is a crowd, and the lighter chart is the one that can be
