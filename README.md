@@ -19,8 +19,10 @@ drawn on the sphere.
   **Planisphere**, **Astrolabe**, **Astronomical clock**. The five are also pills down the left edge
   of the screen, and the three chart weights pills down the right, so neither has to be dug out of a
   panel. They sit at the edges when the panels are folded and just inboard of them when they are not,
-  which is where the other floating pills already live; on a phone, where an open panel is a sheet
-  across the whole screen, they wait until it is folded away.
+  which is where the other floating pills already live. On a phone the middle of each edge is where
+  the sky is, so the two stacks go to the corners nothing else has, the views down from the top right
+  and the weights up from the bottom left; and where an open panel is a sheet across the whole
+  screen, they wait until it is folded away.
 
   Each single pill stands beside the panel it belongs to rather than all of them in one corner:
   **Now** acts on the clock, so it goes next to the masthead, which is where the clocks and the two
@@ -64,7 +66,10 @@ drawn on the sphere.
   equator) has south at the top and east on the right, and the Sun crosses from right to left; facing
   south (the default north of the equator) has north at the top and east on the left. In both views
   the horizon is held still by default and the sky turns past it as time runs; switch *Hold the
-  horizon still* off to fix the stars instead and let the horizon move.
+  horizon still* off to fix the stars instead and let the horizon move. While the horizon is held,
+  zooming slides the view rather than turning the sky: flying to an object, the wheel, a double
+  click and a pinch all leave the compass points where they are, since turning the sphere to bring
+  a point under the cursor tilts the horizon the moment the point is off the zenith.
 - **Point the phone at the sky.** On a phone the globe follows wherever the phone is aimed from the
   moment it opens, tilted to match how the phone is held, so the screen shows the patch of sky behind
   it. A **Freeze** pill beside the folded Layers pill holds the sky still while you read it and lets
@@ -161,7 +166,9 @@ drawn on the sphere.
 - **Brass**, on the astrolabe, and on by default there. The instrument is drawn as the thing it is:
   a graduated limb round the edge with its rivets, the **plate** in the mater's womb with the
   altitude and azimuth circles cut into it, a pierced web of brass turning over that, and the rule
-  laid across the face to read the hour. That is the real stack, and it is drawn in that order, the
+  laid across the face to read the hour, with a sun at its outer end, since it lies along the Sun's
+  own bearing. When the clock hands are out the Sun hand does the same job along the same line and
+  the rule stands down. That is the real stack, and it is drawn in that order, the
   plate a shade duller and darker than the rete so the piece on top reads as the piece on top.
 
   How solid the plate is, is yours to set, from a third of the way up to wholly opaque as brass
@@ -212,6 +219,11 @@ drawn on the sphere.
   with ninety, a hundred and eighty and two hundred and seventy on the quarters. East is offered
   because the limb of a brass astrolabe is commonly divided into four quadrants of ninety from the
   horizontal diameter, which is the historical answer rather than the legible one.
+
+  On the astronomical clock the hours go outside every other ring. A clock is read by its hands, and
+  a hand reaches to the outermost ring it finds, so with the hours against the rim the Sun hand
+  would point at the signs or the degrees and the hour would have to be read back from a mark it
+  passed on the way out. The astrolabe keeps its hours on the limb, as a mater carries them.
 
   The **right ascension ring** is the odd one out, and the interesting one. Everything else outside
   the card is fixed to the observer: the hours are a clock, and the degrees go round with them. Right
@@ -328,7 +340,8 @@ drawn on the sphere.
   mirror image — which is not wrong, it is exactly what a celestial globe shows, because you are
   outside it looking in, but a card held up to the real sky in that arrangement has the
   constellations back to front. The status line says which of the two you are in whenever you change
-  either menu.
+  either menu. The note a view opens with is gone in a few seconds, and comes back whenever the
+  pointer is brought to where it was, under the top of the window.
 
   **The sky view opens differently on a phone.** Hold a phone up at the sky and it is a window, not
   a globe: what is on your left has to be drawn on the left, or nothing tracks as you turn round. So
@@ -453,12 +466,17 @@ drawn on the sphere.
 
 - **An observer.** Melbourne to begin with; pick any of 700-odd cities, type a latitude and longitude,
   or use the device's location. *Set* sits under both boxes and does whatever was last typed into
-  either: a place name that has not been applied yet wins, otherwise the coordinates. The horizon is drawn as a line on the sphere with the zenith marked
+  either: a place name that has not been applied yet wins, otherwise the coordinates. A new place is
+  a new sky, so the view is reset afterwards, and an instrument is cut again for the new latitude.
+  The horizon is drawn as a line on the sphere with the zenith marked
   and all eight points of the compass on it, north through north-west, each staying in view by
   moving to the edge of the window when its own bearing goes round the back. The part of the sky
   below the horizon is shaded, and an altitude–azimuth grid can be switched
   on. The masthead shows the observer's local time, local sidereal time and UTC, the state of the
   twilight, and today's rising and setting of the Sun and Moon.
+- **The rings answer.** On a card, point at the hours, the degrees, the right ascension, the calendar
+  or the signs, or at the rete's frame, for what the ring is, what it is read against, whether it
+  turns with the stars or stands with the observer, and the graduation under the pointer.
 - **The lines answer too.** Point at the horizon, the ecliptic, the celestial equator, a tropic, a
   polar circle, the galactic equator or the meridian and it says what that line is and where on it
   you are pointing. A switch puts their names on the lines themselves.
