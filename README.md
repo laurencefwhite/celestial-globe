@@ -12,8 +12,8 @@ drawn on the sphere.
 - **A globe you can turn and zoom**, from the whole sky down to a field a few arcseconds wide. Drag to
   turn it, scroll or pinch to zoom, double-click to zoom in on a point, hover an object for its
   details and click it to fly to it. On a touch screen a tap selects an object and shows its details,
-  a second tap (or the card's *Fly to* button) flies there, and a tap on empty sky clears the
-  selection; the panels fold into the corners and a tap on the globe folds an open one.
+  a second tap (or the card's *Fly to* button) flies there, and a tap on empty sky or the card's own
+  close button puts it away; the panels fold into the corners and a tap on the globe folds an open one.
 - **Five views, and no more.** There are five ways of looking at this and everything else is a
   variant of one of them, so they are five buttons: **Celestial sphere**, **Sky view**,
   **Planisphere**, **Astrolabe**, **Astronomical clock**. The five are also pills down the left edge
@@ -401,7 +401,9 @@ drawn on the sphere.
   what you would actually see and name outdoors — stars, their names, the constellation figures, the
   Milky Way, the planets and the horizon — and **detailed** turns on everything the page knows, the
   three optional rings included, so an astrolabe under detailed comes out wearing its degrees, its
-  right ascensions and its signs. A phone opens light, since at that size medium is a crowd; the
+  right ascensions and its signs. On a phone the card takes more of the width, and a card too small
+  to letter is still drawn whole, plate, rete and divisions, with only the lettering left off. A
+  phone opens light, since at that size medium is a crowd; the
   weight chosen is written into the address with the layers, so a reload keeps it, and a link
   someone sent carries its own layers and keeps them. Only the layers move: the place, the moment,
   the view and the instrument are left alone, as they are by Reset defaults. The brass, the plate and

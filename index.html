@@ -274,6 +274,12 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 }
 #tip.on{opacity:1}
 #tip.touch.on{pointer-events:none}
+/* on a touch screen the card has a button to put it away, since there is no pointer to move off it */
+#tip .tclose{position:absolute;top:6px;right:8px;width:24px;height:24px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.08);color:var(--ink-dim);font:inherit;font-size:15px;line-height:1;cursor:pointer;
+  display:none;align-items:center;justify-content:center;pointer-events:auto;padding:0}
+#tip.touch .tclose{display:flex}
+#tip.touch .tn{padding-right:28px}
 #tip .tgo{margin-top:9px;display:flex;align-items:center;gap:8px;font-size:10px;color:var(--ink-faint)}
 #tip .tgo .btn{pointer-events:auto}
 #tip .tn{font-family:var(--serif);font-size:16px;line-height:1.2}
@@ -1845,6 +1851,7 @@ function closeTumblers() {
 });
 function syncPills() {
   var kind = currentView();
+  setTimeout(placePills, 0);                     /* a longer name on the tumbler moves it */
   VIEW_ORDER.forEach(function (k) {
     var b = document.getElementById('p-' + k);
     if (b) b.classList.toggle('on', k === kind);
@@ -3355,7 +3362,9 @@ function cardTickCut(a, r0, r1, width, brassy) {
   ctx.save(); ctx.translate(-0.5, -0.6); cardTick(a, r0, r1, c.dark, width + 0.3); ctx.restore();
   ctx.save(); ctx.translate(0.4, 0.5); cardTick(a, r0, r1, c.light, width); ctx.restore();
 }
+var cardSmall = false;
 function cardTextCut(a, r, text, font, brassy) {
+  if (cardSmall) return;
   var c = cutPair(brassy);
   ctx.save(); ctx.translate(-0.5, -0.6); cardText(a, r, text, font, c.dark); ctx.restore();
   ctx.save(); ctx.translate(0.4, 0.5); cardText(a, r, text, font, c.light); ctx.restore();
@@ -3430,7 +3439,7 @@ function drawBrassPlate(c, rp) {
   /* the altitudes, numbered as they are on a plate */
   ctx.font = cardFont(9); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   var step = horizonGridStep();
-  for (var a2 = step; a2 < 90; a2 += step) {
+  for (var a2 = step; a2 < 90 && !cardSmall; a2 += step) {
     var q = proj(fromHor(a2, 180, c));
     if (q && Math.hypot(q[0] - CX, q[1] - CY) < rp - 6) {
       ctx.fillStyle = 'rgba(48,30,4,.9)'; ctx.fillText(a2 + '\u00b0', q[0] - 0.55, q[1] - 0.65);
@@ -3707,11 +3716,10 @@ function drawCard(c) {
   ctx.restore();
   ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
   ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1.4; ctx.stroke();
+  /* A small card is still the whole card: the plate, the rete, the limb and its divisions are all
+     drawn at any size, and only the lettering is left off when there is no room to read it. */
+  cardSmall = rp < 120;
   if (opt.plate && disc.kind !== 'planisphere') drawBrassPlate(c, rp);
-  if (rp < 120) {                                        /* too small to letter, but still brass */
-    if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
-    return;
-  }
   if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp + cardScaleStart());
   var brassy = opt.brass && disc.kind !== 'planisphere';
   cardBands().forEach(function (B) {
@@ -5200,12 +5208,18 @@ function showTip(h, mx, my) {
   }
   if (coarsePointer && h.kind !== 'ring' && h.kind !== 'line' && h.kind !== 'cardinal')
     html += '<div class="tgo"><button class="btn sm" id="tipgo">Fly to</button><span>tap again to fly there</span></div>';
+  if (coarsePointer) html += '<button class="tclose" id="tipclose" title="Put the card away">×</button>';
   tip.innerHTML = html;
   tip.classList.toggle('touch', coarsePointer);
   tip.classList.add('on');
   placeTip(mx, my);
   var go = document.getElementById('tipgo');
   if (go) go.addEventListener('click', function (ev) { ev.stopPropagation(); flyToHit(h); });
+  var cl = document.getElementById('tipclose');
+  if (cl) cl.addEventListener('click', function (ev) {
+    ev.stopPropagation(); ev.preventDefault();
+    hideTip(); hover = null; spinPaused = false; draw();
+  });
 }
 var coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 function compassWords(n) {
@@ -5583,7 +5597,9 @@ function fitDisc() {
 function tuneDisc() {
   if (!disc) return;
   var P = curProj(), alat = Math.abs(disc.lat);
-  disc.margin = INSTRUMENTS[disc.kind].margin + cardExtra();   /* room for whatever rings it carries */
+  /* room for whatever rings it carries; on a phone the card takes more of the width, since there is
+     less of it, and the cardinal letters outside the rim are smaller too */
+  disc.margin = INSTRUMENTS[disc.kind].margin - (smallScreen() ? 12 : 0) + cardExtra();
   /* far enough out that the whole horizon is projected before the rim cuts it, or the ground would
      be shaded on the wrong side of the line */
   disc.deg = Math.min(INSTRUMENTS[disc.kind].reach(alat), P.maxClip - 6);
