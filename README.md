@@ -20,9 +20,10 @@ drawn on the sphere.
   of the screen, and the three chart weights pills down the right, so neither has to be dug out of a
   panel. They sit at the edges when the panels are folded and just inboard of them when they are not,
   which is where the other floating pills already live. On a phone the middle of each edge is where
-  the sky is, so the two stacks go to the corners nothing else has, the views down from the top right
-  and the weights up from the bottom left; and where an open panel is a sheet across the whole
-  screen, they wait until it is folded away.
+  the sky is, so the two stacks go to the corners nothing else has, the views at the top right and
+  the weights at the bottom left, and each is a tumbler: one pill showing what is chosen, which opens
+  into the list when tapped and closes again once something is picked, so five views take the room
+  of one. Where an open panel is a sheet across the whole screen, they wait until it is folded away.
 
   Each single pill stands beside the panel it belongs to rather than all of them in one corner:
   **Now** acts on the clock, so it goes next to the masthead, which is where the clocks and the two
@@ -115,17 +116,29 @@ drawn on the sphere.
   private-use codepoint before use: without that, half of them arrive from a colour emoji font and
   sit on the brass like stickers, which is what happened to the zodiac the first time round.
 
-  The **astronomical clock** is the astrolabe with hands, as at Prague. A gilt **sun hand** and a
-  **moon hand** run from the pole at the centre out to the rim, each with a bead on it where the body
-  actually is, and between them lies the **dragon**: one bar along the line where the Moon's path
-  crosses the ecliptic, head at the ascending node and tail at the descending. The dragon is not
-  decoration. An eclipse can only happen when the Sun and the Moon are both near that line, so when a
+  The **astronomical clock** is the astrolabe with hands, as at Prague. The **sun hand** is the brass
+  rule itself, with a sun at its outer end; it lies along the Sun's own bearing in any case, since
+  the limb is graduated so that the Sun reads the clock. The **moon hand** is silver, with a crescent
+  at its end, the horns turned back along the bar. Between them lies the **dragon**, in iron: one bar
+  along the line where the Moon's path crosses the ecliptic, head at the ascending node and tail at
+  the descending. The dragon is not decoration. An eclipse can only happen when the Sun and the Moon are both near that line, so when a
   hand lies along the dragon something is about to be covered up — which is what the clock was for.
   Point at the bar and it says how far the Sun is from the line and whether that is an eclipse season.
   The mean node follows Meeus 47.7 and runs backwards round the sky in 18.6 years; at the total solar
   eclipse of 2 August 2027 it puts the Sun 1.6° from the line, which is why that eclipse is so long,
   and 84.7° away on an ordinary day in May. The hands can be switched on over any of the three from
-  *Clock hands* in the Layers panel.
+  *Sun & Moon hands* in the Layers panel.
+
+  The clock also has **clock hands** of its own, an hour hand and a minute hand in blued steel about
+  the pivot, read against a small chapter ring of twelve cut into the plate; they can be fitted to
+  the astrolabe as well. They keep mean time, as a clock does, and their XII is not the meridian. The
+  Sun crosses the meridian at solar noon, and the clock says twelve some minutes before or after, by
+  the equation of time and by however far the place lies from its zone's meridian; so XII stands
+  where the hours ring reads twelve, which is where the Sun is at clock noon. Both the offset and the
+  way round are taken from the ring through the same bearing function as everything else, so they
+  come out right whichever side east is on and whichever hemisphere the card is cut for: the hour
+  hand at three o'clock lies exactly on the ring's mark for eighteen, on every card, which is the
+  check. Point at the hands for the time and the size of the offset today.
 
   All three are held square, and none of them can be aimed. An instrument's centre is its pole, its
   rim is a circle of declination and its horizon is cut for one latitude, so dragging it about would
@@ -167,12 +180,12 @@ drawn on the sphere.
   a graduated limb round the edge with its rivets, the **plate** in the mater's womb with the
   altitude and azimuth circles cut into it, a pierced web of brass turning over that, and the rule
   laid across the face to read the hour, with a sun at its outer end, since it lies along the Sun's
-  own bearing. When the clock hands are out the Sun hand does the same job along the same line and
-  the rule stands down. That is the real stack, and it is drawn in that order, the
+  own bearing. With the Sun & Moon hands out the rule is the Sun hand. That is the real stack, and
+  it is drawn in that order, the
   plate a shade duller and darker than the rete so the piece on top reads as the piece on top.
 
   How solid the plate is, is yours to set, from a third of the way up to wholly opaque as brass
-  really is. Its circles are incised rather than drawn on: the light comes from the upper left, so
+  really is, which is how the astrolabe opens. Its circles are incised rather than drawn on: the light comes from the upper left, so
   the near wall of a groove is the shadowed one and the far wall catches the light, which puts the
   dark fringe above and the bright one below. Get that the wrong way round and every line reads as a
   raised bead instead of a cut one. The ground below the horizon is darker, as on brass it is the
@@ -388,9 +401,11 @@ drawn on the sphere.
   what you would actually see and name outdoors — stars, their names, the constellation figures, the
   Milky Way, the planets and the horizon — and **detailed** turns on everything the page knows, the
   three optional rings included, so an astrolabe under detailed comes out wearing its degrees, its
-  right ascensions and its signs. A phone opens light, since at that size medium is a crowd; a link
+  right ascensions and its signs. A phone opens light, since at that size medium is a crowd; the
+  weight chosen is written into the address with the layers, so a reload keeps it, and a link
   someone sent carries its own layers and keeps them. Only the layers move: the place, the moment,
-  the view and the instrument are left alone, as they are by Reset defaults.
+  the view and the instrument are left alone, as they are by Reset defaults. The brass, the plate and
+  the hands are not layers and are not moved by any of the three.
 
 - **A view you have just chosen starts square, and so does a reloaded page.** Pressing a view button
   re-seats it — centred, unmagnified, unslid — rather than carrying over whatever you had dragged the
@@ -399,7 +414,7 @@ drawn on the sphere.
   itself and ignores that mark's view on the way back in. A link **you** copied carries no such mark
   and keeps the view it was copied at, which is the whole point of copying it.
 
-- **A switch that does not apply is greyed, not annotated.** *Clock hands*, *Planet hands* and the
+- **A switch that does not apply is greyed, not annotated.** *Sun & Moon hands*, *Planet hands*, *Clock hands* and the
   two outer rings used to carry the words "on a card" under them, which told a reader nothing they
   could act on. They now simply go dim and dead in the views where they mean nothing, which is the
   same information without the footnote.

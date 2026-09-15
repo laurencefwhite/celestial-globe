@@ -314,6 +314,12 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 .pillcol.show{display:flex}
 .pillcol .floatbtn{position:static;display:block;height:27px;padding:0 11px;font-size:9.5px}
 #detailpills{align-items:flex-end}
+/* On a phone each stack is a tumbler: one pill showing what is chosen, which opens into the list
+   when tapped and closes again once something is picked, so five views take the room of one. */
+.pillcol.tumbler .floatbtn:not(.on){display:none}
+.pillcol.tumbler.open .floatbtn{display:block}
+.pillcol.tumbler .floatbtn.on::after{content:'\25BE';margin-left:6px;opacity:.6;font-size:9px}
+.pillcol.tumbler.open .floatbtn.on::after{content:'\25B4'}
 #controls.min ~ #resetfloat{display:block}
 
 /* red-and-black night vision: the stage goes to luminance, then a red multiply leaves only red light */
@@ -577,8 +583,9 @@ body.night #stage{filter:grayscale(1)}
         </select>
       </div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
-      <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Clock hands</span></label>
+      <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Sun &amp; Moon hands <small>and the dragon</small></span></label>
       <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands</span></label>
+      <label class="tog"><input type="checkbox" id="L-clockhands"><span class="sw"></span><span class="tl">Clock hands <small>hour and minute, blued steel</small></span></label>
       <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
       <label class="tog"><input type="checkbox" id="L-plate"><span class="sw"></span><span class="tl">Brass plate <small>the tympan</small></span></label>
       <div class="row two" id="platerow"><label for="hplate">Solid</label>
@@ -1506,7 +1513,7 @@ var opt = {
   paths: false, fov: false, daylight: true, refraction: true,
   horizon: true, below: true, hgrid: false, cgrid: true, tropics: true, ecliptic: true, galactic: false,
   altaz: false, radec: false, inside: false, hold: true, spin: false, awake: false,
-  linecards: true, linelabels: false, meridian: false, hands: false, phands: false,
+  linecards: true, linelabels: false, meridian: false, hands: false, phands: false, clockhands: false,
   preview: false, brass: false, plate: false, degring: false, raring: false, diagonal: false,
   suspend: false, zodring: false, calring: false,
   lstars: true, lplanets: true, lmoons: true, lasteroids: true, lcomets: true,
@@ -1764,6 +1771,9 @@ function placeCols() {
   vp.classList.toggle('show', show);
   dp.classList.toggle('show', show);
   if (!show) return;
+  vp.classList.toggle('tumbler', smallScreen());
+  dp.classList.toggle('tumbler', smallScreen());
+  if (!smallScreen()) { vp.classList.remove('open'); dp.classList.remove('open'); }
   var vh0 = vp.getBoundingClientRect().height, dh0 = dp.getBoundingClientRect().height;
   if (smallScreen()) {
     /* On a phone the middle of each edge is where the sky is, so the stacks go to the two corners
@@ -1814,6 +1824,25 @@ function placeCols() {
   vp.classList.toggle('show', !clash);
   dp.classList.toggle('show', !clash);
 }
+/* a tap on the chosen pill opens the tumbler; a tap on any pill while it is open makes the choice
+   and shuts it; a touch on the sky shuts it too */
+function closeTumblers() {
+  var any = false;
+  document.querySelectorAll('.pillcol.open').forEach(function (col) { col.classList.remove('open'); any = true; });
+  if (any) placePills();
+}
+['viewpills', 'detailpills'].forEach(function (id) {
+  var col = document.getElementById(id);
+  col.addEventListener('click', function (e) {
+    if (!col.classList.contains('tumbler')) return;
+    if (!col.classList.contains('open')) {
+      e.stopPropagation(); e.preventDefault();
+      closeTumblers(); col.classList.add('open'); placePills();
+    } else {
+      setTimeout(function () { col.classList.remove('open'); placePills(); }, 0);
+    }
+  }, true);
+});
 function syncPills() {
   var kind = currentView();
   VIEW_ORDER.forEach(function (k) {
@@ -2174,7 +2203,7 @@ function draw() {
   if (opt.linelabels) drawLineLabels();
   ctx.restore();
   if (disc) drawCard(c);
-  if (disc && (opt.hands || opt.phands)) drawHands(c);
+  if (disc && (opt.hands || opt.phands || opt.clockhands)) drawHands(c);
   if (opt.preview) drawFieldSoon();
   if (opt.horizon) drawCardinals(c);
   placeLabels();
@@ -3519,7 +3548,7 @@ function cardOuterEdge() {
 /* How solid the plate is, and how faint a star has to be before it loses its pointer. Both were
    fixed numbers picked by eye, which is fine until someone wants the other end of them: a plate you
    can see nothing through, as brass really is, or a rete crowded with every star it can reach. */
-var plateSolid = 0.92, reteLimit = 2.4;
+var plateSolid = 1, reteLimit = 2.4;
 function degZeroBearing(c) { return horBearing(degZero === 'east' ? 90 : 0, c); }
 /* Every degree gets its own mark, with the fives and the tens taller, which is as fine as a ring
    this size can be divided and still be read.
@@ -3678,8 +3707,11 @@ function drawCard(c) {
   ctx.restore();
   ctx.beginPath(); ctx.arc(CX, CY, rp, 0, 2 * Math.PI);
   ctx.strokeStyle = PAL.cardRim; ctx.lineWidth = 1.4; ctx.stroke();
-  if (rp < 120) return;                                  /* too small to letter */
   if (opt.plate && disc.kind !== 'planisphere') drawBrassPlate(c, rp);
+  if (rp < 120) {                                        /* too small to letter, but still brass */
+    if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
+    return;
+  }
   if (disc.kind === 'planisphere') drawDateAndHour(c, rp); else drawLimb(c, rp + cardScaleStart());
   var brassy = opt.brass && disc.kind !== 'planisphere';
   cardBands().forEach(function (B) {
@@ -3886,31 +3918,48 @@ function drawHands(c) {
   /* out to the inner rim of the outermost ring the card is wearing, so a hand always points at the
      scale furthest out rather than at whichever one happens to be first */
   var bands = cardBands();
-  var rp = discRadiusPx() + (hoursOutermost() ? cardScaleStart() : bands.length ? bands[bands.length - 1].r0 : 0);
+  var rp = handReachR();
   handReach = rp;
   handGlyphR = discRadiusPx() + (hoursOutermost() || bands.length ? cardOuterEdge() : 0);
   var sun = bodyByKey.sol, moon = bodyByKey.lun;
   handMarks = [];
+  var w = clamp(discRadiusPx() * 0.055, 8, 22);
   /* the dragon first, so the bright hands lie over it */
   var om = moonNode(c.jd);
   var asc = opt.hands ? handDir(eclPoint(om, c)) : null;
   var desc = opt.hands ? handDir(eclPoint(om + 180, c)) : null;
   if (asc && desc) {
-    var onB = disc && opt.brass && disc.kind !== 'planisphere';
-    handShaft(asc, rp - 8, HANDS.dragon);
-    handShaft(desc, rp - 8, HANDS.dragon);
-    handHead(asc, rp, HANDS.dragon, onB);
-    handHead(desc, rp, HANDS.dragon, onB);
+    drawDragon(asc, discRadiusPx(), rp, w);
     handGlyph(asc, rp, HANDS.dragon, '\u260a');            /* caput draconis */
     handGlyph(desc, rp, HANDS.dragon, '\u260b');           /* cauda draconis */
     addHit(CX + asc.dx * rp * 0.7, CY + asc.dy * rp * 0.7, 8, 'hand',
            { which: 'dragon', node: om, c: c });
   }
   /* the planets, outermost first so the quick inner ones lie over the slow outer ones, and the Sun
-     and the Moon over the lot: the two a clock is really read by */
+     and the Moon over the lot: the two a clock is really read by. The Moon's is silver, the Sun's
+     the brass rule itself, which lies along the Sun's bearing in any case. */
   if (opt.phands)
     PLANET_HANDS.forEach(function (st) { oneHand(bodyByKey[st.key], st, rp, true); });
-  if (opt.hands) { oneHand(sun, HANDS.sun, rp, false); oneHand(moon, HANDS.moon, rp, false); }
+  if (opt.hands) {
+    var hm = moon ? handDir(moon.v) : null, hs = sun ? handDir(sun.v) : null;
+    if (hm) {
+      drawMoonHand(hm, discRadiusPx(), rp, w);
+      var atM = Math.min(hm.d, discRadiusPx());
+      addHit(CX + hm.dx * atM, CY + hm.dy * atM, 10, 'hand', { which: moon.key, body: moon, off: hm.d > rp });
+    }
+    if (hs) {
+      drawRule(Math.atan2(hs.dy, hs.dx), discRadiusPx(), rp, w);
+      var atS = Math.min(hs.d, discRadiusPx());
+      addHit(CX + hs.dx * atS, CY + hs.dy * atS, 10, 'hand', { which: sun.key, body: sun, off: hs.d > rp });
+    }
+  }
+  /* and the clock's own, smallest and on top */
+  if (opt.clockhands && disc.kind !== 'planisphere') drawClockHands(c);
+}
+/* how far out a hand reaches: the inner rim of the outermost ring the card is wearing */
+function handReachR() {
+  var bands = cardBands();
+  return discRadiusPx() + (hoursOutermost() ? cardScaleStart() : bands.length ? bands[bands.length - 1].r0 : 0);
 }
 function oneHand(b, style, rp, small) {
   if (!b) return;
@@ -4490,19 +4539,7 @@ function drawRete(c, rp) {
      and carries a sun at its outer end to say so. When the clock hands are out the Sun hand does the
      same job along the same line, and the rule stands down rather than lie under it. */
   var ar = opt.hands ? null : haBearing(haForClockTime(clockHours(c), c, true), c);
-  if (ar !== null) {
-    ctx.save();
-    ctx.translate(CX, CY); ctx.rotate(ar);
-    var rw = Math.max(2.6, w * 0.30);
-    ctx.beginPath(); ctx.rect(-rp * 0.22, -rw / 2, rp * 1.22, rw);
-    ctx.fillStyle = brassBand(0, 0, 0, rp); ctx.fill();
-    ctx.strokeStyle = 'rgba(58,36,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-rp * 0.22, 0); ctx.lineTo(rp, 0);
-    ctx.strokeStyle = 'rgba(255,244,205,.85)'; ctx.lineWidth = 0.7; ctx.stroke();
-    var sr = clamp(w * 1.2, 8, 24);
-    brassSun(rp - sr * 1.25, 0, sr, -ar);          /* the face stays upright whichever way the rule lies */
-    ctx.restore();
-  }
+  if (ar !== null) drawRule(ar, rp, handReachR(), w);
 }
 /* A sun in brass: a disc with sixteen flames about it, the straight and the wavy by turns, which is
    how the engravers cut it. Drawn in whatever frame the caller has set up, at (x, y) with the
@@ -4536,15 +4573,179 @@ function brassSun(x, y, r, turn) {
   ctx.beginPath(); ctx.arc(0, 0, r * 0.58, 0, 2 * Math.PI);
   ctx.fillStyle = g; ctx.fill();
   ctx.strokeStyle = 'rgba(58,36,4,.9)'; ctx.lineWidth = 1; ctx.stroke();
-  /* and a face, as the old suns have: two eyes and a mouth cut in, no more */
-  if (r >= 9) {
-    ctx.fillStyle = 'rgba(58,36,4,.85)';
-    ctx.beginPath(); ctx.arc(-r * 0.2, -r * 0.12, r * 0.06, 0, 2 * Math.PI); ctx.fill();
-    ctx.beginPath(); ctx.arc(r * 0.2, -r * 0.12, r * 0.06, 0, 2 * Math.PI); ctx.fill();
-    ctx.beginPath(); ctx.arc(0, r * 0.05, r * 0.26, Math.PI * 0.2, Math.PI * 0.8);
-    ctx.strokeStyle = 'rgba(58,36,4,.85)'; ctx.lineWidth = Math.max(0.8, r * 0.07); ctx.stroke();
-  }
   ctx.restore();
+}
+/* Silver and steel, for the pieces that are not brass: the moon hand, the dragon, and the blued
+   clock hands. Each is a band across the piece, as brassBand is, lit from the upper left. */
+function silverBand(x0, y0, r) {
+  var g = ctx.createLinearGradient(x0 - r, y0 - r, x0 + r, y0 + r);
+  g.addColorStop(0.00, '#5a5e66');
+  g.addColorStop(0.25, '#c9cdd3');
+  g.addColorStop(0.42, '#ffffff');
+  g.addColorStop(0.58, '#b9bec6');
+  g.addColorStop(0.80, '#6b7078');
+  g.addColorStop(1.00, '#a4a9b1');
+  return g;
+}
+function ironBand(x0, y0, r) {
+  var g = ctx.createLinearGradient(x0 - r, y0 - r, x0 + r, y0 + r);
+  g.addColorStop(0.00, '#23272c');
+  g.addColorStop(0.30, '#6b7178');
+  g.addColorStop(0.45, '#aeb4ba');
+  g.addColorStop(0.60, '#5c6167');
+  g.addColorStop(1.00, '#2e3237');
+  return g;
+}
+function blueSteel(x0, y0, r) {
+  var g = ctx.createLinearGradient(x0 - r, y0 - r, x0 + r, y0 + r);
+  g.addColorStop(0.00, '#081341');
+  g.addColorStop(0.32, '#2c56c4');
+  g.addColorStop(0.46, '#9dbdff');
+  g.addColorStop(0.60, '#2748a8');
+  g.addColorStop(1.00, '#060c2a');
+  return g;
+}
+/* The rule, laid across the face from a little past the pivot out to the ring it is read against,
+   with the sun at its outer end. It lies along the Sun's own bearing, since the limb is graduated
+   so that the Sun reads the clock, so it is the Sun's pointer as much as the rule. */
+function drawRule(ar, rp, reach, w) {
+  ctx.save();
+  ctx.translate(CX, CY); ctx.rotate(ar);
+  var rw = Math.max(2.6, w * 0.30);
+  ctx.beginPath(); ctx.rect(-rp * 0.22, -rw / 2, rp * 0.22 + reach, rw);
+  ctx.fillStyle = brassBand(0, 0, 0, rp); ctx.fill();
+  ctx.strokeStyle = 'rgba(58,36,4,.8)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-rp * 0.22, 0); ctx.lineTo(reach, 0);
+  ctx.strokeStyle = 'rgba(255,244,205,.85)'; ctx.lineWidth = 0.7; ctx.stroke();
+  var sr = clamp(w * 1.2, 8, 24);
+  brassSun(reach - sr * 1.25, 0, sr, -ar);
+  ctx.restore();
+}
+/* The moon hand, in silver: a bar from the pivot to the ring with a crescent at its end, the horns
+   turned back along the bar, which is how a crescent finial sits on a hand. */
+function drawMoonHand(h, rp, reach, w) {
+  var a = Math.atan2(h.dy, h.dx);
+  ctx.save();
+  ctx.translate(CX, CY); ctx.rotate(a);
+  var bw = Math.max(2.2, w * 0.24), cr = clamp(w * 0.8, 6, 17);
+  var end = reach - cr * 0.45 - 1;
+  ctx.beginPath(); ctx.rect(-rp * 0.12, -bw / 2, rp * 0.12 + end, bw);
+  ctx.fillStyle = silverBand(0, 0, rp); ctx.fill();
+  ctx.strokeStyle = 'rgba(20,22,28,.85)'; ctx.lineWidth = 0.9; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-rp * 0.12, -bw * 0.18); ctx.lineTo(end, -bw * 0.18);
+  ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 0.6; ctx.stroke();
+  /* the crescent: the outer arc of one circle and the inner arc of another set back along the bar */
+  var cx = end - cr * 0.55, d = cr * 0.42, r2 = cr * 0.86;
+  var x = (cr * cr - r2 * r2 + d * d) / (2 * d), y = Math.sqrt(Math.max(0, cr * cr - x * x));
+  var a1 = Math.atan2(y, x), a2 = Math.atan2(y, x + d);
+  ctx.beginPath();
+  ctx.arc(cx, 0, cr, -a1, a1, false);
+  ctx.arc(cx - d, 0, r2, a2, -a2, true);
+  ctx.closePath();
+  ctx.fillStyle = silverBand(cx, 0, cr); ctx.fill();
+  ctx.strokeStyle = 'rgba(20,22,28,.9)'; ctx.lineWidth = 0.9; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.restore();
+}
+/* The dragon, in iron: one bar through the pivot along the line of the nodes, the head at the
+   ascending node and the tail at the descending. */
+function drawDragon(asc, rp, reach, w) {
+  var a = Math.atan2(asc.dy, asc.dx);
+  ctx.save();
+  ctx.translate(CX, CY); ctx.rotate(a);
+  var bw = Math.max(2.4, w * 0.26), hl = clamp(w * 0.95, 8, 20), hw = hl * 0.42;
+  var L = reach - hl - 1;
+  ctx.beginPath(); ctx.rect(-L, -bw / 2, 2 * L, bw);
+  ctx.fillStyle = ironBand(0, 0, rp); ctx.fill();
+  ctx.strokeStyle = 'rgba(8,10,14,.9)'; ctx.lineWidth = 0.9; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-L, -bw * 0.2); ctx.lineTo(L, -bw * 0.2);
+  ctx.strokeStyle = 'rgba(230,235,240,.55)'; ctx.lineWidth = 0.6; ctx.stroke();
+  /* the head: a wedge with the jaw cut in and an eye */
+  ctx.beginPath();
+  ctx.moveTo(L - hl * 0.15, -hw);
+  ctx.lineTo(L + hl, -hw * 0.12);
+  ctx.lineTo(L + hl * 0.55, hw * 0.05);
+  ctx.lineTo(L + hl * 0.92, hw * 0.55);
+  ctx.lineTo(L - hl * 0.15, hw);
+  ctx.closePath();
+  ctx.fillStyle = ironBand(L, 0, hl); ctx.fill();
+  ctx.strokeStyle = 'rgba(8,10,14,.9)'; ctx.lineWidth = 0.9; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(L + hl * 0.3, -hw * 0.4, Math.max(0.9, hw * 0.16), 0, 2 * Math.PI);
+  ctx.fillStyle = 'rgba(8,10,14,.95)'; ctx.fill();
+  /* the tail: a barb */
+  ctx.beginPath();
+  ctx.moveTo(-L + hl * 0.15, -hw * 0.9);
+  ctx.lineTo(-L - hl * 0.85, 0);
+  ctx.lineTo(-L + hl * 0.15, hw * 0.9);
+  ctx.lineTo(-L - hl * 0.25, 0);
+  ctx.closePath();
+  ctx.fillStyle = ironBand(-L, 0, hl); ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+/* The clock's own hands, in blued steel: an hour hand and a minute hand about the pivot, read
+   against a small chapter ring of twelve. They keep mean time, as a clock does. Their XII stands
+   where the hours ring reads twelve, and that is not the meridian: the Sun crosses the meridian at
+   solar noon, and the clock says twelve some minutes before or after, by the equation of time and by
+   however far this place lies from its zone's meridian. Taken from the ring through the same
+   bearing function as everything else, so the offset and the way round come out right whichever
+   side east is on and whichever hemisphere the card is cut for. */
+var ROMAN = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+function clockDial(c) {
+  var b12 = haBearing(haForClockTime(12, c, true), c), b18 = haBearing(haForClockTime(18, c, true), c);
+  if (b12 === null || b18 === null) return null;
+  return { b12: b12, step: turnFrom(b12, b18) > 0 ? 1 : -1 };
+}
+function steelHand(a, len, wid) {
+  ctx.save();
+  ctx.translate(CX, CY); ctx.rotate(a);
+  ctx.beginPath();
+  ctx.moveTo(-len * 0.2, -wid * 0.42);
+  ctx.lineTo(len * 0.6, -wid * 0.5);
+  ctx.lineTo(len, 0);
+  ctx.lineTo(len * 0.6, wid * 0.5);
+  ctx.lineTo(-len * 0.2, wid * 0.42);
+  ctx.closePath();
+  ctx.fillStyle = blueSteel(0, 0, len); ctx.fill();
+  ctx.strokeStyle = 'rgba(3,5,18,.9)'; ctx.lineWidth = 0.8; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-len * 0.16, -wid * 0.14); ctx.lineTo(len * 0.62, -wid * 0.16);
+  ctx.strokeStyle = 'rgba(190,215,255,.6)'; ctx.lineWidth = 0.6; ctx.stroke();
+  ctx.restore();
+}
+function drawClockHands(c) {
+  var dial = clockDial(c);
+  if (!dial) return;
+  var rp = discRadiusPx(), brassy = opt.plate && disc.kind !== 'planisphere';
+  var r0 = rp * 0.27, r1 = rp * 0.33, cut = cutPair(brassy), k, a;
+  /* the chapter ring, cut into whatever the card is made of */
+  [r0, r1].forEach(function (r) {
+    ctx.save(); ctx.translate(-0.5, -0.6);
+    ctx.beginPath(); ctx.arc(CX, CY, r, 0, 2 * Math.PI); ctx.strokeStyle = cut.dark; ctx.lineWidth = 1.1; ctx.stroke();
+    ctx.restore();
+    ctx.save(); ctx.translate(0.4, 0.5);
+    ctx.beginPath(); ctx.arc(CX, CY, r, 0, 2 * Math.PI); ctx.strokeStyle = cut.light; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.restore();
+  });
+  if (rp >= 120) {
+    for (k = 0; k < 60; k++) {
+      a = dial.b12 + dial.step * k / 60 * 2 * Math.PI;
+      cardTickCut(a, r1 - (r1 - r0) * (k % 5 ? 0.3 : 0.62), r1, k % 5 ? 0.8 : 1.1, brassy);
+    }
+    var fs = clamp(rp * 0.032, 7, 11);
+    for (k = 0; k < 12; k++) {
+      a = dial.b12 + dial.step * k / 12 * 2 * Math.PI;
+      cardTextCut(a, r0 - fs * 0.85, ROMAN[k], cardFont(fs, '600 '), brassy);
+    }
+  }
+  var hrs = clockHours(c);
+  var aH = dial.b12 + dial.step * ((hrs % 12) / 12) * 2 * Math.PI;
+  var aM = dial.b12 + dial.step * (((hrs * 60) % 60) / 60) * 2 * Math.PI;
+  var wid = clamp(rp * 0.022, 3, 7);
+  steelHand(aH, r0 * 0.7, wid * 1.15);
+  steelHand(aM, r1 * 0.96, wid * 0.85);
+  ctx.beginPath(); ctx.arc(CX, CY, wid * 1.3, 0, 2 * Math.PI);
+  ctx.fillStyle = blueSteel(CX, CY, wid * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(3,5,18,.9)'; ctx.lineWidth = 0.8; ctx.stroke();
+  addHit(CX + Math.cos(aH) * r0 * 0.45, CY + Math.sin(aH) * r0 * 0.45, 9, 'hand', { which: 'clock', hrs: hrs, c: c });
 }
 /* the mater's limb, in brass, with the rivets that hold a real one together */
 function drawBrassLimb(rp, r1) {
@@ -4597,6 +4798,7 @@ function markInteract() {
 function dist2(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
 
 cv.addEventListener('pointerdown', function (e) {
+  closeTumblers();
   cv.setPointerCapture(e.pointerId);
   pointers[e.pointerId] = [e.clientX, e.clientY];
   var ids = Object.keys(pointers);
@@ -4913,7 +5115,17 @@ function showTip(h, mx, my) {
     if (bimg && opt.pics && b.kind !== 'sun' && b.kind !== 'moon') html += '<img src="' + bimg.src + '" alt="">';
   } else if (h.kind === 'hand') {
     var hd = h.ref;
-    if (hd.which === 'dragon') {
+    if (hd.which === 'clock') {
+      var eqm = eqTimeMin(hd.c.jd), zonem = obs.lon * 4 - tzOffsetMinutes(hd.c.date), totm = eqm + zonem;
+      var hh = Math.floor(hd.hrs), mm = Math.floor((hd.hrs - hh) * 60);
+      html = '<div class="tn">The clock hands</div><div class="tc">Hour and minute, in blued steel</div>' +
+        '<div class="tnote">Mean time on your clock, ' + (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm +
+        '. Their XII stands where the hours ring reads twelve, which is ' + Math.abs(totm).toFixed(0) + ' minutes ' +
+        (totm > 0 ? 'west' : 'east') + ' of the meridian today: the equation of time puts the Sun ' +
+        Math.abs(eqm).toFixed(1) + ' minutes ' + (eqm > 0 ? 'ahead of' : 'behind') + ' the clock, and this place lies ' +
+        Math.abs(zonem).toFixed(0) + ' minutes ' + (zonem > 0 ? 'east' : 'west') + ' of its zone\u2019s meridian.' +
+        ' The Sun crosses the meridian at solar noon; the hands say twelve when the clock does.</div>';
+    } else if (hd.which === 'dragon') {
       var om2 = hd.node, sunL = sky ? lonlat(bodyByKey.sol.v) : null;
       var sep = bodyByKey.sol ? Math.min(angSep(bodyByKey.sol.v, eclPoint(om2, sky)),
                                          angSep(bodyByKey.sol.v, eclPoint(om2 + 180, sky))) * RAD : null;
@@ -4925,7 +5137,7 @@ function showTip(h, mx, my) {
           (sep < 18 ? 'inside an eclipse season.' : 'outside one.')) + '</div>';
     } else {
       var bh = hd.body;
-      html = '<div class="tn">' + esc(bh.name) + ' hand</div><div class="tc">Clock hand on the card</div>' +
+      html = '<div class="tn">' + esc(bh.name) + ' hand</div><div class="tc">Hand on the card</div>' +
         '<div class="tnote">The hand runs from the pole at the centre out through the ' + esc(bh.name) +
         (hd.off ? ', which is off the edge of the card just now, so the bead sits at the rim.' : '.') + '</div>' +
         '<div class="tgrid">' + coordRows(bh.v, c) + '</div>';
@@ -5285,7 +5497,7 @@ function resetDefaults() {
   NUMERALS = 'western'; numeralsEl.value = 'western';
   detailLevel = 'medium'; detailEl.value = 'medium';
   if (defaultDetail() !== 'medium') applyDetail(defaultDetail());
-  plateSolid = 0.92; plateSlider.set(0.92, 0.25);
+  plateSolid = 1; plateSlider.set(1, 0.25);
   reteLimit = 2.4; reteSlider.set(2.4, 0.5);
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
   trackMode = 'sidereal'; document.getElementById('fld-track').value = 'sidereal';
@@ -5319,7 +5531,7 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
    base here, and an instrument says only where it differs from it. */
 var INSTRUMENT_BASE = {
   below: true, horizon: true, hgrid: false, tropics: false, ecliptic: false,
-  connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false,
+  connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false, clockhands: false,
   starnames: true, brass: false, plate: false, zodring: false, calring: false
 };
 var INSTRUMENT_KEYS = Object.keys(INSTRUMENT_BASE).concat(['inside']);
@@ -5342,11 +5554,12 @@ var INSTRUMENTS = {
     reach: function () { return 90 + 23.44; },
     margin: 40,
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, conlines: false,
-            hands: true, phands: true, starnames: false, zodring: true },
+            hands: true, phands: true, clockhands: true, starnames: false, zodring: true },
     note: function () {
-      return 'An astronomical clock: an astrolabe with hands. The Sun and the Moon ride round the tympan and ' +
-             'each hand points at the hours on the outermost ring. The dragon lies along the line of the Moon\u2019s ' +
-             'nodes; an eclipse can only happen when both are near it. Run the clock and watch them turn.';
+      return 'An astronomical clock: an astrolabe with hands. The Sun rides round the tympan on the brass rule and ' +
+             'the Moon on a silver hand, each pointing at the hours on the outermost ring; the iron dragon lies along ' +
+             'the line of the Moon\u2019s nodes, and an eclipse can only happen when both are near it. The blued hands ' +
+             'at the centre keep the clock\u2019s own time. Run the clock and watch them turn.';
     }
   },
   astrolabe: {
@@ -5550,7 +5763,7 @@ projEl.addEventListener('change', function () {
   describeView(); hideTip(); draw();
 });
 var plateSlider = hSlider(document.getElementById('hplate'), {
-  min: 0.25, max: 1, step: 0.01, wheel: 0.05, value: 0.92, origin: 0.25,
+  min: 0.25, max: 1, step: 0.01, wheel: 0.05, value: 1, origin: 0.25,
   ticks: [{ v: 0.5 }, { v: 0.75 }, { v: 1, major: true }],
   onInput: function (v) { plateSolid = v; draw(); }
 });
@@ -5660,11 +5873,12 @@ function syncViewUI() {
   numeralsEl.disabled = !onCard;
   var hangs = !!disc && disc.kind === 'astrolabe';   /* only the astrolabe hangs from a ring */
   var brassCard = !!disc && disc.kind !== 'planisphere';
-  ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend', 'L-hands', 'L-phands',
+  ['L-degring', 'L-raring', 'L-diagonal', 'L-suspend', 'L-hands', 'L-phands', 'L-clockhands',
    'L-zodring', 'L-calring'].forEach(function (id) {
     var e = document.getElementById(id), live = id === 'L-suspend' ? hangs : onCard;
     if (id === 'L-diagonal') live = onCard && opt.degring;
     if (id === 'L-calring') live = brassCard;     /* a planisphere carries one already */
+    if (id === 'L-clockhands') live = brassCard;  /* a planisphere is not a clock */
     e.disabled = !live;
     e.closest('.tog').classList.toggle('off', !live);
   });
@@ -6486,6 +6700,7 @@ function viewHash(auto) {
   var bits = 0;
   for (var i = 0; i < URL_KEYS.length; i++) if (opt[URL_KEYS[i]]) bits += Math.pow(2, i);
   q.push('L=' + bits.toString(36));
+  q.push('d=' + detailLevel);
   q.push('e=' + [astMinKm, satGroupSel, scopeKey, nightEl.checked ? 1 : 0, projKind, epIndex].join(','));
   return '#' + q.join('&');
 }
@@ -6519,6 +6734,8 @@ function applyHash(h) {
       any = true;
     }
   }
+  hashAuto = !!q.a;
+  if (q.d && DETAIL[q.d]) { detailLevel = q.d; detailEl.value = q.d; hashHadDetail = true; }
   if (q.e) {
     var e = q.e.split(',');
     if (+e[0]) { astMinKm = +e[0]; document.getElementById('astmin').value = e[0]; }
@@ -6555,10 +6772,13 @@ function applyHash(h) {
   }
   return any;
 }
-var hashHadView = false, hashHadOrient = false, hashHadLayers = false, hashTimer = null;
+var hashHadView = false, hashHadOrient = false, hashHadLayers = false, hashHadDetail = false, hashAuto = false, hashTimer = null;
+/* Written a little after the last draw, but never put off for ever: a view that is redrawn many
+   times a second, as a phone following its own orientation is, must still get its address written. */
 function refreshHash() {
-  clearTimeout(hashTimer);
+  if (hashTimer) return;
   hashTimer = setTimeout(function () {
+    hashTimer = null;
     try { history.replaceState(null, '', location.pathname + location.search + viewHash(true)); } catch (e) {}
   }, 700);
 }
@@ -6798,8 +7018,11 @@ updateScrubLabel();
     var oi = defaultOrient(currentView());
     northTop = oi.northTop; eastRight = oi.eastRight; syncOrientUI();
   }
-  /* a phone opens on the light chart, unless a link someone sent has fixed the layers itself */
-  if (!hashHadLayers && defaultDetail() !== detailLevel) {
+  /* A phone opens on the light chart. The address bar carries the layers the page itself last wrote,
+     so that a reload keeps them, and it carries the weight that was chosen with them; if no weight
+     was ever chosen the phone's default wins over whatever layers a desktop left behind. A link
+     someone sent is the one thing that keeps its layers regardless. */
+  if (!hashHadDetail && !(hashHadLayers && !hashAuto) && defaultDetail() !== detailLevel) {
     var lv = defaultDetail(), set = DETAIL[lv];
     detailLevel = lv; detailEl.value = lv;
     Object.keys(set).forEach(function (k) {
@@ -6821,7 +7044,8 @@ updateScrubLabel();
 
 /* the address bar follows the view, so the link is always there to copy */
 var _drawH = draw;
-draw = function () { _drawH(); lastHash = viewHash(true); refreshHash(); };
+var drawCount = 0;
+draw = function () { drawCount++; _drawH(); lastHash = viewHash(true); refreshHash(); };
 
 fetchSatellites(function () {
   buildSatList(); buildSearchIndex(); skyDirty = true; trackCache = {}; draw();
@@ -6892,6 +7116,8 @@ window.CG = {
   eclBearing: function (lon, c) { return eclBearing(lon, c || ensureSky()); },
   dateBearing: function (y, m, d, c) { return dateBearing(y, m, d, c || ensureSky()); },
   flyToHit: flyToHit, zoomCardAbout: zoomCardAbout, ringAt: ringAt, cardRings: cardRings,
+  clockDial: function () { return clockDial(ensureSky()); },
+  hashState: function () { return { last: lastHash, wrapped: draw !== _drawH, pending: !!hashTimer, draws: drawCount }; },
   discPan: function () { return discPan.slice(); }, rotation: function () { return rotation.slice(); },
   zoom: function () { return zoom; }, status: function () { return { text: statusEl.textContent, on: statusEl.classList.contains('on'), note: viewNote }; },
   cardScaleStart: cardScaleStart, tipHtml: function () { return tip.innerHTML; }, tipOn: function () { return tip.classList.contains('on'); },
