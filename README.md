@@ -399,9 +399,10 @@ drawn on the sphere.
   nobody's idea of an evening. **Medium is exactly how the page opens on a desktop**, so choosing it
   there changes nothing, and the other two are a step either side: **light** strips the chart back to
   what you would actually see and name outdoors — stars, their names, the constellation figures, the
-  Milky Way, the planets and the horizon — and **detailed** turns on everything the page knows, the
-  three optional rings included, so an astrolabe under detailed comes out wearing its degrees, its
-  right ascensions and its signs. On a phone the card takes more of the width, and a card too small
+  Milky Way, the planets and the horizon — and **detailed** turns on everything the page knows. On a
+  card the step is a ring at a time rather than all four at once: light wears none, medium the
+  degree ring and the signs, and detailed the right ascensions and the calendar as well. On a phone
+  the card takes more of the width, and a card too small
   to letter is still drawn whole, plate, rete and divisions, with only the lettering left off. A
   phone opens light, since at that size medium is a crowd; the
   weight chosen is written into the address with the layers, so a reload keeps it, and a link
