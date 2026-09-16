@@ -320,6 +320,7 @@ input.num:focus,select.sel:focus{border-color:rgba(142,208,255,.5);background-co
 .pillcol.show{display:flex}
 .pillcol .floatbtn{position:static;display:block;height:27px;padding:0 11px;font-size:9.5px}
 #detailpills{align-items:flex-end}
+#d-custom:not(.on){display:none !important}
 /* On a phone each stack is a tumbler: one pill showing what is chosen, which opens into the list
    when tapped and closes again once something is picked, so five views take the room of one. */
 .pillcol.tumbler .floatbtn:not(.on){display:none}
@@ -489,9 +490,12 @@ body.night #stage{filter:grayscale(1)}
       <div class="togs">
       <div class="row" id="detailrow"><label for="detail">How much</label>
         <select class="sel" id="detail">
-          <option value="light">Light &middot; the naked-eye sky</option>
-          <option value="medium" selected>Medium &middot; as it opens on a desktop</option>
-          <option value="heavy">Detailed &middot; everything on</option>
+          <option value="eye">Naked eye &middot; the brightest stars and the planets</option>
+          <option value="bino">Binoculars &middot; named stars, Messier objects</option>
+          <option value="scope" selected>Telescope &middot; as it opens on a desktop</option>
+          <option value="obs">Observatory &middot; designations, grids, every ring</option>
+          <option value="all">Everything &middot; two magnitudes deeper</option>
+          <option value="custom">Custom &middot; set by hand</option>
         </select></div>
       <div class="sub-t">Sky</div>
       <label class="tog"><input type="checkbox" id="L-stars" checked><span class="sw"></span><span class="tl">Stars</span></label>
@@ -639,9 +643,12 @@ body.night #stage{filter:grayscale(1)}
     <button class="btn floatbtn" id="p-clock" title="An astrolabe with the hands of an astronomical clock">Clock</button>
   </div>
   <div class="pillcol" id="detailpills">
-    <button class="btn floatbtn" id="d-light" title="The naked-eye sky and nothing else">Light</button>
-    <button class="btn floatbtn" id="d-medium" title="The chart as the page opens on a desktop">Medium</button>
-    <button class="btn floatbtn" id="d-heavy" title="Everything the page knows, rings and all">Detailed</button>
+    <button class="btn floatbtn" id="d-custom" title="The switches have been set by hand">Custom</button>
+    <button class="btn floatbtn" id="d-eye" title="The brightest stars and the planets, as the eye finds them">Naked eye</button>
+    <button class="btn floatbtn" id="d-bino" title="The named stars, the Messier objects, the ecliptic and the space stations">Binoculars</button>
+    <button class="btn floatbtn" id="d-scope" title="The chart as the page opens on a desktop">Telescope</button>
+    <button class="btn floatbtn" id="d-obs" title="Designations, boundaries, paths, both grids and every ring">Observatory</button>
+    <button class="btn floatbtn" id="d-all" title="Everything the page knows, two magnitudes deeper">Everything</button>
   </div>
 
   <div class="panel" id="field" hidden>
@@ -1537,25 +1544,51 @@ var opt = {
    The key for the detailed chart is still "heavy" underneath, so old links and settings keep working.
    A phone opens light: at that size medium is a crowd, and the lighter chart is the one that can be
    read at arm's length. */
-var DETAIL = {
-  light: { bayer: false, conbounds: false, connames: false, dso: false, moons: false,
-           asteroids: false, comets: false, showers: false, pics: false, sats: false, tracks: false,
-           paths: false, cgrid: false, hgrid: false, tropics: false, ecliptic: false, galactic: false,
-           linelabels: false, meridian: false, stars: true, starnames: true, conlines: true,
-           mw: true, planets: true, horizon: true, below: true,
-           degring: false, raring: false, zodring: false, calring: false },
-  medium: null,                                   /* filled in from the defaults below */
-  heavy: { bayer: true, conbounds: true, connames: true, conlines: true, dso: true, moons: true,
-           asteroids: true, comets: true, showers: true, pics: true, sats: true, tracks: true,
-           paths: true, cgrid: true, hgrid: true, tropics: true, ecliptic: true, galactic: true,
-           linelabels: true, meridian: true, stars: true, starnames: true, mw: true,
-           planets: true, horizon: true, below: true,
-           degring: true, raring: true, zodring: true, calring: true }
+/* Five weights, each a strict superset of the one below, named for the instrument that would show
+   about that much: naked eye, binoculars, telescope, observatory, and everything. Each sets the
+   switches listed here and, in DETAIL_Q, the quantities as well: how faint the stars go, which
+   stars are named, whether the deep sky is Messier only, the asteroid size, the satellite group,
+   how faint a star gets a pointer on the rete, and which hands the clock carries. Telescope is how
+   the page opens on a desktop; a phone opens at binoculars. */
+var WEIGHTS = ['eye', 'bino', 'scope', 'obs', 'all'];
+var DETAIL_ON = {
+  eye: ['stars', 'starnames', 'conlines', 'mw', 'planets', 'horizon', 'below'],
+  bino: ['ecliptic', 'dso'],
+  scope: ['connames', 'moons', 'asteroids', 'comets', 'showers', 'pics', 'sats', 'tracks', 'cgrid', 'tropics', 'degring', 'zodring'],
+  obs: ['bayer', 'conbounds', 'paths', 'hgrid', 'galactic', 'linelabels', 'raring', 'calring'],
+  all: ['meridian', 'diagonal', 'suspend']
 };
-var DETAIL_KEYS = Object.keys(DETAIL.light);
-var DETAIL_NAME = { light: 'Light', medium: 'Medium', heavy: 'Detailed' };
-function defaultDetail() { return smallScreen() ? 'light' : 'medium'; }
-var detailLevel = 'medium';
+var DETAIL_KEYS = [].concat(DETAIL_ON.eye, DETAIL_ON.bino, DETAIL_ON.scope, DETAIL_ON.obs, DETAIL_ON.all);
+var DETAIL = (function () {
+  var out = {}, on = [];
+  WEIGHTS.forEach(function (w) {
+    on = on.concat(DETAIL_ON[w]);
+    var set = {};
+    DETAIL_KEYS.forEach(function (k) { set[k] = on.indexOf(k) >= 0; });
+    out[w] = set;
+  });
+  return out;
+})();
+var DETAIL_Q = {
+  eye:   { mag: 4.5, nameCap: 1.5, messier: true, rete: 1.5, clock: { hands: true, phands: false, clockhands: false } },
+  bino:  { nameCap: 2.5, messier: true, sats: 'stations', rete: 2.0, clock: { hands: true, phands: false, clockhands: true } },
+  scope: { astKm: 300, sats: 'visual', rete: 2.4, clock: { hands: true, phands: true, clockhands: true } },
+  obs:   { boost: 1, astKm: 100, sats: 'visual', rete: 3.2, clock: { hands: true, phands: true, clockhands: true } },
+  all:   { boost: 2, astKm: 100, sats: 'all', rete: 4.5, clock: { hands: true, phands: true, clockhands: true } }
+};
+var DETAIL_NAME = { eye: 'Naked eye', bino: 'Binoculars', scope: 'Telescope', obs: 'Observatory', all: 'Everything', custom: 'Custom' };
+var DETAIL_BLURB = {
+  eye: 'the brightest stars and the planets, as the eye finds them',
+  bino: 'the named stars, the Messier objects, the ecliptic and the space stations',
+  scope: 'the chart as the page opens on a desktop',
+  obs: 'designations, boundaries, paths, both grids and every ring',
+  all: 'everything the page knows, two magnitudes deeper'
+};
+var DETAIL_OLD = { light: 'bino', medium: 'scope', heavy: 'all' };   /* the three old names, for old links */
+function defaultDetail() { return smallScreen() ? 'bino' : 'scope'; }
+var detailLevel = 'scope';
+/* the quantities a weight sets, each also adjustable by hand */
+var magBoost = 0, nameCap = null, dsoMessierOnly = false;
 
 /* how the page opens, kept so that Reset defaults has something to go back to */
 var OPT_DEFAULTS = JSON.parse(JSON.stringify(opt));
@@ -1867,7 +1900,7 @@ function syncPills() {
     var b = document.getElementById('p-' + k);
     if (b) b.classList.toggle('on', k === kind);
   });
-  ['light', 'medium', 'heavy'].forEach(function (l) {
+  WEIGHTS.concat(['custom']).forEach(function (l) {
     var b = document.getElementById('d-' + l);
     if (b) b.classList.toggle('on', l === detailLevel);
   });
@@ -2431,7 +2464,7 @@ function drawDaylight(c) {
 
 /* ------------------------------------------------------------- stars */
 var magLimit = null;                             /* null: let the zoom decide, as it always has */
-function autoStarLimit() { return Math.min(8.0, 6.0 + 2.2 * Math.log2(Math.max(0.82, zoom))); }
+function autoStarLimit() { return Math.min(8.0, 6.0 + magBoost + 2.2 * Math.log2(Math.max(0.82, zoom))); }
 function fullStarLimit() { return magLimit === null ? autoStarLimit() : magLimit; }
 function starLimit() {
   return fullStarLimit() - 4.5 * skyBrightness(sky);   /* daylight drowns all but the brightest */
@@ -2511,6 +2544,7 @@ function queueStarLabel(i, px, py, r, mag, lim, c) {
   if (!e) return;
   var nameLim = zoom < 1.2 ? 1.6 : zoom < 2 ? 2.4 : zoom < 4 ? 3.6 : 5.0;
   nameLim -= 2.2 * (1 - screenScale());          /* fewer names on a small screen, brightest first */
+  if (nameCap !== null) nameLim = Math.min(nameLim, nameCap);   /* the lighter weights name fewer still */
   var text = '';
   if (!opt.lstars) { if (!isHover('star', i)) return; }
   if (opt.starnames && e.name && (mag <= nameLim || zoom >= 6)) text = e.name;
@@ -2531,6 +2565,7 @@ function drawDSOs(c, pass) {
   var s = R0 * zoom, lim = dsoLimit();
   for (var i = 0; i < dsoList.length; i++) {
     var d = dsoList[i];
+    if (dsoMessierOnly && !d.messier) continue;
     var sizePx = (d.a / 60) * DEG * s / 2;          /* semi-major axis in px */
     var show = d.messier ? zoom >= 0.9 || d.mag < 7 : (d.mag <= lim || sizePx >= 8 || (d.name && zoom > 2 && d.mag <= lim + 1.5));
     if (!show) continue;
@@ -4869,9 +4904,9 @@ function drawClockHands(c) {
   /* the minute hand reaches the minute track and the hour hand is two thirds of it, which is the
      clockmaker's proportion; the hour hand is also the stouter of the two */
   /* Long hands reach the hours ring itself, the minute hand to its inner rim, and are cut heavier.
-     On the clock they are always long, and so they are wherever the ring is a twelve-hour dial,
-     since that is the dial they read. */
-  var big = opt.bighands || opt.dial12 || disc.kind === 'clock';
+     The clock fits them by default and the astrolabe the short ones; wherever the ring is a
+     twelve-hour dial they are long, since that is the dial they read. */
+  var big = opt.bighands || opt.dial12;
   var wid = big ? clamp(rp * 0.034, 4, 12) : clamp(rp * 0.024, 3, 8);
   var lenM = big ? handReachR() - 2 : r1 - (r1 - r0) * 0.2;
   steelHand(aH, lenM * 0.66, wid * 1.25);
@@ -5492,6 +5527,7 @@ Object.keys(opt).forEach(function (key) {
   el.checked = opt[key];
   el.addEventListener('change', function () {
     opt[key] = el.checked;
+    if (DETAIL_KEYS.indexOf(key) >= 0) markCustom();
     if (key === 'spin') { spinPaused = false; if (opt.spin) startSpin(); }
     if (key === 'sats' && opt.sats && !sats.length) buildSatList();
     if (key === 'hold') holdLst = null;
@@ -5530,7 +5566,7 @@ Object.keys(opt).forEach(function (key) {
 });
 var nightEl = document.getElementById('L-night');
 nightEl.addEventListener('change', function () { document.body.classList.toggle('night', nightEl.checked); });
-document.getElementById('astmin').addEventListener('change', function (e) { astMinKm = +e.target.value; skyDirty = true; buildSearchIndex(); draw(); });
+document.getElementById('astmin').addEventListener('change', function (e) { astMinKm = +e.target.value; markCustom(); skyDirty = true; buildSearchIndex(); draw(); });
 /* the two selects, and everything that follows from them */
 var scopeEl = document.getElementById('scope'), epEl = document.getElementById('eyepiece');
 SCOPES.forEach(function (S) {
@@ -5635,7 +5671,7 @@ document.getElementById('solarnoon').addEventListener('click', function () {
             (Math.abs(off) < 0.5 ? 'which is twelve o\u2019clock today'
              : Math.abs(Math.round(off)) + ' min ' + (off > 0 ? 'after' : 'before') + ' twelve on the clock'));
 });
-document.getElementById('satgrp').addEventListener('change', function (e) { satGroupSel = e.target.value; buildSatList(); skyDirty = true; trackCache = {}; buildSearchIndex(); draw(); });
+document.getElementById('satgrp').addEventListener('change', function (e) { satGroupSel = e.target.value; markCustom(); buildSatList(); skyDirty = true; trackCache = {}; buildSearchIndex(); draw(); });
 document.getElementById('resetview').addEventListener('click', resetView);
 
 /* Every switch and setting back to how the page opens. Deliberately not the observer, the view or
@@ -5657,8 +5693,8 @@ function resetDefaults() {
   homeField();
   degZero = 'north'; degZeroEl.value = 'north';
   NUMERALS = 'western'; numeralsEl.value = 'western';
-  detailLevel = 'medium'; detailEl.value = 'medium';
-  if (defaultDetail() !== 'medium') applyDetail(defaultDetail());
+  magBoost = 0; setMagLimit(null); nameCap = null; dsoMessierOnly = false;
+  applyDetailSet(defaultDetail());
   plateSolid = 1; plateSlider.set(1, 0.25);
   reteLimit = 2.4; reteSlider.set(2.4, 0.5);
   scopeKey = DEFAULT_SCOPE; epIndex = DEFAULT_EYEPIECE;
@@ -5717,7 +5753,7 @@ var INSTRUMENTS = {
     reach: function () { return 90 + 23.44; },
     margin: 40,
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, conlines: false,
-            hands: true, phands: true, clockhands: true, starnames: false, zodring: true },
+            hands: true, phands: true, clockhands: true, bighands: true, starnames: false, zodring: true },
     note: function () {
       var parts = ['Astronomical clock: the astrolabe fitted with hands, squared with twelve o’clock at the top; ' +
                    'the meridian leans off the vertical by the equation of time and the place’s offset from its zone’s meridian.'];
@@ -5949,7 +5985,7 @@ var plateSlider = hSlider(document.getElementById('hplate'), {
 var reteSlider = hSlider(document.getElementById('hrete'), {
   min: 0.5, max: 5, step: 0.1, wheel: 0.25, value: 2.4, origin: 0.5,
   ticks: [{ v: 1, major: true }, { v: 2 }, { v: 3, major: true }, { v: 4 }, { v: 5, major: true }],
-  onInput: function (v) { reteLimit = v; draw(); }
+  onInput: function (v) { reteLimit = v; markCustom(); draw(); }
 });
 var detailEl = document.getElementById('detail');
 detailEl.addEventListener('change', function () { applyDetail(detailEl.value); });
@@ -5986,7 +6022,7 @@ VIEW_ORDER.forEach(function (k) {
   var b = document.getElementById('p-' + k);
   if (b) b.addEventListener('click', function (e) { e.stopPropagation(); setView(k); });
 });
-['light', 'medium', 'heavy'].forEach(function (l) {
+WEIGHTS.concat(['custom']).forEach(function (l) {
   var b = document.getElementById('d-' + l);
   if (b) b.addEventListener('click', function (e) { e.stopPropagation(); applyDetail(l); });
 });
@@ -6060,7 +6096,7 @@ function syncViewUI() {
     if (id === 'L-diagonal') live = onCard && opt.degring;
     if (id === 'L-calring') live = brassCard;     /* a planisphere carries one already */
     if (id === 'L-clockhands') live = brassCard;  /* a planisphere is not a clock */
-    if (id === 'L-bighands') live = brassCard && opt.clockhands && disc.kind !== 'clock' && !opt.dial12;
+    if (id === 'L-bighands') live = brassCard && opt.clockhands && !opt.dial12;
     if (id === 'L-dial12') live = brassCard;
     e.disabled = !live;
     e.closest('.tog').classList.toggle('off', !live);
@@ -6719,11 +6755,11 @@ function lineKey(parent, colour, dash, label) {
 })();
 var magSlider = hSlider(document.getElementById('hmag'), {
   min: -1, max: 8, step: 0.1, wheel: 0.5, value: 6, ticks: [{ v: 0, major: true }, { v: 2 }, { v: 4, major: true }, { v: 6 }, { v: 8, major: true }],
-  onInput: function (v) { magLimit = v; magAutoBtn.classList.remove('on'); draw(); }
+  onInput: function (v) { magLimit = v; magAutoBtn.classList.remove('on'); markCustom(); draw(); }
 });
 var magAutoBtn = document.getElementById('magauto');
 magAutoBtn.addEventListener('click', function () {
-  magLimit = null; magAutoBtn.classList.add('on');
+  magLimit = null; magAutoBtn.classList.add('on'); markCustom();
   setStatus('The faintest stars shown follow the zoom again');
   draw();
 });
@@ -6850,14 +6886,12 @@ function foldPanels(except) {
 /* ------------------------------------------------- a link back to this view */
 /* The address bar keeps the observer, the moment, the view and the layers, so a particular sky
    can be bookmarked or handed to someone else. */
-DETAIL.medium = (function () {
-  var m = {};
-  DETAIL_KEYS.forEach(function (k) { m[k] = OPT_DEFAULTS[k]; });
-  return m;
-})();
-function applyDetail(level) {
-  var set = DETAIL[level];
-  if (!set) return;
+function setMagLimit(v) { magLimit = v; magAutoBtn.classList.toggle('on', v === null); }
+/* the switches and the quantities of a weight, without drawing: shared by the weight buttons, Reset
+   defaults and the page's opening */
+function applyDetailSet(level) {
+  var set = DETAIL[level], q = DETAIL_Q[level];
+  if (!set) return false;
   detailLevel = level;
   detailEl.value = level;
   Object.keys(set).forEach(function (k) {
@@ -6865,13 +6899,34 @@ function applyDetail(level) {
     var el = document.getElementById('L-' + k);
     if (el) el.checked = opt[k];
   });
+  magBoost = q.boost || 0;
+  setMagLimit(q.mag === undefined ? null : q.mag);
+  nameCap = q.nameCap === undefined ? null : q.nameCap;
+  dsoMessierOnly = !!q.messier;
+  if (q.astKm) { astMinKm = q.astKm; document.getElementById('astmin').value = String(q.astKm); }
+  if (q.sats && satGroupSel !== q.sats) { satGroupSel = q.sats; document.getElementById('satgrp').value = q.sats; buildSatList(); }
+  reteLimit = q.rete; reteSlider.set(q.rete, 0.5);
+  if (disc && disc.kind === 'clock' && q.clock)
+    Object.keys(q.clock).forEach(function (k) {
+      opt[k] = q.clock[k];
+      var el = document.getElementById('L-' + k);
+      if (el) el.checked = opt[k];
+    });
   if (disc) tuneDisc();                           /* the rings change how much room the card needs */
+  return true;
+}
+function applyDetail(level) {
+  if (!applyDetailSet(level)) return;
   syncViewUI(); syncPills();
-  skyDirty = true; draw();
-  setStatus((DETAIL_NAME[level] || level) + ' chart · ' +
-            (level === 'light' ? 'what you would see and name outdoors'
-             : level === 'heavy' ? 'everything the page knows'
-             : 'the way the page opens on a desktop'));
+  buildSearchIndex();
+  skyDirty = true; trackCache = {}; draw();
+  setStatus(DETAIL_NAME[level] + ' \u00b7 ' + DETAIL_BLURB[level]);
+}
+/* a switch or a quantity set by hand takes the chart off whatever weight it was on */
+function markCustom() {
+  if (detailLevel === 'custom') return;
+  detailLevel = 'custom'; detailEl.value = 'custom';
+  syncPills();
 }
 var URL_KEYS = ['stars', 'starnames', 'bayer', 'conlines', 'connames', 'conbounds', 'mw', 'dso', 'planets', 'moons',
                 'asteroids', 'comets', 'showers', 'pics', 'sats', 'tracks', 'paths', 'fov', 'daylight', 'refraction',
@@ -6927,7 +6982,8 @@ function applyHash(h) {
     }
   }
   hashAuto = !!q.a;
-  if (q.d && DETAIL[q.d]) { detailLevel = q.d; detailEl.value = q.d; hashHadDetail = true; }
+  var dv = DETAIL_OLD[q.d] || q.d;
+  if (dv && (DETAIL[dv] || dv === 'custom')) { detailLevel = dv; detailEl.value = dv; hashHadDetail = true; }
   if (q.e) {
     var e = q.e.split(',');
     if (+e[0]) { astMinKm = +e[0]; document.getElementById('astmin').value = e[0]; }
@@ -7220,15 +7276,12 @@ updateScrubLabel();
      so that a reload keeps them, and it carries the weight that was chosen with them; if no weight
      was ever chosen the phone's default wins over whatever layers a desktop left behind. A link
      someone sent is the one thing that keeps its layers regardless. */
-  if (!hashHadDetail && !(hashHadLayers && !hashAuto) && defaultDetail() !== detailLevel) {
-    var lv = defaultDetail(), set = DETAIL[lv];
-    detailLevel = lv; detailEl.value = lv;
-    Object.keys(set).forEach(function (k) {
-      opt[k] = set[k];
-      var el = document.getElementById('L-' + k);
-      if (el) el.checked = opt[k];
-    });
-    if (disc) tuneDisc();
+  if (!hashHadDetail && !(hashHadLayers && !hashAuto) && defaultDetail() !== detailLevel) applyDetailSet(defaultDetail());
+  else if (DETAIL_Q[detailLevel]) {              /* the quantities of the weight the address names */
+    var qd = DETAIL_Q[detailLevel];
+    magBoost = qd.boost || 0; setMagLimit(qd.mag === undefined ? null : qd.mag);
+    nameCap = qd.nameCap === undefined ? null : qd.nameCap; dsoMessierOnly = !!qd.messier;
+    reteLimit = qd.rete; reteSlider.set(qd.rete, 0.5);
   }
   syncViewUI(); syncPills();
   if (hashHadView) { draw(); if (opt.spin) startSpin(); return; }
@@ -7315,6 +7368,8 @@ window.CG = {
   dateBearing: function (y, m, d, c) { return dateBearing(y, m, d, c || ensureSky()); },
   flyToHit: flyToHit, zoomCardAbout: zoomCardAbout, ringAt: ringAt, cardRings: cardRings,
   clockDial: function () { return clockDial(ensureSky()); }, handAt: handAt, handSegs: function () { return handSegs.slice(); },
+  detailSet: function (l) { return DETAIL[l]; }, magBoost: function () { return magBoost; }, nameCap: function () { return nameCap; },
+  messierOnly: function () { return dsoMessierOnly; }, weights: function () { return WEIGHTS.slice(); },
   hashState: function () { return { last: lastHash, wrapped: draw !== _drawH, pending: !!hashTimer, draws: drawCount }; },
   discPan: function () { return discPan.slice(); }, rotation: function () { return rotation.slice(); },
   zoom: function () { return zoom; }, status: function () { return { text: statusEl.textContent, on: statusEl.classList.contains('on'), note: viewNote }; },
