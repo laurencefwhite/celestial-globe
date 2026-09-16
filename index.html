@@ -2717,11 +2717,11 @@ function drawBody(b, x, y, r, disc, c, neGiven) {
     return;
   }
   var ne = neGiven || screenNorthEast(b.v);
-  if (b.kind === 'planet' && b.key === 'sat' && r >= 7) drawSaturn(b, x, y, r, ne, img);
+  if (b.kind === 'planet' && b.key === 'sat' && r >= (neGiven ? 3.5 : 7)) drawSaturn(b, x, y, r, ne, img);
   else if (img) drawPicCircle(img, x, y, r, false);
   else drawDisc(b, x, y, r, ne);
   /* phases for the Moon and the inner planets */
-  if ((b.kind === 'moon' || b.key === 'mer' || b.key === 'ven' || b.key === 'mar') && r >= 5 && b.phase < 0.985) drawPhase(x, y, r, b.phase, paToAngle(b.limbPA, ne), b.kind === 'moon' ? 0.86 : 0.8);
+  if ((b.kind === 'moon' || b.key === 'mer' || b.key === 'ven' || b.key === 'mar') && r >= (neGiven ? 3 : 5) && b.phase < 0.985) drawPhase(x, y, r, b.phase, paToAngle(b.limbPA, ne), b.kind === 'moon' ? 0.86 : 0.8);
   if (b.kind === 'pmoon' && r < 3) {
     ctx.fillStyle = b.event && b.event.transit ? 'rgba(40,30,20,.85)' : 'rgba(235,240,250,.95)';
     ctx.beginPath(); ctx.arc(x, y, Math.max(1.4, r), 0, 2 * Math.PI); ctx.fill();
@@ -4139,7 +4139,9 @@ var SCOPES = [
   { key: 'n130',   name: '130 mm f/5 Newtonian',         ap: 130, fl: 650 },
   { key: 'n200',   name: '200 mm f/6 Newtonian',         ap: 200, fl: 1200 },
   { key: 'sct200', name: '200 mm f/10 Schmidt\u2013Cassegrain', ap: 200, fl: 2000 },
-  { key: 'd300',   name: '300 mm f/5 Dobsonian',         ap: 300, fl: 1500 }
+  { key: 'd300',   name: '300 mm f/5 Dobsonian',         ap: 300, fl: 1500 },
+  { key: 'sct356', name: '356 mm f/10 Schmidt\u2013Cassegrain \u00b7 14-inch', ap: 356, fl: 3556 },
+  { key: 'd406',   name: '406 mm f/4.5 Dobsonian \u00b7 16-inch', ap: 406, fl: 1830 }
 ];
 var EYEPIECES = [
   { fl: 40, afov: 43, name: '40 mm Pl\u00f6ssl' },
@@ -4149,7 +4151,11 @@ var EYEPIECES = [
   { fl: 13, afov: 68, name: '13 mm wide field' },
   { fl: 9,  afov: 82, name: '9 mm ultra wide' },
   { fl: 6,  afov: 82, name: '6 mm ultra wide' },
-  { fl: 4,  afov: 82, name: '4 mm ultra wide' }
+  { fl: 4,  afov: 82, name: '4 mm ultra wide' },
+  /* the wide-field eyepieces at long focal lengths, which are the ones that give a wide true field */
+  { fl: 41, afov: 68, name: '41 mm wide field, 2-inch' },
+  { fl: 30, afov: 82, name: '30 mm ultra wide, 2-inch' },
+  { fl: 21, afov: 100, name: '21 mm hyper wide, 2-inch' }
 ];
 var SCOPE_BY = {};
 SCOPES.forEach(function (S) { SCOPE_BY[S.key] = S; });
@@ -5630,13 +5636,29 @@ var scopeEl = document.getElementById('scope'), epEl = document.getElementById('
 SCOPES.forEach(function (S) {
   var o = document.createElement('option'); o.value = S.key; o.textContent = S.name; scopeEl.appendChild(o);
 });
-EYEPIECES.forEach(function (E, i) {
-  var o = document.createElement('option'); o.value = String(i);
-  o.textContent = E.name + ' \u00b7 ' + E.afov + '\u00b0'; epEl.appendChild(o);
-});
+/* The menu runs from the longest focal length to the shortest, which is from the widest true field
+   to the narrowest, and each line says what the eyepiece gives on the telescope chosen: the power and
+   the true field. "Wide" and "ultra wide" name the apparent field, the size of the window the eye
+   sees, and a short ultra-wide is a high power with a small true field; the numbers say so. */
+EYEPIECES.map(function (E, i) { return { E: E, i: i }; }).sort(function (a, b) { return b.E.fl - a.E.fl; })
+  .forEach(function (x) {
+    var o = document.createElement('option'); o.value = String(x.i);
+    o.textContent = x.E.name; epEl.appendChild(o);
+  });
+function labelEyepieces() {
+  var S = SCOPE_BY[scopeKey] || SCOPES[0];
+  for (var i = 0; i < epEl.options.length; i++) {
+    var E = EYEPIECES[+epEl.options[i].value];
+    if (!E) continue;
+    var m = S.fl / E.fl, tf = E.afov / m;
+    epEl.options[i].textContent = E.name + ' \u00b7 ' + E.afov + '\u00b0 AFOV' +
+      (S.fixed ? '' : ' \u00b7 \u00d7' + (m >= 10 ? m.toFixed(0) : m.toFixed(1)) + ' \u00b7 ' + fmtFov(tf) + ' field');
+  }
+}
 function syncOptics() {
   var o = optics();
   fovDeg = o.tfov;
+  labelEyepieces();
   scopeEl.value = scopeKey; epEl.value = String(epIndex);
   document.getElementById('eprow').hidden = !!o.scope.fixed;
   document.getElementById('optline').innerHTML =
