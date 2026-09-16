@@ -4724,27 +4724,49 @@ function clockDial(c) {
   if (b12 === null || b18 === null) return null;
   return { b12: b12, step: turnFrom(b12, b18) > 0 ? 1 : -1 };
 }
+/* A Breguet hand, which is what a clockmaker of about 1800 would have fitted: a slender shaft that
+   tapers on a concave curve, a pierced ring near the tip, a fine pointer beyond the ring, and a
+   short counterweight behind the pivot. Drawn in the hand's own frame, the pivot at the origin
+   and the tip at (len, 0). */
 function steelHand(a, len, wid) {
   ctx.save();
   ctx.translate(CX, CY); ctx.rotate(a);
+  var rc = len * 0.72, rr = Math.max(wid * 0.95, 2.6), hole = rr * 0.52;
+  var w0 = wid * 0.5, w1 = Math.max(wid * 0.2, 0.7), tail = len * 0.22;
+  var s0 = rc - rr * 0.92, t0 = rc + rr * 0.92;
+  ctx.fillStyle = blueSteel(0, 0, len);
+  ctx.strokeStyle = 'rgba(3,5,18,.9)'; ctx.lineWidth = 0.8; ctx.lineJoin = 'round';
+  /* the tail and the shaft, one piece */
   ctx.beginPath();
-  ctx.moveTo(-len * 0.2, -wid * 0.42);
-  ctx.lineTo(len * 0.6, -wid * 0.5);
-  ctx.lineTo(len, 0);
-  ctx.lineTo(len * 0.6, wid * 0.5);
-  ctx.lineTo(-len * 0.2, wid * 0.42);
+  ctx.moveTo(-tail, 0);
+  ctx.quadraticCurveTo(-tail * 0.45, -w0 * 1.2, 0, -w0);
+  ctx.quadraticCurveTo(s0 * 0.4, -w0 * 0.28, s0, -w1);
+  ctx.lineTo(s0, w1);
+  ctx.quadraticCurveTo(s0 * 0.4, w0 * 0.28, 0, w0);
+  ctx.quadraticCurveTo(-tail * 0.45, w0 * 1.2, -tail, 0);
   ctx.closePath();
-  ctx.fillStyle = blueSteel(0, 0, len); ctx.fill();
-  ctx.strokeStyle = 'rgba(3,5,18,.9)'; ctx.lineWidth = 0.8; ctx.lineJoin = 'round'; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-len * 0.16, -wid * 0.14); ctx.lineTo(len * 0.62, -wid * 0.16);
-  ctx.strokeStyle = 'rgba(190,215,255,.6)'; ctx.lineWidth = 0.6; ctx.stroke();
+  ctx.fill(); ctx.stroke();
+  /* the ring, pierced */
+  ringPath(rc, 0, hole, rr);
+  ctx.fill('evenodd');
+  [hole, rr].forEach(function (r) { ctx.beginPath(); ctx.arc(rc, 0, r, 0, 2 * Math.PI); ctx.stroke(); });
+  /* the pointer */
+  ctx.beginPath();
+  ctx.moveTo(t0, -w1 * 1.4);
+  ctx.quadraticCurveTo(t0 + (len - t0) * 0.45, -w1 * 0.4, len, 0);
+  ctx.quadraticCurveTo(t0 + (len - t0) * 0.45, w1 * 0.4, t0, w1 * 1.4);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  /* the light along one edge */
+  ctx.beginPath(); ctx.moveTo(-tail * 0.7, -w0 * 0.35); ctx.quadraticCurveTo(s0 * 0.4, -w0 * 0.1, s0, -w1 * 0.4);
+  ctx.strokeStyle = 'rgba(190,215,255,.55)'; ctx.lineWidth = 0.6; ctx.stroke();
   ctx.restore();
 }
 function drawClockHands(c) {
   var dial = clockDial(c);
   if (!dial) return;
   var rp = discRadiusPx(), brassy = opt.plate && disc.kind !== 'planisphere';
-  var r0 = rp * 0.27, r1 = rp * 0.33, cut = cutPair(brassy), k, a;
+  var r0 = rp * 0.30, r1 = rp * 0.36, cut = cutPair(brassy), k, a;
   /* the chapter ring, cut into whatever the card is made of */
   [r0, r1].forEach(function (r) {
     ctx.save(); ctx.translate(-0.5, -0.6);
@@ -4768,10 +4790,11 @@ function drawClockHands(c) {
   var hrs = clockHours(c);
   var aH = dial.b12 + dial.step * ((hrs % 12) / 12) * 2 * Math.PI;
   var aM = dial.b12 + dial.step * (((hrs * 60) % 60) / 60) * 2 * Math.PI;
-  var wid = clamp(rp * 0.022, 3, 7);
-  steelHand(aH, r0 * 0.7, wid * 1.15);
-  steelHand(aM, r1 * 0.96, wid * 0.85);
-  ctx.beginPath(); ctx.arc(CX, CY, wid * 1.3, 0, 2 * Math.PI);
+  /* the hour hand reaches the numerals and the minute hand the minute track, as they should */
+  var wid = clamp(rp * 0.024, 3, 8), fs2 = clamp(rp * 0.032, 7, 11);
+  steelHand(aH, r0 - fs2 * 1.7, wid * 1.2);
+  steelHand(aM, r1 - (r1 - r0) * 0.2, wid * 0.85);
+  ctx.beginPath(); ctx.arc(CX, CY, wid * 1.1, 0, 2 * Math.PI);
   ctx.fillStyle = blueSteel(CX, CY, wid * 2); ctx.fill();
   ctx.strokeStyle = 'rgba(3,5,18,.9)'; ctx.lineWidth = 0.8; ctx.stroke();
   addHit(CX + Math.cos(aH) * r0 * 0.45, CY + Math.sin(aH) * r0 * 0.45, 9, 'hand', { which: 'clock', hrs: hrs, c: c });
