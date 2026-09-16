@@ -131,7 +131,10 @@ drawn on the sphere.
 
   The clock also has **clock hands** of its own, an hour hand and a minute hand in blued steel about
   the pivot, read against a small chapter ring of twelve cut into the plate; they can be fitted to
-  the astrolabe as well. They keep mean time, as a clock does, and their XII is not the meridian. The
+  the astrolabe as well. They are Breguet hands, the pattern a clockmaker of about 1800 would have
+  fitted: a slender shaft tapering on a concave curve, a pierced ring near the tip, a fine pointer
+  beyond it and a counterweight behind the pivot, the hour hand reaching the numerals and the
+  minute hand the minute track. They keep mean time, as a clock does, and their XII is not the meridian. The
   Sun crosses the meridian at solar noon, and the clock says twelve some minutes before or after, by
   the equation of time and by however far the place lies from its zone's meridian; so XII stands
   where the hours ring reads twelve, which is where the Sun is at clock noon. Both the offset and the
