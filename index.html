@@ -1670,7 +1670,8 @@ function clampDiscPan() {
   /* a card may slide until its rim nears the middle of the window; a sky, until the edge of what
      the projection can show does, which is as far as there is anything to slide to */
   var rp = disc ? discRadiusPx() : R0 * zoom * P.rad(Math.min(P.clip, P.maxClip) * DEG);
-  var lim = Math.max(0, rp - short * 0.25);
+  /* a small globe may go anywhere it still fits whole in the window */
+  var lim = Math.max(0, rp - short * 0.25, short * 0.5 - rp - 24);
   discPan[0] = clamp(discPan[0], -lim, lim);
   discPan[1] = clamp(discPan[1], -lim, lim);
   applyDiscPan();
@@ -5027,9 +5028,8 @@ cv.addEventListener('pointermove', function (e) {
   if (ids.length === 2 && pinch) {
     var nd = dist2(pointers[ids[0]], pointers[ids[1]]);
     var nz = clamp(pinch.zoom * (nd / pinch.d), ZMIN, ZMAX);
-    if (slidesToZoom()) zoomCardAbout(nz, (pointers[ids[0]][0] + pointers[ids[1]][0]) / 2,
-                                          (pointers[ids[0]][1] + pointers[ids[1]][1]) / 2);
-    else zoom = nz;
+    var pmx = (pointers[ids[0]][0] + pointers[ids[1]][0]) / 2, pmy = (pointers[ids[0]][1] + pointers[ids[1]][1]) / 2;
+    if (slidesToZoom()) zoomCardAbout(nz, pmx, pmy); else zoomAbout(nz, pmx, pmy);
     clampDiscPan();
     markInteract(); draw();
     return;
@@ -5109,7 +5109,8 @@ cv.addEventListener('pointerup', function (e) {
   if (opt.spin) { spinPaused = !spinPaused; hideTip(); }
 });
 cv.addEventListener('pointercancel', endPointer);
-cv.addEventListener('pointerleave', function (e) { endPointer(e); if (e.pointerType === 'touch') return; hideTip(); hover = null; });
+cv.addEventListener('pointerleave', function (e) { pointerOnChart = false; endPointer(e); if (e.pointerType === 'touch') return; hideTip(); hover = null; });
+cv.addEventListener('pointerenter', function (e) { if (e.pointerType !== 'touch') pointerOnChart = true; });
 cv.addEventListener('wheel', function (e) {
   e.preventDefault();
   var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0016));
@@ -5164,25 +5165,50 @@ function zoomCardAbout(newZoom, mx, my) {
   clampDiscPan();
 }
 /* a zoom with no pointer to zoom about: the middle of the window, which on a slid view is not the pivot */
+/* a zoom from the keyboard is about the pointer if it is over the chart, else about the middle */
+var pointerOnChart = false, zoomPath = '';
 function zoomMiddle(newZoom) {
-  if (slidesToZoom()) zoomCardAbout(newZoom, W / 2, H / 2); else zoom = newZoom;
+  var mx = pointerOnChart ? lastHover[0] : W / 2, my = pointerOnChart ? lastHover[1] : H / 2;
+  if (slidesToZoom()) zoomCardAbout(newZoom, mx, my); else zoomAbout(newZoom, mx, my);
 }
+/* Zooming keeps the point under the pointer exactly where it is. On the sphere that is done by
+   turning it: the turn is worked out from the scale at the centre, which is only right at the
+   centre, so it is taken a few times over until the point has stopped moving, and whatever is left
+   (a pole the turn cannot pass, a point near the limb) is made up by sliding the view. Off the
+   sphere there is nothing to turn, and the view is slid so that the sphere scales about the pointer. */
 function zoomAbout(newZoom, mx, my) {
   var ll = projection.invert([mx, my]);
-  var ok = ll && !isNaN(ll[0]) && Math.hypot(mx - CX, my - CY) < R0 * zoom * 0.97;
+  var onSphere = ll && !isNaN(ll[0]) && Math.hypot(mx - CX, my - CY) < R0 * zoom * 0.985;
+  if (!onSphere) { zoomPath = 'off'; zoomCardAbout(newZoom, mx, my); return; }
+  var rot0 = rotation.slice(), z0 = zoom, sgn = reflectNow() ? -1 : 1, p, off = 1e9;
+  zoomPath = 'turn';
   zoom = newZoom;
-  if (!ok) return;
+  for (var it = 0; it < 6; it++) {
+    applyProjection();
+    p = projection(ll);
+    if (!p) { off = 1e9; break; }
+    var dx = mx - p[0], dy = my - p[1];
+    off = Math.hypot(dx, dy);
+    if (off < 0.05) return;
+    var k = pxToDeg(), u = unroll(dx, dy);
+    rotation = [rotation[0] + sgn * u[0] * k, clamp(rotation[1] - u[1] * k, -90, 90), rotation[2]];
+  }
+  if (off < 3) {                                   /* nearly there: the last of it by sliding */
+    applyProjection();
+    p = projection(ll);
+    if (p) { discPan[0] += mx - p[0]; discPan[1] += my - p[1]; clampDiscPan(); }
+    return;
+  }
+  /* the turn would not settle, which happens near the limb: slide instead, from where we started */
+  zoomPath = 'slide';
+  rotation = rot0; zoom = z0;
   applyProjection();
-  var p = projection(ll);
-  if (!p) return;
-  var k = pxToDeg(), sgn = reflectNow() ? -1 : 1;
-  var u = unroll(mx - p[0], my - p[1]);
-  rotation = [rotation[0] + sgn * u[0] * k, clamp(rotation[1] - u[1] * k, -90, 90), rotation[2]];
+  zoomCardAbout(newZoom, mx, my);
 }
 
 var hoverRaf = null, lastHover = [0, 0];
 function hoverAt(mx, my) {
-  lastHover = [mx, my];
+  lastHover = [mx, my]; pointerOnChart = true;
   if (hoverRaf) return;
   hoverRaf = requestAnimationFrame(function () { hoverRaf = null; doHover(lastHover[0], lastHover[1]); });
 }
@@ -7439,7 +7465,7 @@ window.CG = {
   eclBearing: function (lon, c) { return eclBearing(lon, c || ensureSky()); },
   dateBearing: function (y, m, d, c) { return dateBearing(y, m, d, c || ensureSky()); },
   flyToHit: flyToHit, zoomCardAbout: zoomCardAbout, ringAt: ringAt, cardRings: cardRings,
-  aiming: function () { return aimMode; }, fieldTarget: function () { return fieldTarget && fieldTarget.slice(); },
+  aiming: function () { return aimMode; }, zoomAbout: zoomAbout, zoomPath: function () { return zoomPath; }, fieldTarget: function () { return fieldTarget && fieldTarget.slice(); },
   lockKey: function () { return lockKey; }, trackMode: function () { return trackMode; },
   setOptics: function (k, e) { scopeKey = k; if (e !== undefined) epIndex = e; syncOptics(); drawField(); return { scope: scopeKey, ep: epIndex }; },
   clockDial: function () { return clockDial(ensureSky()); }, handAt: handAt, handSegs: function () { return handSegs.slice(); },

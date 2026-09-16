@@ -10,7 +10,10 @@ drawn on the sphere.
 ## What it does
 
 - **A globe you can turn and zoom**, from the whole sky down to a field a few arcseconds wide. Drag to
-  turn it, scroll or pinch to zoom, double-click to zoom in on a point, hover an object for its
+  turn it, scroll or pinch to zoom (always about the pointer: the pixel under it stays put, by
+  turning the sphere where that will settle and by sliding the view where it will not, as near the
+  limb or off the sphere altogether; the + and − keys zoom about the pointer too while it is over the
+  chart), double-click to zoom in on a point, hover an object for its
   details and click it to fly to it. On a touch screen a tap selects an object and shows its details,
   a second tap (or the card's *Fly to* button) flies there, and a tap on empty sky or the card's own
   close button puts it away; the panels fold into the corners and a tap on the globe folds an open one.
