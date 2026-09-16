@@ -253,7 +253,10 @@ drawn on the sphere.
   On the astronomical clock the hours go outside every other ring. A clock is read by its hands, and
   a hand reaches to the outermost ring it finds, so with the hours against the rim the Sun hand
   would point at the signs or the degrees and the hour would have to be read back from a mark it
-  passed on the way out. The astrolabe keeps its hours on the limb, as a mater carries them.
+  passed on the way out. The astrolabe keeps its hours on the limb, as a mater carries them. Just
+  inside the clock's hours sits a ring of minutes, sixty to the turn and numbered by fives, set from
+  the same twelve o'clock as the hands so the minute hand reads it directly; with the twelve-hour
+  ring on, the minutes are on that ring and this one stands down.
 
   The **right ascension ring** is the odd one out, and the interesting one. Everything else outside
   the card is fixed to the observer: the hours are a clock, and the degrees go round with them. Right

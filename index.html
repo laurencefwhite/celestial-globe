@@ -3059,6 +3059,9 @@ var RING_INFO = {
         (opt.diagonal ? 'The diagonal scale across it reads to ten minutes of arc: follow the index in to the arc it meets and read where the slant has got to.'
                       : 'A diagonal scale can be added to it, to read to ten minutes of arc.');
     } },
+  min: { name: 'The minutes', where: 'Just inside the hours',
+    what: 'Sixty minutes to the turn, five to the numbered division, set from the same twelve o’clock as the hands. ' +
+      'The minute hand reads it; the hours outside it are twenty-four to the turn and are read by the Sun.' },
   ra: { name: 'The right ascension ring', where: 'Round the card',
     what: 'Hours of right ascension, half an hour to the small division. This ring belongs to the sky and turns with the stars, ' +
       'so reading it against the hours, which stand still, gives the sidereal time: the right ascension on the meridian now.' },
@@ -3111,6 +3114,11 @@ function ringReading(kind, a, c) {
     if (!dl) return null;
     return nearest(144, function (i) { return dl.b12 + dl.step * i / 144 * 2 * Math.PI; },
                    function (i) { var h12 = Math.floor(i / 12) || 12, m5 = (i % 12) * 5; return h12 + ':' + (m5 < 10 ? '0' : '') + m5; });
+  }
+  if (kind === 'min') {
+    var dm = clockDial(c);
+    if (!dm) return null;
+    return nearest(60, function (i) { return dm.b12 + dm.step * i / 60 * 2 * Math.PI; }, function (i) { return i + ' min'; });
   }
   if (kind === 'hours' || kind === 'clock')
     return nearest(96, function (i) { return haBearing(haForClockTime(i / 4, c, true), c); }, hm);
@@ -3574,6 +3582,9 @@ function cardBands() {
   if (opt.zodring) {                                /* the signs go outside the lot */
     out.push({ kind: 'zodiac', r0: r, r1: r + RING_W + 5 }); r += RING_W + 7;
   }
+  /* the clock carries a ring of minutes just inside its hours, for the minute hand to read; with a
+     twelve-hour ring the minutes are on the ring itself */
+  if (hoursOutermost() && !opt.dial12) { out.push({ kind: 'min', r0: r, r1: r + 15 }); r += 17; }
   return out;
 }
 function cardExtra() {
@@ -3656,6 +3667,18 @@ function drawDegreeRing(c, r0, r1, brassy) {
 /* Right ascension, which unlike everything else on the outside of the card belongs to the sky and
    turns with it. A point of right ascension alpha stands at hour angle LST minus alpha, so the ring
    is placed through the same bearing function as everything else and needs no special pleading. */
+/* Sixty minutes to the turn, set from the clock's twelve o'clock like the hands, so the minute hand
+   reads it directly; a taller mark and a number at every five */
+function drawMinuteRing(c, r0, r1, brassy) {
+  var dial = clockDial(c);
+  if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
+  if (!dial) return;
+  for (var k = 0; k < 60; k++) {
+    var a = dial.b12 + dial.step * k / 60 * 2 * Math.PI;
+    cardTickCut(a, r0, r0 + (k % 5 === 0 ? 5 : 2.6), k % 5 === 0 ? 1.1 : 0.8, brassy);
+    if (k % 5 === 0) cardTextCut(a, r0 + (r1 - r0) * 0.68, numStr(k || 60), numFont(7.5), brassy);
+  }
+}
 function drawRaRing(c, r0, r1, brassy) {
   if (brassy) drawBrassLimb(r0, r1); else cardRing(r0, r1);
   var k, a;
@@ -3760,6 +3783,7 @@ function drawCard(c) {
     if (B.kind === 'deg') drawDegreeRing(c, rp + B.r0, rp + B.r1, brassy);
     else if (B.kind === 'zodiac') drawZodiacRing(c, rp + B.r0, rp + B.r1, brassy);
     else if (B.kind === 'cal') drawCalendarRing(c, rp + B.r0, rp + B.r1, brassy);
+    else if (B.kind === 'min') drawMinuteRing(c, rp + B.r0, rp + B.r1, brassy);
     else drawRaRing(c, rp + B.r0, rp + B.r1, brassy);
   });
   if (opt.brass && disc.kind !== 'planisphere') drawRete(c, rp);
