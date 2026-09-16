@@ -133,8 +133,10 @@ drawn on the sphere.
   *Sun & Moon hands* in the Layers panel.
 
   The clock also has **clock hands** of its own, an hour hand and a minute hand in blued steel about
-  the pivot, read against a small chapter ring of twelve cut into the plate; they can be fitted to
-  the astrolabe as well. They are Breguet hands, the pattern a clockmaker of about 1800 would have
+  the pivot; they can be fitted to the astrolabe as well. The hour hand reads whichever ring of
+  hours is fitted: on the twenty-four hour ring it goes round once a day and points at the hour
+  exactly where the Sun stands at that hour, and on the twelve-hour ring twice a day; short hands
+  read a small chapter ring at the centre, cut to the same rule. They are Breguet hands, the pattern a clockmaker of about 1800 would have
   fitted: a slender shaft tapering on a concave curve, a pierced ring near the tip, a fine pointer
   beyond it and a counterweight behind the pivot, the minute hand reaching the minute track and the
   hour hand, the stouter of the two, two thirds of its length. *Long clock hands* cuts them heavier
