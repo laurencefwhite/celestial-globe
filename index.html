@@ -2172,9 +2172,21 @@ function draw() {
   applyProjection();
   var c = ensureSky();
   dayBri = opt.daylight ? skyBrightness(c) : 0;
+  /* The horizon is held by turning the sky back by however much the sidereal time has moved on.
+     That is done on every draw, a drag included: a drag sets the rotation from where it began, so
+     the beginning is moved back by the same amount and the drag carries on from there. It used to
+     be skipped while a drag was in progress, and a press whose release was never delivered (a
+     right-click menu, a switch of window) left the drag in progress for good and the horizon loose. */
   if (opt.hold && holdLst !== null) {
     var dl = c.lst - holdLst;
-    if (Math.abs(dl) > 1e-9 && (!dragStart || disc)) { rotation[0] -= dl; applyProjection(); }
+    if (Math.abs(dl) > 1e-9) {
+      rotation[0] -= dl;
+      if (dragStart && !disc) {
+        if (dragStart.rot) dragStart.rot[0] -= dl;
+        if (dragStart.lastRot) dragStart.lastRot[0] -= dl;
+      }
+      applyProjection();
+    }
   }
   holdLst = c.lst;
   var s = R0 * zoom;
@@ -4850,6 +4862,7 @@ cv.addEventListener('pointermove', function (e) {
     markInteract(); draw();
     return;
   }
+  if (dragStart && e.pointerType === 'mouse' && e.buttons === 0) { endPointer(e); return; }   /* a release that never arrived */
   if (dragStart && ids.length === 1) {
     var k = pxToDeg() * 1.35, sgn = reflectNow() ? -1 : 1;
     var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
@@ -4873,6 +4886,10 @@ cv.addEventListener('pointermove', function (e) {
   statusHover(e.clientX, e.clientY);
   hoverAt(e.clientX, e.clientY);
 });
+/* losing the window loses any press with it */
+window.addEventListener('blur', function () {
+  pointers = {}; dragStart = null; pinch = null; cv.classList.remove('dragging');
+});
 function endPointer(e) {
   delete pointers[e.pointerId];
   if (Object.keys(pointers).length < 2) pinch = null;
@@ -4884,6 +4901,7 @@ cv.addEventListener('pointerup', function (e) {
   var stale = dragStart && performance.now() - dragStart.lastT > 90;
   endPointer(e);
   if (wasMoved) { if (stale) spinV = [0, 0]; else startMomentum(); return; }
+  if (e.button > 0) return;                       /* only the main button selects or flies */
   spinV = [0, 0];
   if (smallScreen() && document.querySelector('.panel:not(.min)')) { foldPanels(null); return; }
   var h = hitAt(e.clientX, e.clientY);
