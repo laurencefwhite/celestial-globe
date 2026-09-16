@@ -134,7 +134,11 @@ drawn on the sphere.
   the astrolabe as well. They are Breguet hands, the pattern a clockmaker of about 1800 would have
   fitted: a slender shaft tapering on a concave curve, a pierced ring near the tip, a fine pointer
   beyond it and a counterweight behind the pivot, the minute hand reaching the minute track and the
-  hour hand, the stouter of the two, two thirds of its length. They keep mean time, as a clock does, and their XII is not the meridian. The
+  hour hand, the stouter of the two, two thirds of its length. *Long clock hands* cuts them heavier
+  and takes the minute hand out to the hours ring itself. Every hand on the card answers along its
+  whole length when pointed at: the Sun's and the Moon's give their reading on the hours ring, a
+  planet's its reading on the hours and zodiac rings, the dragon the state of the eclipse season,
+  and the clock hands the time and the size of today's offset from the meridian. They keep mean time, as a clock does, and their XII is not the meridian. The
   Sun crosses the meridian at solar noon, and the clock says twelve some minutes before or after, by
   the equation of time and by however far the place lies from its zone's meridian; so XII stands
   where the hours ring reads twelve, which is where the Sun is at clock noon. Both the offset and the
