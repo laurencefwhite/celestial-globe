@@ -400,8 +400,12 @@ drawn on the sphere.
   an eyepiece and the rest follows: magnification is the telescope's focal length over the
   eyepiece's, the true field is the eyepiece's apparent field divided by that, the exit pupil is the
   aperture over the magnification, and how faint a star the aperture reaches is the familiar
-  2.7 + 5 log D — 6.9 for the naked eye, 11.2 for a 50 mm binocular, 14.2 for a 200 mm. Binoculars
-  and finders carry their own field, having no eyepiece to change. The preview draws that field as a
+  2.7 + 5 log D — 6.9 for the naked eye, 11.2 for a 50 mm binocular, 14.2 for a 200 mm, 15.5 for the
+  14-inch. Binoculars and finders carry their own field, having no eyepiece to change. The eyepiece
+  menu runs from the longest focal length to the shortest, and each line says what that eyepiece
+  gives on the telescope chosen, the power and the true field, because "wide" and "ultra wide" name
+  the apparent field and a short ultra-wide is a high power with a small true field; the 30 mm and
+  41 mm two-inch eyepieces are the ones that give a wide true field. The preview draws that field as a
   tangent plane, which is what an eyepiece shows, with only the stars the aperture can actually
   reach, and it says where it is pointed in both right ascension and altitude.
 
