@@ -415,6 +415,12 @@ drawn on the sphere.
   **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
   all: over three hours the Moon leaves a sidereal field entirely.
 
+- **The Layers panel** is nine sections: Sky, Solar system, Satellites, Lines and grids, Names,
+  Eyepiece, Instrument, View and Display. Instrument holds the hands, the brass (one menu: none, the
+  rete alone, or the rete over the plate), the two sliders, the rings and the numerals, and is shown
+  only while a card is out; Display holds daylight, refraction, the line cards, the slow spin, night
+  vision and the screen lock. There is one Star names switch, which governs the chart and the rete
+  alike.
 - **Five weights**, since setting sixty switches one at a time to get a clear chart is nobody's idea
   of an evening. They are named for the instrument that would show about that much: **Naked eye**,
   **Binoculars**, **Telescope**, **Observatory**, **Everything**. Each is a strict superset of the
@@ -523,7 +529,7 @@ drawn on the sphere.
 - **Rise, transit and set** for anything you hover or tap, worked out for the observer's own day:
   when it rises, when it is highest and how high, and when it sets, or that it never rises or never
   sets.
-- **Coordinates on labels.** Two switches add altitude and azimuth, or right ascension and declination
+- **Coordinates on labels.** Two switches in the Names section add altitude and azimuth, or right ascension and declination
   (J2000), under the name of every labelled object. Hovering anything gives both, with magnitude,
   distance, size and phase where they apply.
 - **A brightness scrubber** in the key: hold the faintest magnitude wherever you like, from −1 to 8,

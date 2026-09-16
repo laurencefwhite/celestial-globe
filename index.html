@@ -468,7 +468,6 @@ body.night #stage{filter:grayscale(1)}
       <div class="row">
         <button class="btn sm" id="setobs" title="Use the latitude and longitude typed above">Set</button>
         <button class="btn sm" id="geoloc" title="Use this device's location">My location</button>
-        <button class="btn sm" id="tozenith" title="Turn the globe to the sky overhead">Overhead</button>
       </div>
       <div class="row" id="pointrow" hidden>
         <button class="btn sm" id="pointsky" title="Turn the view to wherever the phone is aimed">Point at the sky</button>
@@ -542,19 +541,7 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-ecliptic" checked><span class="sw"></span><span class="tl">Ecliptic</span></label>
       <label class="tog"><input type="checkbox" id="L-galactic"><span class="sw"></span><span class="tl">Galactic equator</span></label>
       <label class="tog"><input type="checkbox" id="L-meridian"><span class="sw"></span><span class="tl">Meridian</span></label>
-      <div class="sub-t">Eyepiece</div>
-      <label class="tog"><input type="checkbox" id="L-fov"><span class="sw"></span><span class="tl">Field circle</span></label>
-      <label class="tog"><input type="checkbox" id="L-preview"><span class="sw"></span><span class="tl">Field preview <small>miniviewer</small></span></label>
-      <div class="row"><label for="scope">Optics</label>
-        <select class="sel" id="scope"></select></div>
-      <div class="row" id="eprow"><label for="eyepiece">Eyepiece</label>
-        <select class="sel" id="eyepiece"></select></div>
-      <div class="optline" id="optline"></div>
-      <div class="sub-t">Sky conditions</div>
-      <label class="tog"><input type="checkbox" id="L-daylight" checked><span class="sw"></span><span class="tl">Daylight &amp; twilight</span></label>
-      <label class="tog"><input type="checkbox" id="L-refraction" checked><span class="sw"></span><span class="tl">Refraction <small>near the horizon</small></span></label>
-      <div class="sub-t">Names shown</div>
-      <label class="tog"><input type="checkbox" id="L-lstars" checked><span class="sw"></span><span class="tl">Star names</span></label>
+      <div class="sub-t">Names</div>
       <label class="tog"><input type="checkbox" id="L-ldso" checked><span class="sw"></span><span class="tl">Deep-sky names</span></label>
       <label class="tog"><input type="checkbox" id="L-lplanets" checked><span class="sw"></span><span class="tl">Planet names</span></label>
       <label class="tog"><input type="checkbox" id="L-lmoons" checked><span class="sw"></span><span class="tl">Moon names</span></label>
@@ -563,10 +550,53 @@ body.night #stage{filter:grayscale(1)}
       <label class="tog"><input type="checkbox" id="L-lsats" checked><span class="sw"></span><span class="tl">Satellite names</span></label>
       <label class="tog"><input type="checkbox" id="L-lshowers" checked><span class="sw"></span><span class="tl">Shower names</span></label>
       <label class="tog"><input type="checkbox" id="L-linelabels"><span class="sw"></span><span class="tl">Line names</span></label>
-      <label class="tog"><input type="checkbox" id="L-linecards" checked><span class="sw"></span><span class="tl">Lines answer when pointed at</span></label>
-      <div class="sub-t">Coordinates on labels</div>
       <label class="tog"><input type="checkbox" id="L-altaz"><span class="sw"></span><span class="tl">Altitude &amp; azimuth</span></label>
       <label class="tog"><input type="checkbox" id="L-radec"><span class="sw"></span><span class="tl">Right ascension &amp; declination</span></label>
+      <div class="sub-t">Eyepiece</div>
+      <label class="tog"><input type="checkbox" id="L-fov"><span class="sw"></span><span class="tl">Field circle</span></label>
+      <label class="tog"><input type="checkbox" id="L-preview"><span class="sw"></span><span class="tl">Field preview <small>miniviewer</small></span></label>
+      <div class="row"><label for="scope">Optics</label>
+        <select class="sel" id="scope"></select></div>
+      <div class="row" id="eprow"><label for="eyepiece">Eyepiece</label>
+        <select class="sel" id="eyepiece"></select></div>
+      <div class="optline" id="optline"></div>
+      <div class="sub-t" id="instr-head">Instrument</div>
+      <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Sun &amp; Moon hands <small>and the dragon</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands</span></label>
+      <label class="tog"><input type="checkbox" id="L-clockhands"><span class="sw"></span><span class="tl">Clock hands <small>hour and minute, blued steel</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-bighands"><span class="sw"></span><span class="tl">Long clock hands <small>out to the hours ring</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-dial12"><span class="sw"></span><span class="tl">12-hour ring <small>read by the clock hands</small></span></label>
+      <div class="row" id="brassrow"><label for="brassmode">Brass</label>
+        <select class="sel" id="brassmode">
+          <option value="off">None</option>
+          <option value="rete">Rete only</option>
+          <option value="plate">Rete and plate</option>
+        </select></div>
+      <div class="row two" id="platerow"><label for="hplate">Solid</label>
+        <div class="hslider" id="hplate" tabindex="0" role="slider" aria-label="How solid the plate is">
+          <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
+        </div></div>
+      <div class="row two" id="reterow"><label for="hrete">Pointers</label>
+        <div class="hslider" id="hrete" tabindex="0" role="slider" aria-label="How faint a star gets a pointer">
+          <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
+        </div></div>
+      <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring</span></label>
+      <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring</span></label>
+      <label class="tog"><input type="checkbox" id="L-zodring"><span class="sw"></span><span class="tl">Zodiac ring <small>the twelve signs</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-calring"><span class="sw"></span><span class="tl">Calendar ring <small>the months, against them</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-diagonal"><span class="sw"></span><span class="tl">Diagonal scale <small>reads to 10&prime;</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-suspend"><span class="sw"></span><span class="tl">Suspension ring <small>throne and shackle</small></span></label>
+      <div class="row" id="numrow"><label for="numerals">Numerals</label>
+        <select class="sel" id="numerals">
+          <option value="western">Western &middot; 0 1 2 3</option>
+          <option value="arabic">Arabic &middot; &#x660;&#x661;&#x662;&#x663;</option>
+          <option value="abjad">Abjad &middot; &#x627;&#x628;&#x62c;&#x62f;</option>
+        </select></div>
+      <div class="row" id="degrow"><label for="degzero">Zero at</label>
+        <select class="sel" id="degzero">
+          <option value="north">North · as a bearing</option>
+          <option value="east">East · as a brass limb</option>
+        </select></div>
       <div class="sub-t">View</div>
       <div class="views">
         <button class="btn sm" id="v-globe" title="The celestial sphere seen from outside, as a globe on a stand">Celestial sphere</button>
@@ -593,41 +623,14 @@ body.night #stage{filter:grayscale(1)}
         </select>
       </div>
       <label class="tog"><input type="checkbox" id="L-hold" checked><span class="sw"></span><span class="tl">Hold the horizon still</span></label>
-      <label class="tog"><input type="checkbox" id="L-hands"><span class="sw"></span><span class="tl">Sun &amp; Moon hands <small>and the dragon</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-phands"><span class="sw"></span><span class="tl">Planet hands</span></label>
-      <label class="tog"><input type="checkbox" id="L-clockhands"><span class="sw"></span><span class="tl">Clock hands <small>hour and minute, blued steel</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-bighands"><span class="sw"></span><span class="tl">Long clock hands <small>out to the hours ring</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-dial12"><span class="sw"></span><span class="tl">12-hour ring <small>read by the clock hands</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-brass"><span class="sw"></span><span class="tl">Brass rete <small>astrolabe</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-plate"><span class="sw"></span><span class="tl">Brass plate <small>the tympan</small></span></label>
-      <div class="row two" id="platerow"><label for="hplate">Solid</label>
-        <div class="hslider" id="hplate" tabindex="0" role="slider" aria-label="How solid the plate is">
-          <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
-        </div></div>
-      <div class="row two" id="reterow"><label for="hrete">Pointers</label>
-        <div class="hslider" id="hrete" tabindex="0" role="slider" aria-label="How faint a star gets a pointer">
-          <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
-        </div></div>
-      <label class="tog"><input type="checkbox" id="L-degring"><span class="sw"></span><span class="tl">Degree ring</span></label>
-      <label class="tog"><input type="checkbox" id="L-raring"><span class="sw"></span><span class="tl">Right ascension ring</span></label>
-      <label class="tog"><input type="checkbox" id="L-zodring"><span class="sw"></span><span class="tl">Zodiac ring <small>the twelve signs</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-calring"><span class="sw"></span><span class="tl">Calendar ring <small>the months, against them</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-diagonal"><span class="sw"></span><span class="tl">Diagonal scale <small>reads to 10&prime;</small></span></label>
-      <label class="tog"><input type="checkbox" id="L-suspend"><span class="sw"></span><span class="tl">Suspension ring <small>throne and shackle</small></span></label>
-      <div class="row" id="numrow"><label for="numerals">Numerals</label>
-        <select class="sel" id="numerals">
-          <option value="western">Western &middot; 0 1 2 3</option>
-          <option value="arabic">Arabic &middot; &#x660;&#x661;&#x662;&#x663;</option>
-          <option value="abjad">Abjad &middot; &#x627;&#x628;&#x62c;&#x62f;</option>
-        </select></div>
-      <div class="row" id="degrow"><label for="degzero">Zero at</label>
-        <select class="sel" id="degzero">
-          <option value="north">North · as a bearing</option>
-          <option value="east">East · as a brass limb</option>
-        </select></div>
+      <div class="sub-t">Display</div>
+      <label class="tog"><input type="checkbox" id="L-daylight" checked><span class="sw"></span><span class="tl">Daylight &amp; twilight</span></label>
+      <label class="tog"><input type="checkbox" id="L-refraction" checked><span class="sw"></span><span class="tl">Refraction <small>near the horizon</small></span></label>
+      <label class="tog"><input type="checkbox" id="L-linecards" checked><span class="sw"></span><span class="tl">Lines answer when pointed at</span></label>
       <label class="tog"><input type="checkbox" id="L-spin"><span class="sw"></span><span class="tl">Slow spin</span></label>
       <label class="tog"><input type="checkbox" id="L-night"><span class="sw"></span><span class="tl">Night vision <small>red on black</small></span></label>
       <label class="tog"><input type="checkbox" id="L-awake"><span class="sw"></span><span class="tl">Keep the screen awake</span></label>
+
       </div>
     </div>
   </div>
@@ -5730,7 +5733,7 @@ document.getElementById('resetdefaults').addEventListener('click', resetDefaults
 var INSTRUMENT_BASE = {
   below: true, horizon: true, hgrid: false, tropics: false, ecliptic: false,
   connames: true, conlines: true, hold: true, spin: false, hands: false, phands: false, clockhands: false, bighands: false, dial12: false,
-  starnames: true, brass: false, plate: false, zodring: false, calring: false
+  starnames: true, brass: false, plate: false
 };
 var INSTRUMENT_KEYS = Object.keys(INSTRUMENT_BASE).concat(['inside']);
 var INSTRUMENTS = {
@@ -5912,10 +5915,12 @@ function markInstrument(kind) { syncBrassSwitch(kind); }
 /* there is no brass to put on a planisphere, and none at all without an instrument out */
 function syncBrassSwitch(kind) {
   var live = kind === 'astrolabe' || kind === 'clock';
-  ['platerow', 'reterow'].forEach(function (id) {
+  ['brassrow', 'platerow', 'reterow'].forEach(function (id) {
     var r = document.getElementById(id);
     if (r) r.classList.toggle('fixed', !live);
   });
+  brassEl.disabled = !live;
+  brassEl.closest('.row').title = live ? '' : 'Only an astrolabe or an astronomical clock is made of brass';
   ['L-brass', 'L-plate'].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -5967,8 +5972,17 @@ document.getElementById('nowfloat').addEventListener('click', function (e) {
   e.stopPropagation();
   resetBtn.click(); todayBtn.click();
 });
-document.getElementById('tozenith').addEventListener('click', function () { flyToZenith(Math.max(1, zoom)); });
 
+/* one menu for the brass: none, the rete alone, or the rete over the plate */
+var brassEl = document.getElementById('brassmode');
+brassEl.addEventListener('change', function () {
+  opt.brass = brassEl.value !== 'off'; opt.plate = brassEl.value === 'plate';
+  syncViewUI(); hideTip(); draw();
+});
+function syncBrassSelect() {
+  if (opt.plate && !opt.brass) opt.brass = true;   /* a plate under no rete is not a state the menu has */
+  brassEl.value = opt.plate ? 'plate' : opt.brass ? 'rete' : 'off';
+}
 var projEl = document.getElementById('projection');
 projEl.value = projKind;
 projEl.addEventListener('change', function () {
@@ -6108,6 +6122,14 @@ function syncViewUI() {
   face.classList.toggle('fixed', !V.orient);
   northEl.disabled = eastEl.disabled = !V.orient;
   syncBrassSwitch(disc ? disc.kind : null);
+  syncBrassSelect();
+  /* the instrument's controls are only shown while an instrument is out */
+  var ih = document.getElementById('instr-head');
+  if (ih) {
+    ih.hidden = !onCard;
+    var isec = ih.nextElementSibling;
+    if (isec && isec.classList.contains('sec')) isec.hidden = !onCard;
+  }
 }
 VIEW_ORDER.forEach(function (k) {
   var b = document.getElementById('v-' + k);
@@ -6828,7 +6850,7 @@ function foldPanels(except) {
     if (firstRun) open[key] = !shut;
   }
   /* the sections of switches */
-  var OPEN_AT_FIRST = { 'Sky': true }, all = [];
+  var OPEN_AT_FIRST = { 'Sky': true, 'Instrument': true }, all = [];
   panel.querySelectorAll('.togs .sub-t').forEach(function (h) {
     var name = h.textContent.trim();
     var r = wrap(h, function (n) { return n.classList.contains('sub-t'); });
