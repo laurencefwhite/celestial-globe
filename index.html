@@ -663,7 +663,7 @@ body.night #stage{filter:grayscale(1)}
       <div class="pad">
         <button class="btn ico" data-slew="n" title="Slew north">▲</button>
         <button class="btn ico" data-slew="w" title="Slew west">◀</button>
-        <button class="btn ico" id="fld-here" title="Point at what is selected, or at the middle of the view">⊕</button>
+        <button class="btn ico" id="fld-here" title="Aim the field: click here, then click an object or a point on the chart. Click again or press Esc to stop">⊕</button>
         <button class="btn ico" data-slew="e" title="Slew east">▶</button>
         <button class="btn ico" data-slew="s" title="Slew south">▼</button>
       </div>
@@ -2698,7 +2698,9 @@ function drawBodies(c) {
     if (label) queueLabel(p[0], p[1], r, label, { font: font, colour: colour, prio: prio, sub: coordLines(b.v, c), kind: 'body', ref: b, force: b.kind !== 'asteroid' && b.kind !== 'pmoon' });
   }
 }
-function drawBody(b, x, y, r, disc, c) {
+/* everything draws on ctx; the field preview borrows the renderers by standing its own context in */
+function withCtx(g, fn) { var keep = ctx; ctx = g; try { fn(); } finally { ctx = keep; } }
+function drawBody(b, x, y, r, disc, c, neGiven) {
   if (b.kind === 'comet') { drawComet(b, x, y); return; }
   var img = opt.pics && r >= 4 ? pic(b.wiki) : null;
   if (b.kind === 'sun') {
@@ -2713,7 +2715,7 @@ function drawBody(b, x, y, r, disc, c) {
     }
     return;
   }
-  var ne = screenNorthEast(b.v);
+  var ne = neGiven || screenNorthEast(b.v);
   if (b.kind === 'planet' && b.key === 'sat' && r >= 7) drawSaturn(b, x, y, r, ne, img);
   else if (img) drawPicCircle(img, x, y, r, false);
   else drawDisc(b, x, y, r, ne);
@@ -2817,9 +2819,9 @@ function drawSats(c) {
     var station = st.sat.group === 'stations' || SAT_WIKI[st.sat.id];
     var hov = isHover('sat', st);
     if (opt.tracks && (station || zoom >= 1.5 || hov || satState.length <= 60)) drawTrack(st, c);
-    var r = station ? 4.5 : 3.2;
+    var r = station ? 3.4 : 2.3;                    /* small, so they sit among the stars rather than over them */
     var img = station && opt.pics && zoom >= 1.5 ? pic(SAT_WIKI[st.sat.id]) : null;
-    if (img) drawPicCircle(img, p[0], p[1], 9, false);
+    if (img) drawPicCircle(img, p[0], p[1], 7, false);
     else {
       ctx.fillStyle = st.lit ? PAL.sat : PAL.satDark;
       ctx.beginPath(); ctx.moveTo(p[0], p[1] - r); ctx.lineTo(p[0] + r, p[1]); ctx.lineTo(p[0], p[1] + r); ctx.lineTo(p[0] - r, p[1]); ctx.closePath(); ctx.fill();
@@ -2829,7 +2831,7 @@ function drawSats(c) {
     addHit(p[0], p[1], 7, 'sat', st);
     if (hov) ring(p[0], p[1], 10);
     if ((station || showNames || hov) && (opt.lsats || hov)) {
-      queueLabel(p[0], p[1], img ? 9 : r, st.name, { font: '400 10.5px ' + ink(), colour: st.lit ? 'rgba(255,225,170,.92)' : 'rgba(200,205,215,.8)',
+      queueLabel(p[0], p[1], img ? 7 : r, st.name, { font: '400 10.5px ' + ink(), colour: st.lit ? 'rgba(255,225,170,.92)' : 'rgba(200,205,215,.8)',
                                                     prio: station ? 9 : 4, sub: coordLines(st.v, c), kind: 'sat', ref: st });
     }
   }
@@ -4277,24 +4279,49 @@ function drawField() {
     var ra1 = Math.max(2.5, (e.a / 60) * DEG * scale / 2);
     var rb1 = Math.max(2, (e.b / 60) * DEG * scale / 2);
     var over = ra1 > R;
-    g.strokeStyle = 'rgba(150,225,190,' + (over ? '.4' : '.65') + ')'; g.lineWidth = 1;
+    /* the object itself, as far as a picture of it can stand for it: laid in at its true size */
+    var dimg = opt.pics && ra1 >= 9 ? pic(e.wiki) : null;
+    if (dimg) {
+      g.globalAlpha = 0.92 * fade;
+      withCtx(g, function () { drawPicCircle(dimg, dq[0], dq[1], Math.min(R * 1.5, ra1), true); });
+      g.globalAlpha = 1;
+    }
+    g.strokeStyle = 'rgba(150,225,190,' + (dimg ? '.25' : over ? '.4' : '.65') + ')'; g.lineWidth = 1;
     g.setLineDash(over ? [3, 4] : []);
     g.beginPath(); g.ellipse(dq[0], dq[1], Math.min(R * 1.5, ra1), Math.min(R * 1.5, rb1), 0, 0, 2 * Math.PI); g.stroke();
     g.setLineDash([]);
     label(e.id || e.name, dq[0], dq[1] - Math.min(R - 10, ra1) - 7,
           'rgba(170,235,205,.9)', '400 9px ' + FONT);
   }
-  /* the Sun, Moon, planets and the rest */
-  for (var b0 = 0; b0 < bodies.length; b0++) {
-    var b = bodies[b0];
+  /* The Sun, Moon, planets and the rest, drawn by the same renderer as the chart so that phases,
+     Saturn's rings and the pictures come through, with the field's own frame handed in: north is up
+     and east is on whichever side the chart's handedness puts it, so a moon stands on the same side
+     of its planet here as it does on the chart and in the sky. Far bodies first, so a moon in front
+     of its planet is drawn over it. */
+  var fne = [[0, -1], [sgn, 0]];
+  var forder = bodies.slice().sort(function (a, b) { return b.distKm - a.distKm; });
+  for (var b0 = 0; b0 < forder.length; b0++) {
+    var b = forder[b0];
+    if (b.kind === 'comet') continue;
     if (dot(b.v, C) < cosCut) continue;
     var bq = place(b.v);
     if (!bq) continue;
-    var br = Math.max(2.2, (b.angR || 0) * RAD * DEG * scale);
-    g.fillStyle = b.colour || '#dfe6f2';
-    g.beginPath(); g.arc(bq[0], bq[1], Math.min(R * 1.5, br), 0, 2 * Math.PI); g.fill();
-    if (br > 2.5 || b.kind === 'planet' || b.kind === 'moon' || b.kind === 'sun')
+    var bdisc = (b.angR || 0) * scale, br = Math.min(R * 1.5, Math.max(2.2, bdisc));
+    if (b.kind === 'pmoon') {
+      var pq = place(b.parent.v), psep = pq ? Math.hypot(bq[0] - pq[0], bq[1] - pq[1]) : 99;
+      var pr = Math.max(2.2, (b.parent.angR || 0) * scale);
+      if (b.event && b.event.hidden && pr > 3) continue;
+      if (psep < pr + 1.5 && bdisc < 1 && !(b.event && b.event.transit && pr > 6)) continue;
+      b.fsep = psep;
+    }
+    g.globalAlpha = 1;
+    withCtx(g, function () { drawBody(b, bq[0], bq[1], br, bdisc, c, fne); });
+    if (b.kind === 'planet' || b.kind === 'moon' || b.kind === 'sun')
       label(b.name, bq[0], bq[1] - br - 8, 'rgba(245,240,225,.95)', '500 9.5px ' + FONT);
+    else if (b.kind === 'pmoon' && b.fsep > 9)
+      label(b.name, bq[0], bq[1] - br - 7, 'rgba(215,222,235,.9)', '400 9px ' + FONT);
+    else if (b.kind === 'asteroid' && (b.dwarf || br > 2.5))
+      label(b.name, bq[0], bq[1] - br - 7, 'rgba(200,210,225,.85)', '400 9px ' + FONT);
   }
   /* the brightest few stars get their names, once nothing else has claimed the room */
   for (var k = 0; k < named.length; k++)
@@ -5050,6 +5077,7 @@ cv.addEventListener('pointerup', function (e) {
   spinV = [0, 0];
   if (smallScreen() && document.querySelector('.panel:not(.min)')) { foldPanels(null); return; }
   var h = hitAt(e.clientX, e.clientY);
+  if (aimMode) { aimAt(e.clientX, e.clientY); return; }   /* a click while aiming slews, on any screen */
   if (!h && disc) h = handAt(e.clientX, e.clientY);
   if (!h && opt.linecards) {
     var lk2 = lineAt(e.clientX, e.clientY);
@@ -5189,11 +5217,11 @@ function doHover(mx, my) {
     var same = hover && hover.kind === h.kind && sameRef(hover.ref, h.ref);
     hover = { kind: h.kind, ref: h.ref };
     showTip(h, mx, my);
-    cv.style.cursor = 'pointer';
+    cv.style.cursor = aimMode ? 'crosshair' : 'pointer';
     if (!same) draw();
     return;
   }
-  cv.style.cursor = '';
+  cv.style.cursor = aimMode ? 'crosshair' : '';
   if (hover) { hover = null; draw(); }
   hideTip();
 }
@@ -5546,6 +5574,7 @@ Object.keys(opt).forEach(function (key) {
     if (key === 'preview') {
       var fp = document.getElementById('field');
       fp.hidden = !opt.preview;
+      if (!opt.preview && aimMode) setAim(false);
       if (opt.preview) {
         /* it may have been folded into a pill last time: give it back open */
         if (fp.classList.contains('min')) {
@@ -5602,21 +5631,42 @@ document.querySelectorAll('#field .pad [data-slew]').forEach(function (b) {
     slew(d === 'n' ? 1 : d === 's' ? -1 : 0, d === 'e' ? 1 : d === 'w' ? -1 : 0);
   });
 });
+/* Aiming. The button lights and stays lit; while it is lit, a click on the chart slews the field to
+   the object or the point clicked, and a body clicked is locked on. The button again, or Esc, stops
+   it. On a touch screen, where an object is selected by a tap first, the button also points at
+   whatever is selected as it lights. */
+var aimMode = false;
+function setAim(on) {
+  aimMode = !!on;
+  var btn = document.getElementById('fld-here');
+  btn.classList.toggle('on', aimMode);
+  btn.title = aimMode ? 'Aiming: click an object or a point on the chart to slew there. Click again or press Esc to stop'
+                      : 'Aim the field: click here, then click an object or a point on the chart. Click again or press Esc to stop';
+  cv.style.cursor = aimMode ? 'crosshair' : '';
+  setStatus(aimMode ? 'Aiming: click an object or a point on the chart to slew the field there. Esc to stop.' : 'Aiming stopped');
+}
+function aimAt(mx, my) {
+  var h = hitAt(mx, my);
+  if (!pointFieldAt(mx, my)) return;
+  if (h && h.kind === 'body' && h.ref && h.ref.key) {
+    lockKey = h.ref.key; trackMode = 'lock'; document.getElementById('fld-track').value = 'lock';
+    setStatus('Locked on ' + h.ref.name);
+  }
+  draw();
+}
 document.getElementById('fld-here').addEventListener('click', function () {
+  if (aimMode) { setAim(false); return; }
   var c = ensureSky();
-  /* whatever is selected, or failing that the middle of the view */
   if (hover && hover.kind === 'body' && hover.ref && hover.ref.key) {
     lockKey = hover.ref.key; setFieldTo(hover.ref.v, c);
     trackMode = 'lock'; document.getElementById('fld-track').value = 'lock';
-    setStatus('Locked on ' + hover.ref.name);
   } else if (hover && hover.kind === 'star') {
     setFieldTo([SX[hover.ref], SY[hover.ref], SZ[hover.ref]], c);
   } else if (hover && hover.kind === 'dso' && dsoList[hover.ref]) {
     setFieldTo(dsoList[hover.ref].v, c);
-  } else {
-    setFieldTo(viewV, c);
   }
   drawField(); draw();
+  setAim(true);
 });
 document.getElementById('fld-step').addEventListener('change', function () { drawField(); });
 document.getElementById('fld-track').addEventListener('change', function (e) {
@@ -6692,7 +6742,7 @@ document.addEventListener('keydown', function (e) {
   else if (e.key === ' ') { e.preventDefault(); setPlaying(playMode ? null : 'clock'); }
   else if (e.key === 'n' || e.key === 'N') { nightEl.checked = !nightEl.checked; nightEl.dispatchEvent(new Event('change')); }
   else if (e.key === '?' || (e.key === '/' && e.shiftKey)) showKeys(keysEl.hidden);
-  else if (e.key === 'Escape') { showKeys(false); hideTip(); }
+  else if (e.key === 'Escape') { showKeys(false); hideTip(); if (aimMode) setAim(false); }
   else if (e.key === 's' || e.key === 'S') saveImage();
   else if (e.key === 'r' || e.key === 'R') resetView();
   else if (e.key === 't' || e.key === 'T') { resetBtn.click(); todayBtn.click(); }
@@ -7389,6 +7439,9 @@ window.CG = {
   eclBearing: function (lon, c) { return eclBearing(lon, c || ensureSky()); },
   dateBearing: function (y, m, d, c) { return dateBearing(y, m, d, c || ensureSky()); },
   flyToHit: flyToHit, zoomCardAbout: zoomCardAbout, ringAt: ringAt, cardRings: cardRings,
+  aiming: function () { return aimMode; }, fieldTarget: function () { return fieldTarget && fieldTarget.slice(); },
+  lockKey: function () { return lockKey; }, trackMode: function () { return trackMode; },
+  setOptics: function (k, e) { scopeKey = k; if (e !== undefined) epIndex = e; syncOptics(); drawField(); return { scope: scopeKey, ep: epIndex }; },
   clockDial: function () { return clockDial(ensureSky()); }, handAt: handAt, handSegs: function () { return handSegs.slice(); },
   detailSet: function (l) { return DETAIL[l]; }, magBoost: function () { return magBoost; }, nameCap: function () { return nameCap; },
   messierOnly: function () { return dsoMessierOnly; }, weights: function () { return WEIGHTS.slice(); },

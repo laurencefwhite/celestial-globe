@@ -406,9 +406,18 @@ drawn on the sphere.
   view to it. On an object it takes the object's own position rather than the pixel under the cursor,
   which matters at low magnification where one pixel is a third of a degree of sky.
 
+  The preview draws the Sun, Moon and planets with the chart's own renderer, so phases, Saturn's
+  rings and the pictures come through at their true size, and it hands the renderer the field's
+  own frame, north up and east on whichever side the chart's handedness puts it, so a moon stands
+  on the same side of its planet in the eyepiece as it does on the chart and in the sky. A deep-sky
+  object large enough in the field is laid in as its picture at its true size, as far as a picture
+  can stand for the view.
+
   Where it points is its own thing, not the middle of the chart: you can look at the whole sky and
   still have the telescope on one object. A four-way pad slews it, by a whole field, half a field or
-  a set number of arcminutes, and the middle button sends it to whatever is selected. What holds it
+  a set number of arcminutes, and the middle button is the aim: click it and it lights, and while it
+  is lit a click on the chart slews the field to the object or the point clicked, locking on to a
+  body; the button again, or Esc, stops it. What holds it
   there as the clock runs is the tracking. **Sidereal** keeps it on the stars, as a driven mount
   does. **Off** keeps it on the ground instead, and the sky drifts through the field at 15 arcseconds
   a second times the cosine of the declination — the first thing anyone meets at the eyepiece.
