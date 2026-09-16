@@ -3060,8 +3060,11 @@ var RING_INFO = {
                       : 'A diagonal scale can be added to it, to read to ten minutes of arc.');
     } },
   min: { name: 'The minutes', where: 'Just inside the hours',
-    what: 'Sixty minutes to the turn, five to the numbered division, set from the same twelve o’clock as the hands. ' +
-      'The minute hand reads it; the hours outside it are twenty-four to the turn and are read by the Sun.' },
+    what: function () {
+      return 'Sixty minutes to the turn, five to the numbered division, set from the same twelve o’clock as the hands. ' +
+        'The minute hand reads it; the hours outside it are ' + (opt.dial12 ? 'twelve to the turn, read by the hour hand.'
+                                                                           : 'twenty-four to the turn and are read by the Sun.');
+    } },
   ra: { name: 'The right ascension ring', where: 'Round the card',
     what: 'Hours of right ascension, half an hour to the small division. This ring belongs to the sky and turns with the stars, ' +
       'so reading it against the hours, which stand still, gives the sidereal time: the right ascension on the meridian now.' },
@@ -3582,9 +3585,8 @@ function cardBands() {
   if (opt.zodring) {                                /* the signs go outside the lot */
     out.push({ kind: 'zodiac', r0: r, r1: r + RING_W + 5 }); r += RING_W + 7;
   }
-  /* the clock carries a ring of minutes just inside its hours, for the minute hand to read; with a
-     twelve-hour ring the minutes are on the ring itself */
-  if (hoursOutermost() && !opt.dial12) { out.push({ kind: 'min', r0: r, r1: r + 15 }); r += 17; }
+  /* the clock carries a ring of minutes just inside its hours, for the minute hand to read */
+  if (hoursOutermost()) { out.push({ kind: 'min', r0: r, r1: r + 15 }); r += 17; }
   return out;
 }
 function cardExtra() {
