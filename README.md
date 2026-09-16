@@ -255,8 +255,8 @@ drawn on the sphere.
   would point at the signs or the degrees and the hour would have to be read back from a mark it
   passed on the way out. The astrolabe keeps its hours on the limb, as a mater carries them. Just
   inside the clock's hours sits a ring of minutes, sixty to the turn and numbered by fives, set from
-  the same twelve o'clock as the hands so the minute hand reads it directly; with the twelve-hour
-  ring on, the minutes are on that ring and this one stands down.
+  the same twelve o'clock as the hands so the minute hand reads it directly, whichever ring of
+  hours is outside it.
 
   The **right ascension ring** is the odd one out, and the interesting one. Everything else outside
   the card is fixed to the observer: the hours are a clock, and the degrees go round with them. Right
