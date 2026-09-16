@@ -6976,6 +6976,12 @@ function updatePointUI() {
   pill.classList.toggle('on', pointing && !pointFrozen);
   pill.title = !pointing ? 'Turn the view to wherever the phone is aimed'
              : pointFrozen ? 'Let the sky follow the phone again' : 'Hold the sky still while you read it';
+  /* while the phone sets the view the horizon is wherever the phone is aimed, so there is nothing
+     for the switch to hold or let go: it is greyed until the phone is let go of */
+  var hold = document.getElementById('L-hold'), holdRow = hold.closest('.tog');
+  hold.disabled = pointing;
+  holdRow.classList.toggle('off', pointing);
+  holdRow.title = pointing ? 'The phone’s aim sets the view, so the horizon is not the page’s to hold' : '';
   placePills();
 }
 function startPointing() {
