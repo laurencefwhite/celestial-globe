@@ -5565,8 +5565,8 @@ var INSTRUMENTS = {
     margin: 48,
     opts: {},                                          /* the base is already a planisphere */
     note: function (alat) {
-      var edge = (90 - alat).toFixed(0);
-      return 'Planisphere for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
+      var edge = (90 - alat).toFixed(1);
+      return 'Planisphere for latitude ' + alat.toFixed(1) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': the sky about the celestial pole in ' + (curProj().key === 'equidistant' ? 'azimuthal equidistant' : 'stereographic') + ' projection, bounded at declination ' +
              (obs.lat < 0 ? '+' : '\u2212') + edge + '\u00b0, the farthest the horizon reaches. The inner ring carries the date ' +
              'and the outer ring clock time for the observer’s zone; the index line reads one against the other. Running the clock turns ' +
@@ -5594,7 +5594,7 @@ var INSTRUMENTS = {
     margin: 40,
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, brass: true, plate: true },
     note: function (alat) {
-      return 'Astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
+      return 'Astrolabe for latitude ' + alat.toFixed(1) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
              ': stereographic projection from the far celestial pole, bounded at the far tropic (declination ' +
              (obs.lat < 0 ? '+' : '\u2212') + '23.4\u00b0). The plate is engraved with the altitude and azimuth circles ' +
              'for this latitude; the rete carries the ecliptic and the star pointers and turns with the sky. The limb is ' +
