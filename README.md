@@ -134,9 +134,9 @@ drawn on the sphere.
   the astrolabe as well. They are Breguet hands, the pattern a clockmaker of about 1800 would have
   fitted: a slender shaft tapering on a concave curve, a pierced ring near the tip, a fine pointer
   beyond it and a counterweight behind the pivot, the minute hand reaching the minute track and the
-  hour hand, the stouter of the two, two thirds of its length. On the clock they are always long,
-  heavier and with the minute hand out to the hours ring itself; on the astrolabe *Long clock hands*
-  does the same. The limb is a twenty-four hour ring by nature, since the Sun goes round once a day
+  hour hand, the stouter of the two, two thirds of its length. *Long clock hands* cuts them heavier
+  and takes the minute hand out to the hours ring itself; the clock fits them so by default and the
+  astrolabe the short ones. The limb is a twenty-four hour ring by nature, since the Sun goes round once a day
   and it is the Sun that reads it; *12-hour ring* replaces it with the dial of an ordinary clock,
   twelve hours to the turn and a minute to the small division, which the clock hands read directly
   and the Sun does not. Every hand on the card answers along its
@@ -415,21 +415,22 @@ drawn on the sphere.
   **Locked on** follows a named body, which for the Moon or a comet is not the same as sidereal at
   all: over three hours the Moon leaves a sidereal field entirely.
 
-- **Light, medium and detailed**, since setting thirty switches one at a time to get a clear chart is
-  nobody's idea of an evening. **Medium is exactly how the page opens on a desktop**, so choosing it
-  there changes nothing, and the other two are a step either side: **light** strips the chart back to
-  what you would actually see and name outdoors — stars, their names, the constellation figures, the
-  Milky Way, the planets and the horizon — and **detailed** turns on everything the page knows. On a
-  card the step is a ring at a time rather than all four at once: light wears none, medium the
-  degree ring and the signs, and detailed the right ascensions and the calendar as well. On a phone
-  the card takes more of the width, and a card too small
-  to letter is still drawn whole, plate, rete and divisions, with only the lettering left off. A
-  phone opens light, since at that size medium is a crowd; the
-  weight chosen is written into the address with the layers, so a reload keeps it, and a link
-  someone sent carries its own layers and keeps them. Only the layers move: the place, the moment,
-  the view and the instrument are left alone, as they are by Reset defaults. The brass, the plate and
-  the hands are not layers and are not moved by any of the three.
-
+- **Five weights**, since setting sixty switches one at a time to get a clear chart is nobody's idea
+  of an evening. They are named for the instrument that would show about that much: **Naked eye**,
+  **Binoculars**, **Telescope**, **Observatory**, **Everything**. Each is a strict superset of the
+  one below, and each sets quantities as well as switches: how faint the stars go (the eye stops at
+  4.5; Observatory and Everything go one and two magnitudes deeper than the zoom would), which stars
+  are named (the twenty brightest at Naked eye, to second magnitude at Binoculars), whether the deep
+  sky is Messier only, the asteroid size, the satellite group, how faint a star gets a pointer on
+  the rete (1.5 to 4.5), the rings a card wears (none, none, degrees and signs, plus right ascension
+  and the calendar, plus the diagonal scale and the suspension ring), and which hands the clock
+  carries. **Telescope is how the page opens on a desktop**; a phone opens at Binoculars. Change any
+  of those switches or quantities by hand and the weight reads Custom until one is chosen again. The
+  place, the moment, the view, the brass and the 12-hour ring are left alone, as they are by Reset
+  defaults. On a phone the card takes more of the width, and a card too small to letter is still
+  drawn whole, plate, rete and divisions, with only the lettering left off. The chosen weight is
+  written into the address with the layers, so a reload keeps it, and a link someone sent carries
+  its own layers and keeps them.
 - **A view you have just chosen starts square, and so does a reloaded page.** Pressing a view button
   re-seats it — centred, unmagnified, unslid — rather than carrying over whatever you had dragged the
   last one to. The address bar follows the view as you move, which meant a reload put you back
