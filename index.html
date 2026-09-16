@@ -5565,9 +5565,12 @@ var INSTRUMENTS = {
     margin: 48,
     opts: {},                                          /* the base is already a planisphere */
     note: function (alat) {
+      var edge = (90 - alat).toFixed(0);
       return 'Planisphere for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
-             ': every star that rises here, on one card. The inner ring is the date and the outer ring is the time; ' +
-             'read one against the other at the index line. Run the clock and the sky turns under the horizon.';
+             ': the sky about the celestial pole in ' + (curProj().key === 'equidistant' ? 'azimuthal equidistant' : 'stereographic') + ' projection, bounded at declination ' +
+             (obs.lat < 0 ? '+' : '\u2212') + edge + '\u00b0, the farthest the horizon reaches. The inner ring carries the date ' +
+             'and the outer ring clock time for the observer’s zone; the index line reads one against the other. Running the clock turns ' +
+             'the sky under the horizon.';
     }
   },
   clock: {
@@ -5577,9 +5580,12 @@ var INSTRUMENTS = {
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, conlines: false,
             hands: true, phands: true, clockhands: true, starnames: false, zodring: true },
     note: function () {
-      return 'Astronomical clock: an astrolabe with hands. The brass rule carries the Sun and the silver hand the Moon; ' +
-             'each points at the hours on the outer ring. The dragon lies along the Moon\u2019s nodes, where eclipses ' +
-             'can happen. The blued hands at the centre show clock time.';
+      var parts = ['Astronomical clock: the astrolabe fitted with hands.'];
+      if (opt.hands) parts.push('The rule points to the Sun and the silver hand to the Moon, each read against the hours on ' +
+                                'the outermost ring; the dragon marks the line of the lunar nodes, where eclipses can occur.');
+      if (opt.phands) parts.push('The thinner hands point to the planets.');
+      if (opt.clockhands) parts.push('The blued hands at the centre show clock time on a twelve-hour dial.');
+      return parts.join(' ');
     }
   },
   astrolabe: {
@@ -5589,9 +5595,10 @@ var INSTRUMENTS = {
     opts: { hgrid: true, tropics: true, ecliptic: true, connames: false, brass: true, plate: true },
     note: function (alat) {
       return 'Astrolabe for latitude ' + alat.toFixed(0) + '\u00b0' + (obs.lat < 0 ? 'S' : 'N') +
-             '. The plate carries the altitude and azimuth circles for this latitude; the rete carries the ecliptic ' +
-             'and the star pointers and turns over it. The limb is graduated in hours: read the time where the rule ' +
-             'crosses it. Point at any ring for what it is.';
+             ': stereographic projection from the far celestial pole, bounded at the far tropic (declination ' +
+             (obs.lat < 0 ? '+' : '\u2212') + '23.4\u00b0). The plate is engraved with the altitude and azimuth circles ' +
+             'for this latitude; the rete carries the ecliptic and the star pointers and turns with the sky. The limb is ' +
+             'graduated in clock time for the observer’s zone, read where the rule crosses it. Point at any ring for a description.';
     }
   }
 };
@@ -5860,12 +5867,14 @@ function setView(kind) {
 /* what a view is, in a sentence or two, for the note it opens with */
 function viewWords(kind) {
   if (kind === 'globe')
-    return 'The celestial sphere seen from outside. North is up and east is to the right, so the sky is ' +
-           'mirrored, as on any globe. Drag to turn, scroll to zoom.';
-  var way = (northTop ? 'North at the top' : 'North at the bottom') + ', east at the ' + (eastRight ? 'right' : 'left');
-  return 'The sky overhead, laid flat. ' + way + (mirrorNow() ? ' (mirrored)' : ' (as seen looking up)') +
-         '. ' + curProj().name + ' projection: ' + (curProj().key === 'stereographic' ? 'shapes are true' : 'heights are true') +
-         '. Zooming slides the view; the compass points stay put.';
+    return 'The celestial sphere seen from outside, in orthographic projection. As on any globe, east and ' +
+           'west are exchanged relative to the view from the ground. Drag to turn, scroll to zoom.';
+  var P = curProj();
+  var pr = P.key === 'stereographic' ? 'Stereographic projection: angles and shapes are preserved.'
+         : P.key === 'equidistant' ? 'Azimuthal equidistant projection: angular distances from the centre are preserved.'
+         : 'Orthographic projection: the view from infinity.';
+  return 'The sky as seen from the observer\u2019s position, projected onto a plane. ' + pr +
+         (opt.hold ? ' The horizon is held fixed and zooming slides the view, so the sky is not turned.' : '');
 }
 /* the buttons say which view is out, and the menus grey where the view has already decided */
 function syncViewUI() {
