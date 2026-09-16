@@ -4790,10 +4790,11 @@ function drawClockHands(c) {
   var hrs = clockHours(c);
   var aH = dial.b12 + dial.step * ((hrs % 12) / 12) * 2 * Math.PI;
   var aM = dial.b12 + dial.step * (((hrs * 60) % 60) / 60) * 2 * Math.PI;
-  /* the hour hand reaches the numerals and the minute hand the minute track, as they should */
-  var wid = clamp(rp * 0.024, 3, 8), fs2 = clamp(rp * 0.032, 7, 11);
-  steelHand(aH, r0 - fs2 * 1.7, wid * 1.2);
-  steelHand(aM, r1 - (r1 - r0) * 0.2, wid * 0.85);
+  /* the minute hand reaches the minute track and the hour hand is two thirds of it, which is the
+     clockmaker's proportion; the hour hand is also the stouter of the two */
+  var wid = clamp(rp * 0.024, 3, 8), lenM = r1 - (r1 - r0) * 0.2;
+  steelHand(aH, lenM * 0.66, wid * 1.25);
+  steelHand(aM, lenM, wid * 0.8);
   ctx.beginPath(); ctx.arc(CX, CY, wid * 1.1, 0, 2 * Math.PI);
   ctx.fillStyle = blueSteel(CX, CY, wid * 2); ctx.fill();
   ctx.strokeStyle = 'rgba(3,5,18,.9)'; ctx.lineWidth = 0.8; ctx.stroke();
