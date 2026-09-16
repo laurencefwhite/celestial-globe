@@ -4924,19 +4924,27 @@ function drawClockHands(c) {
     ctx.beginPath(); ctx.arc(CX, CY, r, 0, 2 * Math.PI); ctx.strokeStyle = cut.light; ctx.lineWidth = 0.8; ctx.stroke();
     ctx.restore();
   });
+  /* The chapter ring at the centre is a twenty-four hour dial, like the limb outside it, with a
+     numeral every three hours, so short hands read it by the same rule as long hands read the limb. */
   if (rp >= 120 && !opt.dial12) {
-    for (k = 0; k < 60; k++) {
-      a = dial.b12 + dial.step * k / 60 * 2 * Math.PI;
-      cardTickCut(a, r1 - (r1 - r0) * (k % 5 ? 0.3 : 0.62), r1, k % 5 ? 0.8 : 1.1, brassy);
+    for (k = 0; k < 96; k++) {
+      a = haBearing(haForClockTime(k / 4, c, true), c);
+      if (a === null) continue;
+      cardTickCut(a, r1 - (r1 - r0) * (k % 4 ? 0.3 : k % 12 ? 0.55 : 0.75), r1, k % 4 ? 0.8 : 1.1, brassy);
     }
     var fs = clamp(rp * 0.032, 7, 11);
-    for (k = 0; k < 12; k++) {
-      a = dial.b12 + dial.step * k / 12 * 2 * Math.PI;
-      cardTextCut(a, r0 - fs * 0.85, ROMAN[k], cardFont(fs, '600 '), brassy);
+    for (k = 0; k < 24; k += 3) {
+      a = haBearing(haForClockTime(k, c, true), c);
+      if (a !== null) cardTextCut(a, r0 - fs * 0.85, numStr(k), numFont(fs, '600 '), brassy);
     }
   }
+  /* The hour hand reads whichever ring of hours is fitted: once round a day on the twenty-four hour
+     ring, where it points at the hour exactly as the Sun does, and twice round on the twelve-hour
+     ring. The minute hand reads the minutes either way. */
   var hrs = clockHours(c);
-  var aH = dial.b12 + dial.step * ((hrs % 12) / 12) * 2 * Math.PI;
+  var aH = opt.dial12 ? dial.b12 + dial.step * ((hrs % 12) / 12) * 2 * Math.PI
+                      : haBearing(haForClockTime(hrs, c, true), c);
+  if (aH === null) aH = dial.b12;
   var aM = dial.b12 + dial.step * (((hrs * 60) % 60) / 60) * 2 * Math.PI;
   /* the minute hand reaches the minute track and the hour hand is two thirds of it, which is the
      clockmaker's proportion; the hour hand is also the stouter of the two */
@@ -5362,6 +5370,7 @@ function showTip(h, mx, my) {
       var hh = Math.floor(hd.hrs), mm = Math.floor((hd.hrs - hh) * 60);
       html = '<div class="tn">The clock hands</div><div class="tc">Hour and minute, in blued steel</div>' +
         '<div class="tnote">Mean time on your clock, ' + (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm +
+        (opt.dial12 ? '' : '. The hour hand goes round once a day and points at the hour on the twenty-four hour ring, where the Sun also stands at that hour; the minute hand reads the minute ring') +
         '. Their XII stands where the hours ring reads twelve, which is ' + Math.abs(totm).toFixed(0) + ' minutes ' +
         (totm > 0 ? 'west' : 'east') + ' of the meridian today: the equation of time puts the Sun ' +
         Math.abs(eqm).toFixed(1) + ' minutes ' + (eqm > 0 ? 'ahead of' : 'behind') + ' the clock, and this place lies ' +
@@ -5862,7 +5871,7 @@ var INSTRUMENTS = {
                                 'the outermost ring; the dragon marks the line of the lunar nodes, where eclipses can occur.');
       if (opt.phands) parts.push('The thinner hands point to the planets.');
       if (opt.clockhands) parts.push(opt.dial12 ? 'The blued hands show clock time on the twelve-hour ring.'
-                                                : 'The blued hands show clock time on a twelve-hour dial at the centre; the outer ring is twenty-four hours, read by the Sun.');
+                                                : 'The blued hour hand goes round once a day and reads the twenty-four hour ring, as the Sun does; the minute hand reads the minutes.');
       return parts.join(' ');
     }
   },
