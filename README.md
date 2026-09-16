@@ -143,6 +143,12 @@ drawn on the sphere.
   hand at three o'clock lies exactly on the ring's mark for eighteen, on every card, which is the
   check. Point at the hands for the time and the size of the offset today.
 
+  The clock is squared with twelve o'clock at the top, as a clock is read, where the other two
+  cards stand the meridian upright. So on the clock the meridian leans off the vertical by that same
+  offset: about 4° for Melbourne, 14° for London in summer time, and 32° for Madrid, whose zone
+  meridian is a long way east of it. The lean changes slowly through the year with the equation of
+  time, so the clock is squared again on every draw.
+
   All three are held square, and none of them can be aimed. An instrument's centre is its pole, its
   rim is a circle of declination and its horizon is cut for one latitude, so dragging it about would
   only take it to pieces. What a drag does instead is what your thumb does to a real planisphere: it
