@@ -698,3 +698,7 @@ elements and comet elements; the moon orbits are re-fitted from JPL Horizons at 
 
 The HYG database carries the Creative Commons Attribution-ShareAlike licence, which requires attribution,
 given on the page and here.
+
+## Licence
+
+The code is MIT, see `LICENSE`. The data and bundled libraries keep their own licences, listed above.
