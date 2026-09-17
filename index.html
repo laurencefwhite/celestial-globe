@@ -1816,7 +1816,8 @@ function defaultOrient(kind) {
 }
 var northTop = true, eastRight = true;
 var facing = obs.lat < 0 ? 'N' : 'S';            /* kept for the roll and for old links */
-function mirrorNow() { return eastRight === northTop; }
+/* Pointed at the sky the phone is a window, and a window is never a mirror, whatever the menus were left saying. */
+function mirrorNow() { return pointing ? false : eastRight === northTop; }
 function reflectNow() { return !mirrorNow(); }
 function orientFacing() { return northTop ? 'S' : 'N'; }
 var pointing = false, pointRoll = 0, pointFrozen = false;
@@ -7428,6 +7429,7 @@ function worldToJ2000(east, north, up, c) {
   return vnorm(vadd(vadd(vscale(c.E, east), vscale(c.N, north)), vscale(c.Z, up)));
 }
 var pointHandler = null, pointEvent = 'deviceorientationabsolute', pointRaf = null, lastOrient = null;
+var POINT_ZOOM = 3.4, pointZoomBefore = null, pointZoomPending = false;
 function orientationVectors(e) {
   var alpha = e.alpha, absolute = e.absolute;
   if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) { alpha = 360 - e.webkitCompassHeading; absolute = true; }
@@ -7471,6 +7473,8 @@ function applyOrientation(e) {
   });
 }
 function stopPointing() {
+  if (pointing && pointZoomBefore !== null && Math.abs(zoom - POINT_ZOOM) < 1e-6) zoom = pointZoomBefore;   /* only if it was left alone */
+  pointZoomBefore = null;
   pointing = false; pointFrozen = false;
   if (pointHandler) { window.removeEventListener(pointEvent, pointHandler); window.removeEventListener('deviceorientation', pointHandler); pointHandler = null; }
   updatePointUI();
@@ -7488,6 +7492,7 @@ function applyOrientationNow() {
   /* the first reading from the phone takes over from the opening flight to the zenith, so a browser
      that reports no orientation still gets that flight */
   if (flying) { cancelAnimationFrame(flying); flying = null; }
+  if (pointZoomPending) { pointZoomPending = false; if (zoom < POINT_ZOOM) zoom = POINT_ZOOM; }   /* the opening flight was still setting the zoom */
   var c = ensureSky();
   var dirJ = worldToJ2000(lastOrient.dir[0], lastOrient.dir[1], lastOrient.dir[2], c);
   var upJ = worldToJ2000(lastOrient.up[0], lastOrient.up[1], lastOrient.up[2], c);
@@ -7518,8 +7523,15 @@ function updatePointUI() {
 }
 function startPointing() {
   function go() {
+    /* Go inside properly. Setting the switch alone left the globe's projection and the globe's handedness
+       behind it, and the globe is a mirror: east came out on the left of north for anyone who began there. */
+    if (currentView() !== 'inside') setView('inside');
     pointing = true;
-    if (!opt.inside) { opt.inside = true; document.getElementById('L-inside').checked = true; syncViewUI(); }
+    northTop = true; eastRight = false; syncOrientUI();
+    /* A phone held up is a window about as wide as a hand at arm's length, not the whole sky: open it at
+       some seventy degrees across, and put the zoom back where it was afterwards. */
+    pointZoomBefore = Math.max(1, zoom); pointZoomPending = true;
+    if (!flying && zoom < POINT_ZOOM) { zoom = POINT_ZOOM; pointZoomPending = false; }
     if (!opt.hold) { opt.hold = true; document.getElementById('L-hold').checked = true; }
     pointHandler = applyOrientation;
     if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', pointHandler, true);
