@@ -2137,11 +2137,23 @@ function moonFrame(date) {
     var img = new Image(), rec = moonFrames[u] = { ok: false, img: img };
     img.onload = function () { rec.ok = true; moonFrameBusy = false; requestDraw(); };
     img.onerror = function () { moonFrameBusy = false; };
+    setTimeout(function () { if (!rec.ok) moonFrameBusy = false; }, 20000);      /* a request that hangs must not hold up the next hour's */
     img.src = u;
     moonFrameOrder.push(u);
     if (moonFrameOrder.length > 24) delete moonFrames[moonFrameOrder.shift()];
   }, 450);
   return null;
+}
+/* The Moon is as dark as worn asphalt and an honest picture of it is grey. Against a night sky the eye sees
+   it white, so the picture is lifted: colour-dodge by a flat grey multiplies every pixel by the same gain
+   and lets the highlands run to white, while the black of the unlit side stays black. */
+function brightenDisc(x, y, r, gain) {
+  var g = Math.round(255 * (1 - 1 / gain));
+  ctx.save();
+  ctx.globalCompositeOperation = 'color-dodge';
+  ctx.fillStyle = 'rgb(' + g + ',' + g + ',' + g + ')';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill();
+  ctx.restore();
 }
 function drawMoonFrame(img, b, x, y, r, ne) {
   var half = 72205 * b.angR, k = r / half, n = ne[0], e = ne[1];
@@ -2152,10 +2164,12 @@ function drawMoonFrame(img, b, x, y, r, ne) {
   ctx.transform(-e[0] * k, -e[1] * k, -n[0] * k, -n[1] * k, x, y);
   ctx.drawImage(img, -364.5, -364.5);
   ctx.restore();
+  brightenDisc(x, y, r, 1.6);
   foreignDrawn = true;
 }
-function drawPicCircle(img, x, y, r, vignette) {
-  var iw = img.naturalWidth, ih = img.naturalHeight, sw = Math.min(iw, ih);
+function drawPicCircle(img, x, y, r, vignette, fill) {
+  /* fill: how much of the picture's square its subject takes up, so that a disc with a margin fills the circle */
+  var iw = img.naturalWidth, ih = img.naturalHeight, sw = Math.min(iw, ih) * (fill || 1);
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.clip();
   ctx.drawImage(img, (iw - sw) / 2, (ih - sw) / 2, sw, sw, x - r, y - r, 2 * r, 2 * r);
@@ -2840,9 +2854,10 @@ function paToAngle(pa, ne) {
 }
 function bodyMinRadius(b) {
   switch (b.kind) {
-    case 'sun': return 10;
-    case 'moon': return 9;
-    case 'planet': return clamp(6.5 - b.mag * 0.35, 3.2, 7.5);
+    /* symbols, not discs: the two lights are a clear step above any planet, as they are in the sky */
+    case 'sun': return 13;
+    case 'moon': return 12;
+    case 'planet': return clamp(5.2 - b.mag * 0.3, 3.0, 6.0);
     case 'pmoon': return 2.2;
     default: return b.dwarf ? 2.8 : 2.0;
   }
@@ -2901,13 +2916,14 @@ function drawBody(b, x, y, r, disc, c, neGiven) {
     return;
   }
   var ne = neGiven || screenNorthEast(b.v);
-  var mf = b.kind === 'moon' && r >= 12 && c && c.date ? moonFrame(c.date) : null;
+  var mf = b.kind === 'moon' && r >= 16 && c && c.date ? moonFrame(c.date) : null;
   if (b.kind === 'planet' && b.key === 'sat' && r >= (neGiven ? 3.5 : 7)) drawSaturn(b, x, y, r, ne, img);
   else if (mf) drawMoonFrame(mf, b, x, y, r, ne);
+  else if (img && b.kind === 'moon') { drawPicCircle(img, x, y, r, false, 0.865); brightenDisc(x, y, r, 2.2); }      /* Wikipedia's full Moon: a dark print with a black border */
   else if (img) drawPicCircle(img, x, y, r, false);
   else drawDisc(b, x, y, r, ne);
   /* phases for the Moon and the inner planets */
-  if (!mf && (b.kind === 'moon' || b.key === 'mer' || b.key === 'ven' || b.key === 'mar') && r >= (neGiven ? 3 : 5) && b.phase < 0.985) drawPhase(x, y, r, b.phase, paToAngle(b.limbPA, ne), b.kind === 'moon' ? 0.86 : 0.8);
+  if (!mf && (b.kind === 'moon' || b.key === 'mer' || b.key === 'ven' || b.key === 'mar') && r >= (neGiven ? 3 : 5) && b.phase < 0.985) drawPhase(x, y, r, b.phase, paToAngle(b.limbPA, ne), b.kind === 'moon' ? 0.92 : 0.8);
   if (b.kind === 'pmoon' && r < 3) {
     ctx.fillStyle = b.event && b.event.transit ? 'rgba(40,30,20,.85)' : 'rgba(235,240,250,.95)';
     ctx.beginPath(); ctx.arc(x, y, Math.max(1.4, r), 0, 2 * Math.PI); ctx.fill();
