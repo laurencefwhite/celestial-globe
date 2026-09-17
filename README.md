@@ -647,7 +647,9 @@ embedded. Three things come from the network, and each fails quietly rather than
   libration and the tilt of the axis all correct, and the page fetches the frame for the hour shown (about
   70 to 110 KB) and turns it to the view's north. The years 2011 to 2026 are covered. Outside them, offline,
   with Pictures off, while the clock is running, and while the Moon is small, the drawn phase is used as
-  before. NASA does not send an open CORS header, so *Save image* redraws the chart with the drawn Moon.
+  before. Either picture is lifted so that the highlands run to white, as the eye sees the Moon against a
+  night sky rather than as the grey it measures, and the Sun and Moon are drawn a clear step larger than any
+  planet when all of them are only symbols. NASA does not send an open CORS header, so *Save image* redraws the chart with the drawn Moon.
 - **Constellation artwork**, off by default, under Sky in the Layers panel: the 85 classical figures Johan
   Meuris drew for Stellarium's Western sky culture. Each picture has three of its stars marked, which is
   enough to wrap it onto the sphere, so the figures mirror on the globe and stretch with each projection as
