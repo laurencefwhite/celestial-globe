@@ -1,5 +1,11 @@
 # Kept beside the page for convenience, but not published.
 GITHUB-PAGES-NOTES.md
+WORKBOARD.md
+notes/
 old/
 build/cache/
-WORKBOARD.md
+
+# Scratch and crash files
+_tmp_*
+*.stackdump
+*.bak
