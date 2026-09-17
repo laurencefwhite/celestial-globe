@@ -551,7 +551,12 @@ drawn on the sphere.
   (J2000), under the name of every labelled object. Hovering anything gives both, with magnitude,
   distance, size and phase where they apply.
 - **A brightness scrubber** in the key: hold the faintest magnitude wherever you like, from −1 to 8,
-  or leave it on Auto to follow the zoom as it always has.
+  or leave it on Auto to follow the zoom as it always has. A held limit is a limit on everything with a
+  magnitude, not only the stars: the deep-sky objects, the planets and their moons, the asteroids and the
+  comets, whichever are switched on, so at 4.5 the chart really is the naked-eye sky, without Uranus. On Auto
+  each of those keeps its own rule, which knows about size and zoom as well. The scale stops at 8 because
+  the stars do, and nearly everything else is fainter, so the top of the scale means no limit for them. The
+  Sun and the Moon are never hidden; satellites and meteor showers have no magnitude to judge by.
 - **Names you can turn off one class at a time**: stars, deep-sky objects, planets, moons, asteroids,
   comets, satellites, meteor showers and the lines each have their own switch, and the switches sit
   in two columns.

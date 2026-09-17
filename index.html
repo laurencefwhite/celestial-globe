@@ -700,11 +700,11 @@ body.night #stage{filter:grayscale(1)}
   </div>
   <div class="panel" id="legend">
     <button class="pmin" data-name="Key" title="Minimise"></button>
-    <div class="lt"><span>Stars by magnitude</span></div>
+    <div class="lt"><span>Magnitude</span></div>
     <div class="mags"><canvas id="lg-mags"></canvas><span id="lg-maglim">to mag 6</span></div>
     <div class="sbar maglim">
       <button class="btn ico" id="magauto" title="Let the faintest magnitude follow the zoom">Auto</button>
-      <div class="hslider" id="hmag" tabindex="0" role="slider" aria-label="Faintest stars shown">
+      <div class="hslider" id="hmag" tabindex="0" role="slider" aria-label="Faintest magnitude shown">
         <div class="hticks"></div><div class="htrack"></div><div class="hfill"></div><div class="hmark"></div><div class="hthumb"></div>
       </div>
     </div>
@@ -2646,6 +2646,12 @@ function drawDaylight(c) {
 var magLimit = null;                             /* null: let the zoom decide, as it always has */
 function autoStarLimit() { return Math.min(8.0, 6.0 + magBoost + 2.2 * Math.log2(Math.max(0.82, zoom))); }
 function fullStarLimit() { return magLimit === null ? autoStarLimit() : magLimit; }
+/* A limit held on the scale is a limit on everything with a magnitude, not only on the stars: the deep sky,
+   the planets and their moons, the asteroids and the comets, whichever of them are switched on. On Auto each
+   keeps its own rule, which knows about size and zoom as well. The scale stops at eight because the stars
+   do, and nearly all of the rest is fainter, so the top of the scale means no limit for them. The Sun and
+   the Moon are never hidden, and satellites and meteor showers carry no magnitude to judge. */
+function tooFaint(mag) { return magLimit !== null && magLimit < 7.95 && mag > magLimit; }
 function starLimit() {
   return fullStarLimit() - 4.5 * skyBrightness(sky);   /* daylight drowns all but the brightest */
 }
@@ -2746,6 +2752,7 @@ function drawDSOs(c, pass) {
   for (var i = 0; i < dsoList.length; i++) {
     var d = dsoList[i];
     if (dsoMessierOnly && !d.messier) continue;
+    if (tooFaint(d.mag)) continue;
     var sizePx = (d.a / 60) * DEG * s / 2;          /* semi-major axis in px */
     var show = d.messier ? zoom >= 0.9 || d.mag < 7 : (d.mag <= lim || sizePx >= 8 || (d.name && zoom > 2 && d.mag <= lim + 1.5));
     if (!show) continue;
@@ -2849,6 +2856,7 @@ function drawBodies(c) {
     if (b.kind === 'pmoon' && !opt.moons) continue;
     if (b.kind === 'asteroid' && !opt.asteroids) continue;
     if (b.kind === 'comet' && (!opt.comets || b.mag > cometLimit())) continue;
+    if (b.kind !== 'sun' && b.kind !== 'moon' && tooFaint(b.mag)) continue;
     var p = proj(b.v);
     if (!onScreen(p, 80)) continue;
     var disc = b.angR * s, r = Math.max(bodyMinRadius(b), disc);
@@ -2910,7 +2918,7 @@ function drawMoonShadows(c) {
   var s = R0 * zoom;
   for (var i = 0; i < bodies.length; i++) {
     var b = bodies[i];
-    if (b.kind !== 'pmoon' || !b.event || !b.event.shadow) continue;
+    if (b.kind !== 'pmoon' || !b.event || !b.event.shadow || tooFaint(b.mag)) continue;
     var parentR = b.parent.angR * s;
     if (parentR < 5) continue;
     var v = vnorm(vadd(b.parent.geoKm, b.event.shadowRel));
@@ -3153,6 +3161,7 @@ function drawPaths(c) {
   if (hover && hover.kind === 'body' && pathSpanFor(hover.ref)) list = [hover.ref];
   else list = bodies.filter(function (b) {
     if (b.kind === 'sun' || b.kind === 'moon') return true;
+    if (tooFaint(b.mag)) return false;
     if (b.kind === 'planet') return true;
     if (b.kind === 'comet') return b.mag < 12;
     if (b.kind === 'asteroid') return b.dwarf || b.mag < 9;
@@ -7062,12 +7071,15 @@ function lineKey(parent, colour, dash, label) {
 })();
 var magSlider = hSlider(document.getElementById('hmag'), {
   min: -1, max: 8, step: 0.1, wheel: 0.5, value: 6, ticks: [{ v: 0, major: true }, { v: 2 }, { v: 4, major: true }, { v: 6 }, { v: 8, major: true }],
-  onInput: function (v) { magLimit = v; magAutoBtn.classList.remove('on'); markCustom(); draw(); }
+  onInput: function (v) {
+    magLimit = v; magAutoBtn.classList.remove('on'); markCustom(); draw();
+    setStatus(magLimit >= 7.95 ? 'Stars to magnitude 8; no limit on the deep sky and the solar system' : 'Nothing fainter than magnitude ' + magLimit.toFixed(1) + ' is shown, stars or otherwise');
+  }
 });
 var magAutoBtn = document.getElementById('magauto');
 magAutoBtn.addEventListener('click', function () {
   magLimit = null; magAutoBtn.classList.add('on'); markCustom();
-  setStatus('The faintest stars shown follow the zoom again');
+  setStatus('The faintest magnitude shown follows the zoom again');
   draw();
 });
 magAutoBtn.classList.add('on');
