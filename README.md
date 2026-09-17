@@ -637,6 +637,18 @@ embedded. Three things come from the network, and each fails quietly rather than
 - **Satellite elements** from CelesTrak, cached in the browser for six hours. Offline, the embedded
   snapshot is used; satellite positions drift as the elements age, so a snapshot more than a week or
   two old is indicative only.
+- **The Moon as it is**, once it is zoomed large enough to tell: NASA's Scientific Visualization Studio
+  renders the Moon for every hour of the year from Lunar Reconnaissance Orbiter data, with the phase, the
+  libration and the tilt of the axis all correct, and the page fetches the frame for the hour shown (about
+  70 to 110 KB) and turns it to the view's north. The years 2011 to 2026 are covered. Outside them, offline,
+  with Pictures off, while the clock is running, and while the Moon is small, the drawn phase is used as
+  before. NASA does not send an open CORS header, so *Save image* redraws the chart with the drawn Moon.
+- **Constellation artwork**, off by default, under Sky in the Layers panel: the 85 classical figures Johan
+  Meuris drew for Stellarium's Western sky culture. Each picture has three of its stars marked, which is
+  enough to wrap it onto the sphere, so the figures mirror on the globe and stretch with each projection as
+  the stars do. The pictures sit in `figures/` (0.65 MB in all, about 8 KB each) and one is fetched only when
+  its part of the sky first comes onto the screen, so the page itself is no heavier for them. They are not
+  drawn on the astrolabe or the clock.
 - **Pictures** from Wikipedia, with the picture URLs cached in the browser for a month. Offline, the
   drawn icons are used instead. Pictures are shown in whatever orientation Wikipedia has them, so a
   galaxy's tilt on the globe is not its real position angle.
@@ -693,6 +705,8 @@ elements and comet elements; the moon orbits are re-fitted from JPL Horizons at 
 | Meteor showers | [IAU Meteor Data Center](https://www.ta3.sk/IAUC22DB/MDC2022/) and the [IMO](https://www.imo.net) working list |
 | Satellites | [CelesTrak](https://celestrak.org) general perturbations elements |
 | Pictures | [Wikipedia](https://en.wikipedia.org), via the page-summary API |
+| The Moon's face | [NASA Scientific Visualization Studio](https://svs.gsfc.nasa.gov/gallery/moonphase/), Moon Phase and Libration, Ernie Wright; NASA imagery, free to use with credit |
+| Constellation artwork | Johan Meuris, from [Stellarium's Western sky culture](https://github.com/Stellarium/stellarium-skycultures/tree/master/western); [Free Art License](https://artlibre.org/licence/lal/en/) |
 | Cities | Natural Earth populated places, from the sibling world clock |
 | Rendering | [d3-geo](https://d3js.org/d3-geo) (ISC) and [satellite.js](https://github.com/shashwatak/satellite-js) (MIT) |
 
@@ -701,4 +715,6 @@ given on the page and here.
 
 ## Licence
 
-The code is MIT, see `LICENSE`. The data and bundled libraries keep their own licences, listed above.
+The code is MIT, see `LICENSE`. The data and bundled libraries keep their own licences, listed above. The
+pictures in `figures/` are Johan Meuris's and stay under the Free Art License: they may be copied and
+altered with credit, and copies stay under the same licence.
