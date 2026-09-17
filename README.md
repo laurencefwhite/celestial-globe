@@ -79,6 +79,9 @@ drawn on the sphere.
   it. A **Freeze** pill beside the folded Layers pill holds the sky still while you read it and lets
   it follow again, and the screen is kept awake while you are out under it. Where the browser insists on being
   asked first, as Safari does, the pill reads *Point at sky* until you tap it once.
+  Pointing always shows the sky the right way round, never mirrored, whichever view it was started from
+  and whatever the East menu was left saying, and it opens at about seventy degrees across the screen
+  rather than the whole sky; pinch to change that, and the earlier zoom returns when pointing stops.
 - **A planisphere, an astrolabe and an astronomical clock**, one press each. All three are
   instruments rather than views: the
   sky about the pole that stands above you, laid flat inside a rim that bounds the card, with
