@@ -728,3 +728,7 @@ given on the page and here.
 The code is MIT, see `LICENSE`. The data and bundled libraries keep their own licences, listed above. The
 pictures in `figures/` are Johan Meuris's and stay under the Free Art License: they may be copied and
 altered with credit, and copies stay under the same licence.
+
+## Copyright
+
+Code and page © 2026 Laurence F. White, released under the MIT licence in `LICENSE`. Data and artwork carry their own licences, listed above.
